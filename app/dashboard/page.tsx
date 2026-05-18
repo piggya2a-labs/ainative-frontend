@@ -25,19 +25,18 @@ export default async function DashboardPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 未登录或匿名用户 → 跳转登录
   if (!user || user.is_anonymous) {
     redirect('/login')
   }
 
-  // 获取用户的 tenant
+  // Tenant
   const { data: tenant } = await supabase
     .from('tenants')
     .select('id, name, slug, status, created_at')
     .eq('user_id', user.id)
     .single()
 
-  // 获取 API Keys（初始值，客户端会 refresh）
+  // API Keys
   const { data: apiKeys } = tenant
     ? await supabase
         .from('tenant_api_keys')
@@ -47,11 +46,47 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false })
     : { data: [] }
 
+  // Agents（从 agent_registry 读，排除 spec 行）
+  const { data: agents } = await supabase
+    .from('agent_registry')
+    .select('id, name, type, description, url, tags, enabled')
+    .eq('enabled', true)
+    .neq('type', 'spec')
+    .order('created_at', { ascending: true })
+
+  // MCP Tools（enabled 的 cap_ 工具 = 已接入的 MCP 能力）
+  const { data: mcpTools } = await supabase
+    .from('tool_registry')
+    .select('id, tool_name, category, annotations')
+    .eq('enabled', true)
+    .like('tool_name', 'cap_%')
+    .order('created_at', { ascending: true })
+
+  // GitHub 集成状态（从 github_installation_bindings 读）
+  const { data: githubBindings } = tenant
+    ? await supabase
+        .from('github_installation_bindings')
+        .select('id, repository_full_name, status, created_at')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'active')
+    : { data: [] }
+
+  // Recent audit logs（最近 10 条系统活动）
+  const { data: auditLogs } = await supabase
+    .from('audit_logs')
+    .select('id, action, resource_type, status, metadata, created_at')
+    .order('created_at', { ascending: false })
+    .limit(10)
+
   return (
     <DashboardClient
       user={user}
       tenant={tenant}
       initialApiKeys={apiKeys ?? []}
+      agents={agents ?? []}
+      mcpTools={mcpTools ?? []}
+      githubBindings={githubBindings ?? []}
+      auditLogs={auditLogs ?? []}
     />
   )
 }
