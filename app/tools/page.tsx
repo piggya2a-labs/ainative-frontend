@@ -1,12 +1,20 @@
+import { createClient } from '@supabase/supabase-js'
+import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
-import { Badge } from '@/components/ui/badge'
-import { createClient } from '@supabase/supabase-js'
 import { getSiteConfig } from '@/lib/queries'
 
 export const revalidate = 60
 
-async function getCapabilityTools() {
+type ToolRow = {
+  id: string
+  tool_name: string
+  description?: string
+  category?: string
+  annotations?: Record<string, string>
+}
+
+async function getCapabilityTools(): Promise<ToolRow[]> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -19,12 +27,10 @@ async function getCapabilityTools() {
     .filter('annotations->>visibility', 'eq', 'external')
     .order('category')
     .order('tool_name')
-
   if (error) return []
   return data ?? []
 }
 
-// Map category to a human-readable label
 const CATEGORY_LABELS: Record<string, string> = {
   trigger: 'Trigger.dev',
   n8n_mcp: 'n8n',
@@ -34,12 +40,11 @@ function categoryLabel(cat: string) {
   return CATEGORY_LABELS[cat] ?? cat
 }
 
-type ToolRow = {
-  id: string
-  tool_name: string
-  description?: string
-  category?: string
-  annotations?: Record<string, string>
+// 只取描述的第一句话
+function firstSentence(text: string): string {
+  const line = text.split('\n')[0].trim()
+  const match = line.match(/^[^。！？.!?]+[。！？.!?]?/)
+  return match ? match[0].trim() : line.slice(0, 80)
 }
 
 const MCP_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mcp-server?agent=l1-operator-agent`
@@ -50,39 +55,34 @@ export default async function ToolsPage() {
     getSiteConfig(),
   ])
 
-  // Group by category
+  const p = siteConfig?.pages?.tools
+  const emptyState = p?.empty_state || '注册表中暂无对外暴露的工具。'
+  const mcpLabel = p?.mcp_label || 'MCP Server 端点'
+  const mcpMethodsLabel = p?.mcp_methods_label || '支持 JSON-RPC 2.0：'
+  const mcpMethods: string[] = p?.mcp_methods ?? ['initialize', 'tools/list', 'tools/call']
+
   const grouped = tools.reduce<Record<string, ToolRow[]>>((acc, tool) => {
     const cat = tool.category ?? 'other'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(tool)
     return acc
   }, {})
-
   const categories = Object.keys(grouped).sort()
-
-  const p = siteConfig?.pages?.tools
-  const eyebrow = p?.eyebrow || 'Capability Tools'
-  const description = p?.description || '这些是通过 MCP Server 对外暴露的 Capability 工具。Infrastructure 和 System 工具为内部工具，不在此列。'
-  const emptyState = p?.empty_state || '注册表中暂无 Capability 工具。'
-  const mcpLabel = p?.mcp_label || 'MCP Server 端点'
-  const mcpMethodsLabel = p?.mcp_methods_label || 'Supports JSON-RPC 2.0:'
-  const mcpMethods = p?.mcp_methods ?? ['initialize', 'tools/list', 'tools/call']
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar siteConfig={siteConfig} />
-      <main className="max-w-5xl mx-auto px-4 pt-28 pb-16">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground mb-4">
-            {eyebrow}
-          </p>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            {tools.length} tools available via MCP
+
+      <main className="max-w-4xl mx-auto px-4 pt-28 pb-16">
+
+        {/* Header — 纯数字，无口号 */}
+        <div className="mb-10 flex items-baseline justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Tools
           </h1>
-          <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            {description}
-          </p>
+          <span className="text-sm text-muted-foreground font-mono">
+            {tools.length} tools · MCP
+          </span>
         </div>
 
         {tools.length === 0 && (
@@ -91,39 +91,42 @@ export default async function ToolsPage() {
           </p>
         )}
 
-        {/* Grouped by category */}
-        <div className="space-y-10">
+        {/* Tool list grouped by category */}
+        <div className="space-y-8">
           {categories.map((cat) => (
             <section key={cat}>
-              <div className="flex items-center gap-3 mb-5">
-                <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
                   {categoryLabel(cat)}
-                </h2>
+                </span>
                 <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">{grouped[cat].length}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {grouped[cat].length}
+                </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+              <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
                 {grouped[cat].map((tool) => (
                   <div
                     key={tool.id}
-                    className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-colors"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-sm font-mono font-medium leading-snug">
+                    <div className="min-w-0">
+                      <span className="text-sm font-mono font-medium block truncate">
                         {tool.tool_name}
                       </span>
-                      <Badge
-                        variant="outline"
-                        className="text-xs shrink-0 bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.55_0.15_145)] border-[oklch(0.65_0.15_145)]/20"
-                      >
-                        External
-                      </Badge>
+                      {tool.description && (
+                        <span className="text-xs text-muted-foreground truncate block mt-0.5">
+                          {firstSentence(tool.description)}
+                        </span>
+                      )}
                     </div>
-                    {tool.description && (
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                        {tool.description}
-                      </p>
-                    )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    >
+                      External
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -131,27 +134,31 @@ export default async function ToolsPage() {
           ))}
         </div>
 
-        {/* MCP endpoint info */}
+        {/* MCP endpoint — compact */}
         {tools.length > 0 && (
-          <div className="mt-14 p-5 rounded-lg border border-border bg-muted/30">
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-              {mcpLabel}
-            </p>
-            <code className="text-xs font-mono text-foreground block mb-2">
-              {MCP_ENDPOINT}
-            </code>
-            <p className="text-xs text-muted-foreground">
-              {mcpMethodsLabel}{' '}
-              {mcpMethods.map((m: string, i: number) => (
-                <span key={m}>
-                  <span className="font-mono">{m}</span>
-                  {i < mcpMethods.length - 1 ? ', ' : ''}
-                </span>
-              ))}
-            </p>
+          <div className="mt-10 flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/20">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1.5">
+                {mcpLabel}
+              </p>
+              <code className="text-xs font-mono text-foreground block truncate">
+                {MCP_ENDPOINT}
+              </code>
+              <p className="text-xs text-muted-foreground mt-1">
+                {mcpMethodsLabel}{' '}
+                {mcpMethods.map((m, i) => (
+                  <span key={m}>
+                    <span className="font-mono">{m}</span>
+                    {i < mcpMethods.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </p>
+            </div>
           </div>
         )}
+
       </main>
+
       <CTASection siteConfig={siteConfig} />
       <Footer siteConfig={siteConfig} />
     </div>
