@@ -22,9 +22,7 @@ async function getCapabilityTools(): Promise<ToolRow[]> {
   const { data, error } = await supabase
     .from('tool_registry')
     .select('id, tool_name, description, category, annotations, owner_agent')
-    .eq('owner_agent', 'platform')
     .eq('enabled', true)
-    .filter('annotations->>visibility', 'eq', 'external')
     .order('category')
     .order('tool_name')
   if (error) return []
@@ -125,7 +123,7 @@ export default async function ToolsPage() {
                       variant="outline"
                       className="text-[10px] shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                     >
-                      External
+                      {tool.annotations?.visibility === 'external' ? 'External' : 'Active'}
                     </Badge>
                   </div>
                 ))}
