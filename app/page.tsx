@@ -40,8 +40,8 @@ export default async function Home() {
       <Hero siteConfig={siteConfig} agentCount={agentCount} toolCount={toolCount} />
       <Features siteConfig={siteConfig} />
       <ToolsGrid siteConfig={siteConfig} />
-      <CTASection />
-      <Footer />
+      <CTASection siteConfig={siteConfig} />
+      <Footer siteConfig={siteConfig} />
     </main>
   )
 }

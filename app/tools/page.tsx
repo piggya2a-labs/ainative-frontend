@@ -2,6 +2,7 @@ import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@supabase/supabase-js'
+import { getSiteConfig } from '@/lib/queries'
 
 export const revalidate = 60
 
@@ -41,8 +42,13 @@ type ToolRow = {
   annotations?: Record<string, string>
 }
 
+const MCP_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mcp-server?agent=l1-operator-agent`
+
 export default async function ToolsPage() {
-  const tools = await getCapabilityTools()
+  const [tools, siteConfig] = await Promise.all([
+    getCapabilityTools(),
+    getSiteConfig(),
+  ])
 
   // Group by category
   const grouped = tools.reduce<Record<string, ToolRow[]>>((acc, tool) => {
@@ -54,27 +60,32 @@ export default async function ToolsPage() {
 
   const categories = Object.keys(grouped).sort()
 
+  const p = siteConfig?.pages?.tools
+  const eyebrow = p?.eyebrow || 'Capability Tools'
+  const description = p?.description || '这些是通过 MCP Server 对外暴露的 Capability 工具。Infrastructure 和 System 工具为内部工具，不在此列。'
+  const emptyState = p?.empty_state || '注册表中暂无 Capability 工具。'
+  const mcpLabel = p?.mcp_label || 'MCP Server 端点'
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar siteConfig={siteConfig} />
       <main className="max-w-5xl mx-auto px-4 pt-28 pb-16">
         {/* Header */}
         <div className="mb-12 text-center">
           <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground mb-4">
-            Capability Tools
+            {eyebrow}
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
             {tools.length} tools available via MCP
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            These are the external-facing Capability tools exposed through the MCP server.
-            Infrastructure and system tools are internal and not listed here.
+            {description}
           </p>
         </div>
 
         {tools.length === 0 && (
           <p className="text-center text-muted-foreground py-20 text-sm font-mono">
-            No capability tools found in registry.
+            {emptyState}
           </p>
         )}
 
@@ -122,10 +133,10 @@ export default async function ToolsPage() {
         {tools.length > 0 && (
           <div className="mt-14 p-5 rounded-lg border border-border bg-muted/30">
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-              MCP Server Endpoint
+              {mcpLabel}
             </p>
             <code className="text-xs font-mono text-foreground block mb-2">
-              https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l1-operator-agent
+              {MCP_ENDPOINT}
             </code>
             <p className="text-xs text-muted-foreground">
               Supports JSON-RPC 2.0: <span className="font-mono">initialize</span>,{' '}
@@ -135,8 +146,8 @@ export default async function ToolsPage() {
           </div>
         )}
       </main>
-      <CTASection />
-      <Footer />
+      <CTASection siteConfig={siteConfig} />
+      <Footer siteConfig={siteConfig} />
     </div>
   )
 }

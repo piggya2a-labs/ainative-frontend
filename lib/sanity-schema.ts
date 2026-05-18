@@ -76,6 +76,15 @@ export interface SiteConfig {
     lastUpdatedAt: string
     lastUpdatedBy: string
   }
+  cta?: {
+    headline?: string
+    description?: string
+    buttonText?: string
+    buttonUrl?: string
+    cta_subtitle?: string
+    hero_cta?: string
+  }
+  pages?: SiteConfigPages
 }
 
 export interface ABTest {
@@ -89,4 +98,35 @@ export interface ABTest {
     content: Record<string, string>
   }>
   active: boolean
+}
+
+// pages 字段：各页面文案（Sanity siteConfig.pages）
+export interface SiteConfigPages {
+  agents?: {
+    eyebrow?: string
+    headline_suffix?: string
+    description?: string
+    core_label?: string
+    external_label?: string
+    empty_state?: string
+  }
+  tools?: {
+    eyebrow?: string
+    headline_suffix?: string
+    description?: string
+    empty_state?: string
+    mcp_label?: string
+  }
+  cta?: {
+    headline?: string
+    description?: string
+    button_text?: string
+    subtitle?: string
+    success_message?: string
+    no_spam?: string
+  }
+  footer?: {
+    tagline?: string
+    links?: string[]
+  }
 }

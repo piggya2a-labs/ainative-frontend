@@ -2,6 +2,7 @@ import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@supabase/supabase-js'
+import { getSiteConfig } from '@/lib/queries'
 
 export const revalidate = 60
 
@@ -16,7 +17,6 @@ async function getAgents() {
     .eq('type', 'agent')
     .eq('enabled', true)
     .order('id')
-
   if (error) return []
   return data ?? []
 }
@@ -47,7 +47,6 @@ function AgentCard({ agent }: { agent: AgentRow }) {
   const tier = getTier(agent.id)
   const isLive = agent.url && agent.url !== 'pending'
   const skills = agent.skills ?? []
-
   return (
     <div className="p-5 rounded-lg border border-border hover:border-foreground/20 transition-colors flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
@@ -63,13 +62,11 @@ function AgentCard({ agent }: { agent: AgentRow }) {
           {isLive ? 'Live' : 'Pending'}
         </Badge>
       </div>
-
       {agent.description && (
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
           {agent.description}
         </p>
       )}
-
       <div className="flex items-center gap-2 flex-wrap mt-auto">
         <Badge variant="secondary" className="text-xs">{tier}</Badge>
         {skills.map((s) => (
@@ -83,32 +80,41 @@ function AgentCard({ agent }: { agent: AgentRow }) {
 }
 
 export default async function AgentsPage() {
-  const agents = await getAgents()
+  const [agents, siteConfig] = await Promise.all([
+    getAgents(),
+    getSiteConfig(),
+  ])
+
   const coreAgents = agents.filter((a) => !isExternal(a.id))
   const externalAgents = agents.filter((a) => isExternal(a.id))
 
+  const p = siteConfig?.pages?.agents
+  const eyebrow = p?.eyebrow || 'Agent Team'
+  const description = p?.description || '每个 Agent 有明确的职责、能力集和在线端点。后端新增 Agent 后自动被发现。'
+  const coreLabel = p?.core_label || 'Core — 始终加载'
+  const externalLabel = p?.external_label || 'External — 按需加载'
+  const emptyState = p?.empty_state || '注册表中暂无 Agent。'
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar siteConfig={siteConfig} />
       <main className="max-w-5xl mx-auto px-4 pt-28 pb-16">
         <div className="mb-12 text-center">
           <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground mb-4">
-            Agent Team
+            {eyebrow}
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
             {agents.length} agents, always running
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Each agent has a defined role, a set of capabilities, and a live endpoint.
-            New agents are discovered automatically from the backend registry.
+            {description}
           </p>
         </div>
-
         {coreAgents.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center gap-3 mb-5">
               <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
-                Core — always loaded
+                {coreLabel}
               </h2>
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">{coreAgents.length}</span>
@@ -120,12 +126,11 @@ export default async function AgentsPage() {
             </div>
           </section>
         )}
-
         {externalAgents.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-5">
               <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
-                External — deferred, on-demand
+                {externalLabel}
               </h2>
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">{externalAgents.length}</span>
@@ -137,15 +142,14 @@ export default async function AgentsPage() {
             </div>
           </section>
         )}
-
         {agents.length === 0 && (
           <p className="text-center text-muted-foreground py-20 text-sm font-mono">
-            No agents found in registry.
+            {emptyState}
           </p>
         )}
       </main>
-      <CTASection />
-      <Footer />
+      <CTASection siteConfig={siteConfig} />
+      <Footer siteConfig={siteConfig} />
     </div>
   )
 }
