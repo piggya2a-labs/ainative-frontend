@@ -1,4 +1,4 @@
-name: Claude Code — 页面补全与构建修复
+name: Claude Code — 集成修复与闭环补全
 
 on:
   issue_comment:
@@ -31,44 +31,67 @@ jobs:
           github_token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
           mode: agent
           direct_prompt: |
-            你是一个 Next.js + Shadcn UI 前端工程师，负责完成以下任务。
-            
+            你是一个 Next.js + TypeScript 工程师，负责完成以下 4 个任务。
+            所有修改在一次 commit 中完成，commit message：
+            `feat: add /api/health, Vercel Analytics, remove onboarding, fix health_agent`
+
             ## 项目背景
-            这是一个 AI Native 产品落地页（Next.js 16 + Shadcn UI + TypeScript + TailwindCSS），
-            部署在 Vercel，集成了 PostHog 埋点和 Sanity CMS。
-            
-            ## 任务清单（按顺序完成）
-            
-            ### 1. 修复构建错误（最优先）
-            `components/hero.tsx` 有 TypeScript 错误：
-            Button 组件使用了 `asChild` prop，但当前 Button 实现不支持。
-            修复方式：移除 `asChild` prop，改用条件渲染（如果有 ctaHref 就用 `<a>` 标签，否则普通 Button）。
-            确保 `npm run build` 能通过。
-            
-            ### 2. 创建 /agents 页面
-            路径：`app/agents/page.tsx`
-            内容：展示平台提供的 AI Agent 能力列表。
-            参考现有组件风格（Shadcn UI，极简黑白）。
-            包含：页面标题、Agent 卡片列表（至少 6 个，每个有名称、描述、状态、使用场景）。
-            
-            ### 3. 创建 /tools 页面
-            路径：`app/tools/page.tsx`
-            内容：完整的工具目录，比首页更详细。
-            复用 `components/tools-grid.tsx` 组件，加上页面标题和分类筛选。
-            
-            ### 4. 创建 /docs 页面
-            路径：`app/docs/page.tsx`
-            内容：快速上手文档页面。
-            包含：Getting Started（3步接入）、API Reference（简单示例）、MCP Server 接入说明。
-            极简风格，等宽字体代码块。
-            
-            ## 技术要求
-            - 使用 Shadcn UI 组件（Button、Card、Badge 等，已安装）
-            - 使用 TailwindCSS 样式
-            - 复用 `components/navbar.tsx` 和 `components/cta-footer.tsx`
-            - 不要引入新的 npm 包
-            - TypeScript 类型必须正确，`npm run build` 必须通过
-            
-            ## 完成后
-            所有修改直接 commit 到 main 分支，commit message：
-            `feat: 补全 agents/tools/docs 页面，修复构建错误`
+            这是 ONIT AI Native Closed Loop 哑前端（Next.js 16 + TypeScript + TailwindCSS + Shadcn UI），
+            部署在 Vercel，集成 PostHog + Sanity CMS + Supabase。
+
+            ## 任务 1：创建 /api/health 端点
+            创建文件 `app/api/health/route.ts`，内容如下（逐字复制，不要修改）：
+
+            export const dynamic = 'force-dynamic'
+            import { NextResponse } from 'next/server'
+            export async function GET() {
+              const checks: Record<string, { ok: boolean; detail?: string }> = {}
+              try {
+                const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+                if (!projectId) throw new Error('NEXT_PUBLIC_SANITY_PROJECT_ID not set')
+                const r = await fetch(`https://${projectId}.api.sanity.io/v2024-01-01/data/query/production?query=1`, { cache: 'no-store' })
+                checks.sanity = { ok: r.ok, detail: r.ok ? `project=${projectId}` : `HTTP ${r.status}` }
+              } catch (e) { checks.sanity = { ok: false, detail: String(e) } }
+              try {
+                const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+                const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                if (!url || !key) throw new Error('Supabase env not set')
+                const r = await fetch(`${url}/rest/v1/`, { headers: { apikey: key }, cache: 'no-store' })
+                checks.supabase = { ok: r.ok, detail: r.ok ? 'connected' : `HTTP ${r.status}` }
+              } catch (e) { checks.supabase = { ok: false, detail: String(e) } }
+              const requiredEnvs = ['NEXT_PUBLIC_SANITY_PROJECT_ID','NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_POSTHOG_KEY','AGENT_API_SECRET','SANITY_API_WRITE_TOKEN']
+              const envChecks: Record<string, boolean> = {}
+              for (const k of requiredEnvs) envChecks[k] = !!process.env[k]
+              checks.env = { ok: Object.values(envChecks).every(Boolean), detail: JSON.stringify(envChecks) }
+              const allOk = Object.values(checks).every((c) => c.ok)
+              return NextResponse.json({ status: allOk ? 'ok' : 'degraded', timestamp: new Date().toISOString(), checks }, { status: allOk ? 200 : 503 })
+            }
+
+            ## 任务 2：接入 Vercel Analytics 和 Speed Insights
+            1. 在 `package.json` 的 `dependencies` 中添加（在现有依赖后面）：
+               "@vercel/analytics": "^1.5.0",
+               "@vercel/speed-insights": "^1.2.0"
+            2. 在 `app/layout.tsx` 顶部 import 区域添加：
+               import { Analytics } from '@vercel/analytics/react'
+               import { SpeedInsights } from '@vercel/speed-insights/next'
+            3. 在 layout.tsx 的 </body> 之前，{children} 之后添加：
+               <Analytics />
+               <SpeedInsights />
+
+            ## 任务 3：删除废弃的 /onboarding 目录
+            删除整个 `app/onboarding/` 目录及其所有文件。
+
+            ## 任务 4：更新 health_agent.py
+            在 `agents/health_agent.py` 中，找到检查前端 API 的函数，将检查 URL 改为 `/api/health`。
+            如果没有这个函数，在 results = [] 之后添加：
+            def check_frontend_api():
+                r = requests.get(f"{VERCEL_PROD_URL}/api/health", timeout=10)
+                if r.status_code == 200:
+                    data = r.json()
+                    status = data.get("status", "unknown")
+                    return status == "ok", f"前端健康: {status}"
+                return False, f"前端 /api/health 返回 {r.status_code}"
+            并在主检查流程中调用：check("前端 API 健康", check_frontend_api)
+
+            ## 完成要求
+            TypeScript 编译必须通过，所有 4 个任务完成后一次性 commit 到 main 分支。
