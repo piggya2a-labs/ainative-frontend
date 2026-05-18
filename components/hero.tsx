@@ -10,11 +10,11 @@ interface HeroProps {
 }
 
 const defaultContent = {
-  headline: 'Your AI Agent Team,\nReady to Work',
-  subheadline: 'Delegate complex tasks to specialized AI agents. They coordinate, execute, and iterate — so you can focus on what matters.',
-  ctaText: 'Start for free',
+  headline: 'Stop Managing Tasks.\nLet AI Agents Do It.',
+  subheadline: 'Upload a doc, describe a goal, or paste a link — your AI team researches, writes, analyzes, and delivers results in minutes.',
+  ctaText: 'Try it free — no signup',
   ctaHref: '#',
-  badge: 'Now in Beta',
+  badge: '✨ Beta · 500+ tasks completed',
 }
 
 export function Hero({ content }: HeroProps) {
@@ -37,23 +37,23 @@ export function Hero({ content }: HeroProps) {
 
       <div className="max-w-3xl mx-auto space-y-6">
         {c.badge && (
-          <Badge variant="outline" className="text-xs px-3 py-1 rounded-full">
+          <Badge variant="outline" className="text-xs px-3 py-1.5 rounded-full border-primary/20 bg-primary/5">
             {c.badge}
           </Badge>
         )}
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight whitespace-pre-line">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] whitespace-pre-line">
           {c.headline}
         </h1>
 
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           {c.subheadline}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
           <Button
             size="lg"
-            className="text-sm px-8"
+            className="text-sm px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
             onClick={handleCTA}
           >
             {c.ctaText}
@@ -61,15 +61,15 @@ export function Hero({ content }: HeroProps) {
           <Button
             size="lg"
             variant="outline"
-            className="text-sm px-8"
+            className="text-sm px-8 h-12"
             onClick={() => posthog?.capture('hero_secondary_cta_click')}
           >
-            See how it works
+            Watch 2-min demo
           </Button>
         </div>
 
         <p className="text-xs text-muted-foreground pt-2">
-          No credit card required · Free tier available
+          No credit card · No account needed · See results in 60 seconds
         </p>
       </div>
     </section>
