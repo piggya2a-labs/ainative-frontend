@@ -117,6 +117,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ─── ONIT Brand Tokens ────────────────────────────────────────────────────
+   所有组件只用这些 token，不用裸色值（如 #fff、oklch(...)）
+   修改品牌色只需改这里，全站自动跟上
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  /* 品牌绿：在线状态、成功、connected */
+  --onit-green: oklch(0.65 0.18 145);
+  --onit-green-muted: oklch(0.65 0.18 145 / 15%);
+
+  /* 品牌蓝：链接、hover、active */
+  --onit-blue: oklch(0.55 0.2 260);
+  --onit-blue-muted: oklch(0.55 0.2 260 / 15%);
+
+  /* 状态色 */
+  --onit-amber: oklch(0.75 0.18 75);   /* 待机、pending */
+  --onit-red: oklch(0.577 0.245 27);   /* 错误、destructive（同 --destructive） */
+
+  /* 层级 badge 色（Agent 职责） */
+  --badge-exec: oklch(0.55 0.2 260 / 15%);    /* 执行 */
+  --badge-arch: oklch(0.65 0.18 145 / 15%);   /* 设计/架构 */
+  --badge-coord: oklch(0.75 0.18 75 / 15%);   /* 协调 */
+  --badge-audit: oklch(0.577 0.245 27 / 15%); /* 审核 */
+  --badge-ops: oklch(0.55 0.15 200 / 15%);    /* 运维 */
+  --badge-core: oklch(0.205 0 0 / 10%);       /* 核心 */
+}
+
+@theme inline {
+  /* 暴露 ONIT token 给 Tailwind 工具类 */
+  --color-onit-green: var(--onit-green);
+  --color-onit-green-muted: var(--onit-green-muted);
+  --color-onit-blue: var(--onit-blue);
+  --color-onit-blue-muted: var(--onit-blue-muted);
+  --color-onit-amber: var(--onit-amber);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
