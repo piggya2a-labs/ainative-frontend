@@ -76,18 +76,9 @@ interface Props {
 }
 
 // ─── Integrations config ─────────────────────────────────────────────────────
-// connected = 已接入（从后端数据判断）；coming_soon = 即将支持
+// Integrations = 用户与 ONIT Agent 团队的对话渠道
+// coming_soon = 即将支持
 const INTEGRATIONS = [
-  {
-    id: 'github',
-    name: 'GitHub',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden>
-        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-      </svg>
-    ),
-    desc: '代码仓库与 CI/CD 自动化',
-  },
   {
     id: 'slack',
     name: 'Slack',
@@ -96,72 +87,30 @@ const INTEGRATIONS = [
         <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
       </svg>
     ),
-    desc: '团队沟通与通知推送',
+    desc: '在 Slack 里直接与 Agent 团队对话',
+    coming_soon: false,
   },
   {
-    id: 'posthog',
-    name: 'PostHog',
+    id: 'telegram',
+    name: 'Telegram',
     icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <circle cx="12" cy="12" r="12" fill="#F54E00"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">PH</text>
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
       </svg>
     ),
-    desc: '产品分析与用户行为追踪',
+    desc: '通过 Telegram Bot 与 Agent 团队交互',
+    coming_soon: true,
   },
   {
-    id: 'sanity',
-    name: 'Sanity',
+    id: 'email',
+    name: 'Email',
     icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <circle cx="12" cy="12" r="12" fill="#F03E2F"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">S</text>
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-muted-foreground" aria-hidden>
+        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
       </svg>
     ),
-    desc: '内容管理与知识库',
-  },
-  {
-    id: 'vercel',
-    name: 'Vercel',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden>
-        <path d="M24 22.525H0l12-21.05 12 21.05z"/>
-      </svg>
-    ),
-    desc: '部署与边缘函数',
-  },
-  {
-    id: 'trigger',
-    name: 'Trigger.dev',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <circle cx="12" cy="12" r="12" fill="#6366F1"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">T</text>
-      </svg>
-    ),
-    desc: '后台任务与定时自动化',
-  },
-  {
-    id: 'n8n',
-    name: 'n8n',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <circle cx="12" cy="12" r="12" fill="#EA4B71"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">n8n</text>
-      </svg>
-    ),
-    desc: '工作流自动化与编排',
-  },
-  {
-    id: 'langgraph',
-    name: 'LangGraph',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <circle cx="12" cy="12" r="12" fill="#1C3A5E"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">LG</text>
-      </svg>
-    ),
-    desc: 'Agent 编排与状态机',
+    desc: '发邮件给 Agent，Agent 自动处理并回复',
+    coming_soon: true,
   },
 ]
 
@@ -268,20 +217,15 @@ export function DashboardClient({
   const orgName = tenant?.name || 'My Workspace'
   const orgSlug = tenant?.slug || '—'
 
-  // 判断各 integration 的连接状态
+  // 对话渠道连接状态（目前只有 Slack 有真实连接记录）
   const connectedIntegrations: Record<string, boolean> = {
-    github: githubBindings.length > 0,
-    slack: false,      // 暂无 slack binding 表
-    posthog: !!process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    sanity: true,      // Sanity 已接入（webhook 已配置）
-    vercel: true,      // Vercel 已接入（自动部署）
-    trigger: true,     // Trigger.dev 已接入
-    n8n: true,         // n8n MCP 已接入
-    langgraph: false,  // 暂未接入
+    slack: false,      // 暂无 slack binding 表，待接入
+    telegram: false,   // Coming soon
+    email: false,      // Coming soon
   }
 
-  // 真实 agents（排除 spec）
-  const realAgents = agents.filter(a => a.type !== 'spec')
+  // 真实 agents：只显示 agent 和 external 类型，排除 capability 和 spec
+  const realAgents = agents.filter(a => a.type === 'agent' || a.type === 'external')
   const liveAgents = realAgents.filter(a => a.url && a.url !== 'pending' && a.url !== 'N/A')
 
   // MCP 工具按 category 分组
@@ -418,11 +362,12 @@ export function DashboardClient({
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">⚡ Integrations</CardTitle>
-                <CardDescription>将外部服务接入 ONIT Agent，供 Agent 团队调用。</CardDescription>
+                <CardDescription>选择一个渠道，直接与你的 Agent 团队对话。</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
                 {INTEGRATIONS.map((integration) => {
                   const connected = connectedIntegrations[integration.id] ?? false
+                  const comingSoon = (integration as { coming_soon?: boolean }).coming_soon
                   return (
                     <div
                       key={integration.id}
@@ -433,7 +378,14 @@ export function DashboardClient({
                           {integration.icon}
                         </div>
                         <div>
-                          <p className="text-xs font-medium">{integration.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-medium">{integration.name}</p>
+                            {comingSoon && (
+                              <Badge variant="outline" className="text-xs h-4 px-1 text-muted-foreground">
+                                Coming soon
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{integration.desc}</p>
                         </div>
                       </div>
@@ -445,6 +397,10 @@ export function DashboardClient({
                               Disconnect
                             </Button>
                           </>
+                        ) : comingSoon ? (
+                          <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
+                            Connect
+                          </Button>
                         ) : (
                           <>
                             <span className="text-xs text-muted-foreground">Not connected</span>
