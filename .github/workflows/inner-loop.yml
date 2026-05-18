@@ -1,39 +1,47 @@
-name: AI 内循环 — 每日自动优化
+name: AI Native Closed Loop
 
 on:
   schedule:
-    # 每天 UTC 02:00（北京时间 10:00）运行
+    # 每天 UTC 02:00（北京时间 10:00）
     - cron: '0 2 * * *'
-  # 允许手动触发
   workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式: full / optimize / healthcheck'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - optimize
+          - healthcheck
 
 jobs:
-  inner-loop:
-    name: 感知 → 生成 → 部署
+  # ── Job 1: 前端感知 + Claude 优化 + Vercel 部署 ─────────────────────────
+  frontend-optimize:
+    name: 前端感知 → Claude 优化 → Vercel 部署
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 15
+    if: ${{ github.event.inputs.mode != 'healthcheck' }}
     steps:
-      - name: 拉取代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
 
-      - name: 设置 Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: 安装 Python 依赖
-        run: pip install requests
+      - name: 安装依赖
+        run: |
+          pip install requests
+          npm install @octokit/rest
 
-      - name: 安装 Node.js 依赖
-        run: npm install @octokit/rest
-
-      - name: 运行内循环（感知 → 生成 → 推送）
+      - name: 感知 → Claude 优化 → 推送
         env:
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
@@ -41,7 +49,53 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
           GITHUB_OWNER: piggya2a-labs
           GITHUB_REPO: ainative-frontend
+        run: python3 agents/perception_agent.py | node agents/claude_worker.js
+
+  # ── Job 2: 后端健康检查 + 自动联调 ─────────────────────────────────────
+  backend-healthcheck:
+    name: 后端健康检查 → 自动修复
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event.inputs.mode != 'optimize' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装依赖
         run: |
-          echo "=== 启动 AI 内循环 ==="
-          python3 agents/perception_agent.py | node agents/claude_worker.js
-          echo "=== 内循环完成 ==="
+          pip install requests
+          npm install @octokit/rest
+
+      - name: 后端健康检查 + 自动联调
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
+          GITHUB_OWNER: piggya2a-labs
+          GITHUB_REPO: ainative-frontend
+          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_API_WRITE_TOKEN: ${{ secrets.SANITY_API_WRITE_TOKEN }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+        run: python3 agents/health_agent.py
+
+  # ── Job 3: 闭环摘要 ──────────────────────────────────────────────────────
+  loop-summary:
+    name: 闭环摘要
+    runs-on: ubuntu-latest
+    needs: [frontend-optimize, backend-healthcheck]
+    if: always()
+    steps:
+      - name: 输出闭环摘要
+        run: |
+          echo "=== AI Native Closed Loop 完成 ==="
+          echo "前端优化: ${{ needs.frontend-optimize.result }}"
+          echo "后端检查: ${{ needs.backend-healthcheck.result }}"
+          echo "时间: $(date -u '+%Y-%m-%d %H:%M UTC')"

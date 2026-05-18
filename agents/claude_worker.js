@@ -109,7 +109,7 @@ Return the complete improved component code (no markdown, no explanation):`;
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-5',
+      model: 'claude-haiku-4-5',
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
