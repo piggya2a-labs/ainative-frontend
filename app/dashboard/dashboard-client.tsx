@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
+import { Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -165,6 +166,23 @@ export function DashboardClient({
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
+
+  const toggleReveal = (id: string) => {
+    setRevealedKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const copyKeyPrefix = async (id: string, prefix: string) => {
+    await navigator.clipboard.writeText(prefix)
+    setCopiedKeyId(id)
+    setTimeout(() => setCopiedKeyId(null), 2000)
+  }
 
   const refreshKeys = async () => {
     setLoadingKeys(true)
@@ -326,24 +344,48 @@ export function DashboardClient({
                         <TableRow key={key.id}>
                           <TableCell className="text-xs font-medium">{key.name}</TableCell>
                           <TableCell>
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                              {key.key_prefix}{'•'.repeat(16)}
-                            </code>
+                            <div className="flex items-center gap-1.5">
+                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                                {revealedKeys.has(key.id)
+                                  ? key.key_prefix
+                                  : `${key.key_prefix.slice(0, 8)}${'\u2022'.repeat(12)}`}
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                                onClick={() => toggleReveal(key.id)}
+                              >
+                                {revealedKeys.has(key.id)
+                                  ? <EyeOff className="h-3 w-3" />
+                                  : <Eye className="h-3 w-3" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                                onClick={() => copyKeyPrefix(key.id, key.key_prefix)}
+                              >
+                                {copiedKeyId === key.id
+                                  ? <Check className="h-3 w-3 text-emerald-500" />
+                                  : <Copy className="h-3 w-3" />}
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {formatDate(key.created_at)}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
-                            {key.last_used_at ? formatDate(key.last_used_at) : '—'}
+                            {key.last_used_at ? formatDate(key.last_used_at) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="text-xs h-6 text-muted-foreground hover:text-destructive"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
                               onClick={() => handleRevokeKey(key.id)}
                             >
-                              Revoke
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
