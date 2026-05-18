@@ -46,12 +46,12 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false })
     : { data: [] }
 
-  // Agents（从 agent_registry 读，排除 spec 行，含 skills 和 capabilities 供 Dialog 展示）
+  // Agents（只取 type=agent 的内部团队成员，供 Dashboard 团队表格展示）
   const { data: agents } = await supabase
     .from('agent_registry')
     .select('id, name, description, tags, enabled, skills, capabilities, updated_at')
+    .eq('type', 'agent')
     .eq('enabled', true)
-    .neq('type', 'spec')
     .order('created_at', { ascending: true })
 
   // MCP Tools（enabled 的 cap_ 工具 = 已接入的 MCP 能力）

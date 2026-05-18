@@ -15,12 +15,16 @@ async function getSupabaseCounts() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const [{ count: agentCount }, { count: toolCount }] = await Promise.all([
-      supabase.from('agent_registry').select('*', { count: 'exact', head: true }).eq('enabled', true),
       supabase
-        .from('tool_registry')
+        .from('agent_registry')
         .select('*', { count: 'exact', head: true })
-        .eq('enabled', true)
-        .filter('annotations->>visibility', 'eq', 'external'),
+        .eq('type', 'agent')
+        .eq('enabled', true),
+      supabase
+        .from('agent_registry')
+        .select('*', { count: 'exact', head: true })
+        .eq('type', 'external')
+        .eq('enabled', true),
     ])
     return { agentCount: agentCount ?? 0, toolCount: toolCount ?? 0 }
   } catch {

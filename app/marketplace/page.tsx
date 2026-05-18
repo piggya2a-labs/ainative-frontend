@@ -5,6 +5,7 @@ import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig } from '@/lib/queries'
 import { relativeTime, formatDate } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import type { MarketplaceAgentItem, AgentSkill } from '@/lib/database.types'
 
 export const revalidate = 60
 
@@ -13,25 +14,7 @@ export const metadata = {
   description: 'Browse Agents available to join your ONIT team.',
 }
 
-type Skill = {
-  id: string
-  name?: string
-  description?: string
-  tags?: string[]
-}
-
-type PlatformAgent = {
-  id: string
-  name: string
-  description?: string
-  provider?: string
-  skills: Skill[]
-  mcp_url?: string
-  tags?: string[]
-  updated_at?: string
-}
-
-async function getMarketplaceAgents(): Promise<PlatformAgent[]> {
+async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -43,7 +26,7 @@ async function getMarketplaceAgents(): Promise<PlatformAgent[]> {
     .eq('enabled', true)
     .order('provider')
   if (error) return []
-  return (data ?? []) as PlatformAgent[]
+  return (data ?? []) as MarketplaceAgentItem[]
 }
 
 // 只取描述的第一句话
@@ -71,7 +54,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   sprite: 'Sprite',
 }
 
-function providerLabel(p?: string) {
+function providerLabel(p?: string | null) {
   if (!p) return 'Other'
   return PROVIDER_LABELS[p] ?? p
 }
@@ -109,7 +92,7 @@ export default async function MarketplacePage() {
         {/* Agent list */}
         <div className="space-y-8">
           {agents.map((agent) => {
-            const skills: Skill[] = Array.isArray(agent.skills) ? agent.skills : []
+            const skills: AgentSkill[] = Array.isArray(agent.skills) ? agent.skills : []
             return (
               <section key={agent.id}>
                 {/* Provider label */}

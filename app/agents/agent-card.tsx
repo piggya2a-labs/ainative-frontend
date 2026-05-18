@@ -11,6 +11,7 @@ import {
 import { Zap, BookOpen } from 'lucide-react'
 import { relativeTime, formatDate } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import type { AgentListItem } from '@/lib/database.types'
 
 // 将 tag 映射为对用户友好的中文标签
 const TAG_LABELS: Record<string, string> = {
@@ -24,34 +25,17 @@ const TAG_LABELS: Record<string, string> = {
   native: '核心',
 }
 
-type AgentSkill = {
-  id: string
+// 为兼容旧属性名（principle vs principles）做本地映射
+type RoleModelDisplay = {
   name: string
-  description?: string
-  examples?: string[]
-  tags?: string[]
-}
-
-type RoleModel = {
-  name: string
-  principle: string
+  principle?: string
+  principles?: string
   affiliation?: string
+  institution?: string
 }
 
-type AgentRow = {
-  id: string
-  name: string
-  description: string
-  url?: string
-  skills?: AgentSkill[]
-  tags?: string[]
-  updated_at?: string
-  capabilities?: {
-    tools?: string[]
-    role_models?: RoleModel[]
-  }
-  icon_url?: string
-}
+// 展示用的类型：基于 AgentListItem，允许额外传入 url
+type AgentRow = AgentListItem & { url?: string | null }
 
 /**
  * 从 agent 的 tags 字段推断显示标签。
@@ -74,7 +58,7 @@ export function AgentCardWithPopover({ agent }: { agent: AgentRow }) {
   const roleLabel = getRoleLabel(agent)
   const isLive = agent.url && agent.url !== 'pending'
   const skills = agent.skills ?? []
-  const roleModels = agent.capabilities?.role_models ?? []
+  const roleModels = (agent.capabilities?.role_models ?? []) as RoleModelDisplay[]
   const hasDetail = skills.length > 0 || roleModels.length > 0
 
   return (
@@ -195,7 +179,7 @@ export function AgentCardWithPopover({ agent }: { agent: AgentRow }) {
                       <p className="text-[10px] text-muted-foreground">{rm.affiliation}</p>
                     )}
                     <p className="text-xs text-muted-foreground italic mt-0.5">
-                      &ldquo;{rm.principle}&rdquo;
+                      &ldquo;{rm.principle ?? rm.principles}&rdquo;
                     </p>
                   </div>
                 ))}

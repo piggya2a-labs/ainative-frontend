@@ -15,8 +15,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator'
 import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2 } from 'lucide-react'
 import { Label } from '@/components/ui/label'
+import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────────
 
 interface ApiKey {
   id: string
@@ -34,32 +35,8 @@ interface Tenant {
   created_at: string
 }
 
-interface AgentSkill {
-  id: string
-  name: string
-  description: string
-  examples?: string[]
-}
-
-interface RoleModel {
-  name: string
-  principle: string
-  affiliation?: string
-}
-
-interface Agent {
-  id: string
-  name: string
-  description: string
-  tags?: string[]
-  enabled: boolean
-  skills?: AgentSkill[]
-  capabilities?: {
-    tools?: string[]
-    role_models?: RoleModel[]
-  }
-  updated_at?: string
-}
+// Agent 展示用类型：直接用 database.types 中的 AgentListItem
+type Agent = AgentListItem
 
 interface McpTool {
   id: string
@@ -68,13 +45,8 @@ interface McpTool {
   annotations?: Record<string, unknown>
 }
 
-interface Connector {
-  id: string
-  agent_id: string
-  status: string
-  metadata?: Record<string, unknown>
-  created_at: string
-}
+// Connector 展示用类型：用 ConnectorRow 的字段子集
+type Connector = Pick<ConnectorRow, 'id' | 'agent_id' | 'status' | 'metadata' | 'created_at'>
 
 interface GitHubBinding {
   id: string
@@ -371,9 +343,22 @@ export function DashboardClient({
     }
   }
 
-  // 所有 enabled 的 agents（查询已排除 spec 和 capability）
+  // 已经在 server 侧只查 type=agent，这里直接用
   const realAgents = agents
   const liveAgents = agents.filter(a => a.enabled)
+
+  // tag 映射中文（与 agent-card 保持一致）
+  const TAG_LABELS: Record<string, string> = {
+    development: '执行', operations: '运维', architecture: '设计',
+    coordination: '协调', audit: '审核', platform: '核心',
+    core: '核心', native: '核心',
+  }
+  function getRoleLabel(tags: string[] | null): string {
+    for (const tag of (tags ?? [])) {
+      if (TAG_LABELS[tag]) return TAG_LABELS[tag]
+    }
+    return 'Agent'
+  }
 
   // MCP 工具按 category 分组
   const mcpByCategory = mcpTools.reduce<Record<string, McpTool[]>>((acc, t) => {
@@ -722,7 +707,7 @@ export function DashboardClient({
                               </TableCell>
                               <TableCell>
                                 <Badge variant="secondary" className="text-xs">
-                                  {(agent.tags ?? [])[0] ?? 'agent'}
+                                  {getRoleLabel(agent.tags ?? [])}
                                 </Badge>
                               </TableCell>
                               <TableCell>
@@ -771,7 +756,7 @@ export function DashboardClient({
                                       {agent.capabilities.role_models.map((rm, i) => (
                                         <div key={i} className="border-l-2 border-border pl-3">
                                           <p className="text-xs font-medium">{rm.name}</p>
-                                          <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{rm.principle}&rdquo;</p>
+                                          <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{(rm as { principle?: string; principles?: string }).principle ?? (rm as { principle?: string; principles?: string }).principles}&rdquo;</p>
                                         </div>
                                       ))}
                                     </div>
@@ -798,9 +783,9 @@ export function DashboardClient({
                       {mcpTools.length} 个 MCP 能力已接入，供 Agent 调用
                     </CardDescription>
                   </div>
-                  <Link href="/tools">
+                  <Link href="/marketplace">
                     <Button variant="outline" size="sm" className="h-7 text-xs">
-                      查看工具 →
+                      查看外部 Agent →
                     </Button>
                   </Link>
                 </div>
