@@ -206,17 +206,14 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
           <Button
             size="lg"
-            asChild={!!c.ctaHref && c.ctaHref !== '#'}
             className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group"
             onClick={onCtaClick}
           >
-            <a href={c.ctaHref ?? '#'}>
-              {c.ctaText}
-              <ArrowRight
-                className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform"
-                aria-hidden="true"
-              />
-            </a>
+            {c.ctaText}
+            <ArrowRight
+              className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform"
+              aria-hidden="true"
+            />
           </Button>
           <Button
             size="lg"
