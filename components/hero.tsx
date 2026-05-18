@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, CheckCircle2, Loader2, Clock } from 'lucide-react'
+import { ArrowRight, Play, CheckCircle2, Loader2, Clock, Zap, Shield, Rocket } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,6 +19,10 @@ export interface HeroContent {
   subheadline?: string
   ctaText?: string
   ctaHref?: string
+  secondaryCta?: {
+    text: string
+    href?: string
+  }
   badge?: string
   variant?: string
 }
@@ -32,18 +36,27 @@ interface HeroProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONTENT: HeroContent = {
-  headline: 'Your AI workforce,\nrunning 24/7.',
+  headline: 'Build Autonomous AI Agents in Minutes, Not Months',
   subheadline:
-    'Deploy autonomous agents that handle support, research, and operations — without writing a single line of code. Go live in under 5 minutes.',
-  ctaText: 'Start for free',
+    'Deploy AI agents that handle customer support, research, and operations automatically. Watch your support team handle 10x more tickets with zero manual work.',
+  ctaText: 'Launch Your First Agent',
   ctaHref: '#',
-  badge: 'AI-Native · No code required · Live in 5 min',
+  secondaryCta: {
+    text: 'Watch 2-Minute Demo',
+  },
+  badge: 'AI-Native · No Code Required · Live in 5 Minutes',
 }
 
 const TRUST_STATS = [
   { value: '10,000+', label: 'tasks automated daily' },
   { value: '< 5 min', label: 'to first deployment' },
   { value: '99.9%', label: 'uptime SLA' },
+]
+
+const TRUST_INDICATORS = [
+  { icon: Shield, text: 'No credit card required' },
+  { icon: Zap, text: 'Used by 500+ teams' },
+  { icon: Rocket, text: 'Deploy in <5 minutes' },
 ]
 
 const SEED_EVENTS: Omit<AgentEvent, 'id'>[] = [
@@ -173,28 +186,28 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
         }}
       />
 
-      <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-10">
         {/* Eyebrow */}
         <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">
           {c.badge}
         </p>
 
-        {/* Headline */}
-        <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-[-0.03em] leading-[1.04] text-balance whitespace-pre-line">
+        {/* Headline - Value-First Messaging */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">
           {c.headline}
         </h1>
 
-        {/* Subtitle */}
-        <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed text-pretty">
+        {/* Subtitle - Benefit-Driven with Use Case */}
+        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">
           {c.subheadline}
         </p>
 
-        {/* CTA row */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        {/* CTA row - Action-Oriented */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
           <Button
             size="lg"
             asChild={!!c.ctaHref && c.ctaHref !== '#'}
-            className="h-11 px-7 text-sm font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group"
+            className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group"
             onClick={onCtaClick}
           >
             <a href={c.ctaHref ?? '#'}>
@@ -208,15 +221,28 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
           <Button
             size="lg"
             variant="outline"
-            className="h-11 px-6 text-sm font-medium group"
+            className="h-12 px-7 text-base font-medium group"
             onClick={onDemoClick}
           >
             <Play
-              className="w-3.5 h-3.5 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity"
+              className="w-4 h-4 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity"
               aria-hidden="true"
             />
-            Watch demo
+            {c.secondaryCta?.text || 'Watch Demo'}
           </Button>
+        </div>
+
+        {/* Trust Indicators - Lower Activation Barriers */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
+          {TRUST_INDICATORS.map((indicator) => {
+            const Icon = indicator.icon
+            return (
+              <div key={indicator.text} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Icon className="w-4 h-4 shrink-0 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+                <span>{indicator.text}</span>
+              </div>
+            )
+          })}
         </div>
 
         {/* Trust stats */}
