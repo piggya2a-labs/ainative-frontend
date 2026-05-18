@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -41,6 +42,27 @@ interface Tenant {
   metadata?: Record<string, unknown>
 }
 
+interface SlackChannel {
+  id: string
+  channel_name: string
+  channel_id: string
+  added_at: string
+}
+
+interface AgentInbox {
+  id: string
+  name: string
+  address: string
+  created_at: string
+}
+
+interface BrandSkill {
+  id: string
+  title: string
+  content: string
+  created_at: string
+}
+
 interface Props {
   user: User
   tenant: Tenant | null
@@ -49,15 +71,16 @@ interface Props {
   dashboardConfig: DashboardConfig
 }
 
+// Integration definitions with emoji icons (no external image deps)
 const ALL_INTEGRATIONS = [
-  { id: 'github', name: 'GitHub', desc: '代码仓库与 CI/CD 自动化' },
-  { id: 'slack', name: 'Slack', desc: '团队沟通与通知推送' },
-  { id: 'supabase', name: 'Supabase', desc: '数据库与实时数据访问' },
-  { id: 'posthog', name: 'PostHog', desc: '产品分析与用户行为追踪' },
-  { id: 'sanity', name: 'Sanity', desc: '内容管理与知识库' },
-  { id: 'vercel', name: 'Vercel', desc: '部署与边缘函数' },
-  { id: 'langgraph', name: 'LangGraph', desc: 'Agent 编排与状态机' },
-  { id: 'trigger', name: 'Trigger.dev', desc: '后台任务与定时自动化' },
+  { id: 'github',   name: 'GitHub',      icon: '🐙', desc: '代码仓库与 CI/CD 自动化' },
+  { id: 'slack',    name: 'Slack',       icon: '💬', desc: '团队沟通与通知推送' },
+  { id: 'supabase', name: 'Supabase',    icon: '⚡', desc: '数据库与实时数据访问' },
+  { id: 'posthog',  name: 'PostHog',     icon: '📊', desc: '产品分析与用户行为追踪' },
+  { id: 'sanity',   name: 'Sanity',      icon: '📝', desc: '内容管理与知识库' },
+  { id: 'vercel',   name: 'Vercel',      icon: '▲',  desc: '部署与边缘函数' },
+  { id: 'langgraph',name: 'LangGraph',   icon: '🔗', desc: 'Agent 编排与状态机' },
+  { id: 'trigger',  name: 'Trigger.dev', icon: '⚙️', desc: '后台任务与定时自动化' },
 ]
 
 function formatDate(iso: string) {
@@ -73,13 +96,37 @@ function maskKey(prefix: string) {
 export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConfig }: Props) {
   const router = useRouter()
   const supabase = createClient()
+
+  // API Keys
   const [creatingKey, setCreatingKey] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [localApiKeys, setLocalApiKeys] = useState<ApiKey[]>(apiKeys)
   const [copied, setCopied] = useState(false)
+
+  // Onboarding steps
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+
+  // Slack Channels
+  const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([])
+  const [newChannelName, setNewChannelName] = useState('')
+  const [newChannelId, setNewChannelId] = useState('')
+  const [addingChannel, setAddingChannel] = useState(false)
+  const [showAddChannel, setShowAddChannel] = useState(false)
+
+  // AgentMail
+  const [inboxes, setInboxes] = useState<AgentInbox[]>([])
+  const [newInboxName, setNewInboxName] = useState('')
+  const [creatingInbox, setCreatingInbox] = useState(false)
+  const [showAddInbox, setShowAddInbox] = useState(false)
+
+  // Brand Skills
+  const [skills, setSkills] = useState<BrandSkill[]>([])
+  const [newSkillTitle, setNewSkillTitle] = useState('')
+  const [newSkillContent, setNewSkillContent] = useState('')
+  const [addingSkill, setAddingSkill] = useState(false)
+  const [showAddSkill, setShowAddSkill] = useState(false)
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -89,22 +136,14 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
   const handleCreateApiKey = async () => {
     if (!tenant || !newKeyName.trim()) return
     setCreatingKey(true)
-
     const rawKey = 'onit_' + Array.from(crypto.getRandomValues(new Uint8Array(24)))
       .map(b => b.toString(16).padStart(2, '0')).join('')
     const prefix = rawKey.slice(0, 12)
-
     const { data, error } = await supabase
       .from('tenant_api_keys')
-      .insert({
-        tenant_id: tenant.id,
-        name: newKeyName.trim(),
-        key_hash: rawKey,
-        key_prefix: prefix,
-      })
+      .insert({ tenant_id: tenant.id, name: newKeyName.trim(), key_hash: rawKey, key_prefix: prefix })
       .select('id, name, key_prefix, created_at, revoked_at')
       .single()
-
     if (!error && data) {
       setLocalApiKeys([data, ...localApiKeys])
       setCreatedKey(rawKey)
@@ -115,10 +154,7 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
   }
 
   const handleRevokeKey = async (keyId: string) => {
-    await supabase
-      .from('tenant_api_keys')
-      .update({ revoked_at: new Date().toISOString() })
-      .eq('id', keyId)
+    await supabase.from('tenant_api_keys').update({ revoked_at: new Date().toISOString() }).eq('id', keyId)
     setLocalApiKeys(localApiKeys.filter(k => k.id !== keyId))
   }
 
@@ -137,6 +173,54 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
       else next.add(step)
       return next
     })
+  }
+
+  const handleAddChannel = () => {
+    if (!newChannelName.trim() || !newChannelId.trim()) return
+    setAddingChannel(true)
+    const newCh: SlackChannel = {
+      id: crypto.randomUUID(),
+      channel_name: newChannelName.trim(),
+      channel_id: newChannelId.trim(),
+      added_at: new Date().toISOString(),
+    }
+    setSlackChannels([...slackChannels, newCh])
+    setNewChannelName('')
+    setNewChannelId('')
+    setShowAddChannel(false)
+    setAddingChannel(false)
+  }
+
+  const handleCreateInbox = () => {
+    if (!newInboxName.trim()) return
+    setCreatingInbox(true)
+    const slug = newInboxName.trim().toLowerCase().replace(/\s+/g, '-')
+    const newInbox: AgentInbox = {
+      id: crypto.randomUUID(),
+      name: newInboxName.trim(),
+      address: `${slug}@agents.onit.ai`,
+      created_at: new Date().toISOString(),
+    }
+    setInboxes([...inboxes, newInbox])
+    setNewInboxName('')
+    setShowAddInbox(false)
+    setCreatingInbox(false)
+  }
+
+  const handleAddSkill = () => {
+    if (!newSkillTitle.trim() || !newSkillContent.trim()) return
+    setAddingSkill(true)
+    const newSkill: BrandSkill = {
+      id: crypto.randomUUID(),
+      title: newSkillTitle.trim(),
+      content: newSkillContent.trim(),
+      created_at: new Date().toISOString(),
+    }
+    setSkills([...skills, newSkill])
+    setNewSkillTitle('')
+    setNewSkillContent('')
+    setShowAddSkill(false)
+    setAddingSkill(false)
   }
 
   const sortedIntegrations = [...ALL_INTEGRATIONS].sort((a, b) => {
@@ -158,7 +242,7 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
 
   return (
     <div className="min-h-screen bg-muted/40">
-      {/* Top navbar */}
+      {/* ── Top navbar ── */}
       <header className="bg-background border-b px-4 h-12 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-1.5">
@@ -172,6 +256,12 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground hidden sm:block">{user.email}</span>
           <Link href="/docs" className="text-xs text-muted-foreground hover:text-foreground transition-colors">文档</Link>
+          <button
+            onClick={() => window.open('mailto:support@onit.ai', '_blank')}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Support
+          </button>
           <Button variant="ghost" size="sm" className="text-xs h-7" onClick={handleSignOut}>
             退出
           </Button>
@@ -179,18 +269,18 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {/* Workspace header */}
+        {/* ── Workspace header ── */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-base">{orgName}</CardTitle>
                 <CardDescription className="mt-0.5">{dashboardConfig.tagline}</CardDescription>
-                <p className="text-xs text-muted-foreground font-mono mt-1">
-                  <code className="bg-muted px-1 py-0.5 rounded">{orgSlug}</code>
+                <p className="text-xs text-muted-foreground font-mono mt-1.5">
+                  Slug: <code className="bg-muted px-1.5 py-0.5 rounded">{orgSlug}</code>
                 </p>
               </div>
-              <Badge variant="secondary" className="text-xs">{dashboardConfig.primary_goal}</Badge>
+              <Badge variant="secondary" className="text-xs shrink-0">{dashboardConfig.primary_goal}</Badge>
             </div>
           </CardHeader>
         </Card>
@@ -198,13 +288,15 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
         <Tabs defaultValue="overview">
           <TabsList className="w-full justify-start">
             <TabsTrigger value="overview" className="text-xs">概览</TabsTrigger>
-            <TabsTrigger value="setup" className="text-xs">配置</TabsTrigger>
-            <TabsTrigger value="usage" className="text-xs">用量</TabsTrigger>
+            <TabsTrigger value="setup" className="text-xs">Setup</TabsTrigger>
+            <TabsTrigger value="usage" className="text-xs">Usage</TabsTrigger>
           </TabsList>
 
-          {/* ── OVERVIEW ── */}
+          {/* ══════════════════════════════════════
+              OVERVIEW TAB
+          ══════════════════════════════════════ */}
           <TabsContent value="overview" className="space-y-4 mt-4">
-            {/* Welcome */}
+            {/* Welcome banner */}
             <Card className="bg-foreground text-background">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-muted mb-1">欢迎回来，{displayName}</p>
@@ -244,10 +336,7 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-medium">{agent.name}</p>
-                        <Badge
-                          variant={agent.priority === 'high' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
+                        <Badge variant={agent.priority === 'high' ? 'default' : 'secondary'} className="text-xs">
                           {agent.priority === 'high' ? '核心' : agent.priority === 'medium' ? '推荐' : '可选'}
                         </Badge>
                       </div>
@@ -317,34 +406,27 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
             </Card>
           </TabsContent>
 
-          {/* ── SETUP ── */}
+          {/* ══════════════════════════════════════
+              SETUP TAB
+          ══════════════════════════════════════ */}
           <TabsContent value="setup" className="space-y-4 mt-4">
-            {/* API Keys */}
+
+            {/* ── API Keys ── */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">API Keys</CardTitle>
-                    <CardDescription>管理 MCP Server 的鉴权密钥。</CardDescription>
+                    <CardTitle className="text-sm">🔑 API Keys</CardTitle>
+                    <CardDescription>管理用于 MCP Server 鉴权的密钥。</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="密钥名称"
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreateApiKey()}
-                      className="h-8 text-xs w-28"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleCreateApiKey}
-                      disabled={creatingKey || !newKeyName.trim() || !tenant}
-                      className="h-8 text-xs"
-                    >
-                      + 创建
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setShowKeyModal(true)}
+                    disabled={!tenant}
+                  >
+                    + Create API Key
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -352,9 +434,10 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-xs">名称</TableHead>
-                        <TableHead className="text-xs">密钥</TableHead>
-                        <TableHead className="text-xs">创建时间</TableHead>
+                        <TableHead className="text-xs">Name</TableHead>
+                        <TableHead className="text-xs">Key</TableHead>
+                        <TableHead className="text-xs">Created</TableHead>
+                        <TableHead className="text-xs">Expires</TableHead>
                         <TableHead className="text-xs text-right"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -368,6 +451,7 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
                             </code>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{formatDate(key.created_at)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Never</TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
@@ -383,23 +467,23 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-xs text-muted-foreground">暂无密钥，创建一个开始使用。</p>
+                  <p className="text-xs text-muted-foreground">暂无密钥，点击「Create API Key」开始使用。</p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Integrations */}
+            {/* ── Integrations ── */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">工具集成</CardTitle>
+                <CardTitle className="text-sm">⚡ Integrations</CardTitle>
                 <CardDescription>
-                  推荐优先连接：
+                  连接第三方服务，供 ONIT MCP Server 使用。推荐优先连接：
                   <span className="font-medium text-foreground ml-1">
                     {dashboardConfig.suggested_integrations.join('、')}
                   </span>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-1">
+              <CardContent className="divide-y">
                 {sortedIntegrations.map((integration) => {
                   const isRec = dashboardConfig.suggested_integrations.some(
                     s => s.toLowerCase().includes(integration.name.toLowerCase()) ||
@@ -408,18 +492,23 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
                   return (
                     <div
                       key={integration.id}
-                      className={`flex items-center justify-between py-2.5 transition-opacity ${!isRec ? 'opacity-40' : ''}`}
+                      className="flex items-center justify-between py-3"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-medium">{integration.name}</p>
-                          {isRec && <Badge className="text-xs">推荐</Badge>}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded border bg-background flex items-center justify-center text-base shrink-0">
+                          {integration.icon}
                         </div>
-                        <p className="text-xs text-muted-foreground">{integration.desc}</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-medium">{integration.name}</p>
+                            {isRec && <Badge className="text-xs h-4">推荐</Badge>}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{integration.desc}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">未连接</span>
-                        <Button size="sm" className="h-7 text-xs">连接</Button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-muted-foreground">Not connected</span>
+                        <Button size="sm" className="h-7 text-xs">Connect</Button>
                       </div>
                     </div>
                   )
@@ -427,67 +516,197 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
               </CardContent>
             </Card>
 
-            {/* Projects */}
+            {/* ── Slack Channels ── */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Agent 项目</CardTitle>
-                <CardDescription>你的 Agent 团队项目。</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm"># Slack Channels</CardTitle>
+                    <CardDescription>将 Slack 频道绑定到此工作区，供 Agent 推送消息。</CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setShowAddChannel(true)}
+                  >
+                    + Add Channel
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {projects.length > 0 ? (
+                {slackChannels.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-xs">项目</TableHead>
-                        <TableHead className="text-xs">状态</TableHead>
-                        <TableHead className="text-xs">创建时间</TableHead>
+                        <TableHead className="text-xs">Channel</TableHead>
+                        <TableHead className="text-xs">Channel ID</TableHead>
+                        <TableHead className="text-xs">Added</TableHead>
+                        <TableHead className="text-xs text-right"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projects.map((project) => (
-                        <TableRow key={project.id}>
-                          <TableCell className="text-xs font-medium">{project.name}</TableCell>
+                      {slackChannels.map((ch) => (
+                        <TableRow key={ch.id}>
+                          <TableCell className="text-xs font-medium">#{ch.channel_name}</TableCell>
                           <TableCell>
-                            <Badge variant={project.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                              {project.status}
-                            </Badge>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{ch.channel_id}</code>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{formatDate(project.created_at)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(ch.added_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => setSlackChannels(slackChannels.filter(c => c.id !== ch.id))}
+                            >
+                              移除
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-xs text-muted-foreground">暂无项目。Agent 团队上线后将在此显示。</p>
+                  <p className="text-xs text-muted-foreground">暂无频道。添加一个开始接收 Agent 通知。</p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Team */}
+            {/* ── AgentMail ── */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">团队成员</CardTitle>
+                    <CardTitle className="text-sm">✉️ AgentMail</CardTitle>
+                    <CardDescription>为 Agent 创建专属邮箱收件箱，接收和处理邮件。</CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setShowAddInbox(true)}
+                  >
+                    + Create Inbox
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {inboxes.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Name</TableHead>
+                        <TableHead className="text-xs">Address</TableHead>
+                        <TableHead className="text-xs">Created</TableHead>
+                        <TableHead className="text-xs text-right"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inboxes.map((inbox) => (
+                        <TableRow key={inbox.id}>
+                          <TableCell className="text-xs font-medium">{inbox.name}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{inbox.address}</code>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(inbox.created_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => setInboxes(inboxes.filter(i => i.id !== inbox.id))}
+                            >
+                              删除
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-xs text-muted-foreground">暂无收件箱。创建一个让 Agent 收发邮件。</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── Brand Skills ── */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">🧠 Brand Skills</CardTitle>
+                    <CardDescription>
+                      上传品牌知识，让 Agent 了解你的品牌语气、产品细节和工作方式。
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setShowAddSkill(true)}
+                  >
+                    + Add Skill
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {skills.length > 0 ? (
+                  <div className="space-y-2">
+                    {skills.map((skill) => (
+                      <div key={skill.id} className="flex items-start justify-between p-3 border rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium">{skill.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{skill.content}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{formatDate(skill.created_at)}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-6 ml-2 text-muted-foreground hover:text-destructive shrink-0"
+                          onClick={() => setSkills(skills.filter(s => s.id !== skill.id))}
+                        >
+                          删除
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">暂无技能。添加你的第一个品牌技能。</p>
+                    <p className="text-xs text-muted-foreground">
+                      技能是品牌专属指南，教 Agent 如何在你的品牌语境中工作。可以添加品牌语气、广告规范、产品详情等。
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── Team ── */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">👥 Team</CardTitle>
                     <CardDescription>管理成员与邀请。</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="h-7 text-xs">邀请成员</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs">✉️ Invite Member</Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">成员</TableHead>
-                      <TableHead className="text-xs">邮箱</TableHead>
-                      <TableHead className="text-xs">角色</TableHead>
-                      <TableHead className="text-xs">加入时间</TableHead>
+                      <TableHead className="text-xs">Name</TableHead>
+                      <TableHead className="text-xs">Email</TableHead>
+                      <TableHead className="text-xs">Role</TableHead>
+                      <TableHead className="text-xs">Joined</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
                       <TableCell className="text-xs font-medium">
-                        {displayName} <span className="text-muted-foreground font-normal">(你)</span>
+                        {displayName} <span className="text-muted-foreground font-normal">(you)</span>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{user.email}</TableCell>
                       <TableCell className="text-xs">
@@ -501,12 +720,14 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
             </Card>
           </TabsContent>
 
-          {/* ── USAGE ── */}
+          {/* ══════════════════════════════════════
+              USAGE TAB
+          ══════════════════════════════════════ */}
           <TabsContent value="usage" className="mt-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">用量统计</CardTitle>
-                <CardDescription>Agent 调用次数、工具使用情况等。</CardDescription>
+                <CardDescription>Agent 调用次数、工具使用情况等实时数据。</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-3">
@@ -528,27 +749,145 @@ export function DashboardClient({ user, tenant, apiKeys, projects, dashboardConf
         </Tabs>
       </main>
 
-      {/* API Key created modal */}
-      <Dialog open={showKeyModal} onOpenChange={(open) => { if (!open) { setShowKeyModal(false); setCreatedKey(null) } }}>
+      {/* ── Modal: Create API Key ── */}
+      <Dialog open={showKeyModal} onOpenChange={(open) => {
+        if (!open) { setShowKeyModal(false); setCreatedKey(null); setNewKeyName('') }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm">密钥已创建</DialogTitle>
+            <DialogTitle className="text-sm">
+              {createdKey ? '密钥已创建' : '创建 API Key'}
+            </DialogTitle>
             <DialogDescription>
-              请立即复制并妥善保存，此密钥只显示一次。
+              {createdKey
+                ? '请立即复制并妥善保存，此密钥只显示一次。'
+                : '为这个密钥起一个名字，方便日后识别。'}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-            <code className="text-xs font-mono flex-1 break-all">{createdKey}</code>
-            <Button variant="outline" size="sm" className="shrink-0 h-7 text-xs" onClick={handleCopy}>
-              {copied ? '已复制' : '复制'}
+          {createdKey ? (
+            <>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                <code className="text-xs font-mono flex-1 break-all">{createdKey}</code>
+                <Button variant="outline" size="sm" className="shrink-0 h-7 text-xs" onClick={handleCopy}>
+                  {copied ? '已复制' : '复制'}
+                </Button>
+              </div>
+              <Button className="w-full" onClick={() => { setShowKeyModal(false); setCreatedKey(null) }}>
+                我已保存，关闭
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                placeholder="e.g. Production Key"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateApiKey()}
+                className="text-sm"
+              />
+              <Button
+                className="w-full"
+                onClick={handleCreateApiKey}
+                disabled={creatingKey || !newKeyName.trim() || !tenant}
+              >
+                {creatingKey ? '创建中...' : 'Create API Key'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal: Add Slack Channel ── */}
+      <Dialog open={showAddChannel} onOpenChange={setShowAddChannel}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">添加 Slack 频道</DialogTitle>
+            <DialogDescription>输入频道名称和 Channel ID。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="频道名称，如 general"
+              value={newChannelName}
+              onChange={(e) => setNewChannelName(e.target.value)}
+              className="text-sm"
+            />
+            <Input
+              placeholder="Channel ID，如 C0ATANCEB40"
+              value={newChannelId}
+              onChange={(e) => setNewChannelId(e.target.value)}
+              className="text-sm font-mono"
+            />
+            <Button
+              className="w-full"
+              onClick={handleAddChannel}
+              disabled={addingChannel || !newChannelName.trim() || !newChannelId.trim()}
+            >
+              Add Channel
             </Button>
           </div>
-          <Button
-            className="w-full"
-            onClick={() => { setShowKeyModal(false); setCreatedKey(null) }}
-          >
-            我已保存，关闭
-          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal: Create Inbox ── */}
+      <Dialog open={showAddInbox} onOpenChange={setShowAddInbox}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">创建 Agent 收件箱</DialogTitle>
+            <DialogDescription>为 Agent 创建专属邮箱地址。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="收件箱名称，如 Customer Support"
+              value={newInboxName}
+              onChange={(e) => setNewInboxName(e.target.value)}
+              className="text-sm"
+            />
+            {newInboxName && (
+              <p className="text-xs text-muted-foreground font-mono">
+                地址：{newInboxName.trim().toLowerCase().replace(/\s+/g, '-')}@agents.onit.ai
+              </p>
+            )}
+            <Button
+              className="w-full"
+              onClick={handleCreateInbox}
+              disabled={creatingInbox || !newInboxName.trim()}
+            >
+              Create Inbox
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal: Add Brand Skill ── */}
+      <Dialog open={showAddSkill} onOpenChange={setShowAddSkill}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">添加品牌技能</DialogTitle>
+            <DialogDescription>
+              教 Agent 了解你的品牌语气、产品细节或工作规范。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="技能标题，如 品牌语气指南"
+              value={newSkillTitle}
+              onChange={(e) => setNewSkillTitle(e.target.value)}
+              className="text-sm"
+            />
+            <Textarea
+              placeholder="详细描述品牌规范、语气要求、产品知识等..."
+              value={newSkillContent}
+              onChange={(e) => setNewSkillContent(e.target.value)}
+              className="text-sm min-h-[100px]"
+            />
+            <Button
+              className="w-full"
+              onClick={handleAddSkill}
+              disabled={addingSkill || !newSkillTitle.trim() || !newSkillContent.trim()}
+            >
+              Add Skill
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
