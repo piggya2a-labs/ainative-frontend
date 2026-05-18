@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,14 @@ interface McpTool {
   annotations?: Record<string, unknown>
 }
 
+interface Connector {
+  id: string
+  connector_type: string
+  status: string
+  metadata?: Record<string, unknown>
+  created_at: string
+}
+
 interface GitHubBinding {
   id: string
   repository_full_name: string
@@ -91,12 +100,11 @@ interface Props {
   agents: Agent[]
   mcpTools: McpTool[]
   githubBindings: GitHubBinding[]
+  connectors: Connector[]
   auditLogs: AuditLog[]
 }
 
 // ─── Integrations config ─────────────────────────────────────────────────────
-// Integrations = 用户与 ONIT Agent 团队的对话渠道
-// coming_soon = 即将支持
 const INTEGRATIONS = [
   {
     id: 'slack',
@@ -118,17 +126,31 @@ const INTEGRATIONS = [
       </svg>
     ),
     desc: '通过 Telegram Bot 与 Agent 团队交互',
+    coming_soon: false,
+  },
+  {
+    id: 'feishu',
+    name: '飞书',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden fill="none">
+        <rect width="24" height="24" rx="6" fill="#3370FF"/>
+        <path d="M7 8.5L12 6l5 2.5-5 2.5L7 8.5z" fill="white" opacity="0.9"/>
+        <path d="M7 8.5v5l5 2.5v-5L7 8.5z" fill="white" opacity="0.7"/>
+        <path d="M17 8.5v5l-5 2.5v-5l5-2.5z" fill="white" opacity="0.5"/>
+      </svg>
+    ),
+    desc: '扫码连接飞书，Agent 直接在飞书回复',
     coming_soon: true,
   },
   {
-    id: 'email',
-    name: 'Email',
+    id: 'wechat',
+    name: '微信',
     icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-muted-foreground" aria-hidden>
-        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#07C160]" aria-hidden>
+        <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-7.062-6.122zm-3.74 3.668c.532 0 .963.441.963.983a.963.963 0 0 1-.963.983.963.963 0 0 1-.963-.983c0-.542.431-.983.963-.983zm7.355 0c.532 0 .963.441.963.983a.963.963 0 0 1-.963.983.963.963 0 0 1-.963-.983c0-.542.431-.983.963-.983z"/>
       </svg>
     ),
-    desc: '发邮件给 Agent，Agent 自动处理并回复',
+    desc: '扫码连接微信，Agent 直接在微信回复',
     coming_soon: true,
   },
 ]
@@ -172,6 +194,7 @@ export function DashboardClient({
   agents,
   mcpTools,
   githubBindings,
+  connectors,
   auditLogs,
 }: Props) {
   const router = useRouter()
@@ -253,11 +276,94 @@ export function DashboardClient({
   const orgName = tenant?.name || 'My Workspace'
   const orgSlug = tenant?.slug || '—'
 
-  // 对话渠道连接状态（目前只有 Slack 有真实连接记录）
-  const connectedIntegrations: Record<string, boolean> = {
-    slack: false,      // 暂无 slack binding 表，待接入
-    telegram: false,   // Coming soon
-    email: false,      // Coming soon
+  // 渠道连接状态（从 tenant_connectors 读取）
+  const connectorMap = Object.fromEntries(
+    (connectors ?? []).map(c => [c.connector_type, c])
+  )
+
+  // Telegram 连接 Dialog 状态
+  const [telegramOpen, setTelegramOpen] = useState(false)
+  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'waiting'>('input')
+  const [tgToken, setTgToken] = useState('')
+  const [tgBotInfo, setTgBotInfo] = useState<{ username: string; first_name: string } | null>(null)
+  const [tgLoading, setTgLoading] = useState(false)
+  const [tgError, setTgError] = useState('')
+
+  const handleTelegramVerify = async () => {
+    if (!tgToken.trim()) return
+    setTgLoading(true)
+    setTgError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: 'verify', bot_token: tgToken.trim() }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Verification failed')
+      setTgBotInfo(data.bot)
+      setTgStep('confirm')
+    } catch (e: unknown) {
+      setTgError(e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setTgLoading(false)
+    }
+  }
+
+  const handleTelegramConfirm = async () => {
+    setTgLoading(true)
+    setTgError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: 'connect', bot_token: tgToken.trim() }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Connect failed')
+      setTgStep('waiting')
+    } catch (e: unknown) {
+      setTgError(e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setTgLoading(false)
+    }
+  }
+
+  const handleSlackConnect = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-slack`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: 'get_oauth_url' }),
+        }
+      )
+      const data = await res.json()
+      if (data.oauth_url) {
+        window.location.href = data.oauth_url
+      }
+    } catch (e) {
+      console.error('Slack connect error:', e)
+    }
   }
 
   // 真实 agents：只显示 agent 和 external 类型，排除 capability 和 spec
@@ -421,7 +527,9 @@ export function DashboardClient({
               </CardHeader>
               <CardContent className="space-y-1">
                 {INTEGRATIONS.map((integration) => {
-                  const connected = connectedIntegrations[integration.id] ?? false
+                  const connector = connectorMap[integration.id]
+                  const connected = connector?.status === 'connected'
+                  const pending = connector?.status === 'pending_start' || connector?.status === 'pending_verify'
                   const comingSoon = (integration as { coming_soon?: boolean }).coming_soon
                   return (
                     <div
@@ -440,6 +548,11 @@ export function DashboardClient({
                                 Coming soon
                               </Badge>
                             )}
+                            {pending && (
+                              <Badge variant="outline" className="text-xs h-4 px-1 text-amber-600 border-amber-400">
+                                Pending
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground">{integration.desc}</p>
                         </div>
@@ -456,13 +569,28 @@ export function DashboardClient({
                           <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
                             Connect
                           </Button>
+                        ) : integration.id === 'slack' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={handleSlackConnect}
+                          >
+                            Connect
+                          </Button>
+                        ) : integration.id === 'telegram' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => { setTelegramOpen(true); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgError('') }}
+                          >
+                            Connect
+                          </Button>
                         ) : (
-                          <>
-                            <span className="text-xs text-muted-foreground">Not connected</span>
-                            <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
-                              Connect
-                            </Button>
-                          </>
+                          <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
+                            Connect
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -470,6 +598,85 @@ export function DashboardClient({
                 })}
               </CardContent>
             </Card>
+
+            {/* Telegram 连接 Dialog */}
+            <Dialog open={telegramOpen} onOpenChange={(o) => { if (!o) { setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgError('') } }}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="text-sm">Connect Telegram</DialogTitle>
+                  <DialogDescription>
+                    {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
+                    {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
+                    {tgStep === 'waiting' && '请在 Telegram 向 Bot 发送 /start 完成连接。'}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {tgStep === 'input' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Bot Token</Label>
+                      <Input
+                        placeholder="1234567890:ABCDef..."
+                        value={tgToken}
+                        onChange={(e) => setTgToken(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleTelegramVerify()}
+                        className="text-xs font-mono"
+                        autoFocus
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        在 <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> 获取 Token
+                      </p>
+                    </div>
+                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      onClick={handleTelegramVerify}
+                      disabled={tgLoading || !tgToken.trim()}
+                    >
+                      {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                      Verify
+                    </Button>
+                  </div>
+                )}
+
+                {tgStep === 'confirm' && tgBotInfo && (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-md bg-muted text-xs space-y-1">
+                      <p><span className="text-muted-foreground">Name:</span> {tgBotInfo.first_name}</p>
+                      <p><span className="text-muted-foreground">Username:</span> @{tgBotInfo.username}</p>
+                    </div>
+                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      onClick={handleTelegramConfirm}
+                      disabled={tgLoading}
+                    >
+                      {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                      Confirm & Connect
+                    </Button>
+                  </div>
+                )}
+
+                {tgStep === 'waiting' && (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-md bg-muted text-xs">
+                      <p className="font-medium mb-1">向 Bot 发送 /start</p>
+                      <p className="text-muted-foreground">打开 Telegram，找到 @{tgBotInfo?.username}，发送 <code className="font-mono">/start</code>。收到回复后连接即完成。</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                      onClick={() => setTelegramOpen(false)}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* ── Agent 团队 ── */}
             <Card>

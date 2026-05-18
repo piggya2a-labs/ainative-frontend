@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false })
     : { data: [] }
 
-  // Agents（从 agent_registry 读，排除 spec 行，含 skills 和 capabilities 供 Popover 展示）
+  // Agents（从 agent_registry 读，排除 spec 行，含 skills 和 capabilities 供 Dialog 展示）
   const { data: agents } = await supabase
     .from('agent_registry')
     .select('id, name, type, description, url, tags, enabled, skills, capabilities')
@@ -71,6 +71,14 @@ export default async function DashboardPage() {
         .eq('status', 'active')
     : { data: [] }
 
+  // Channel connectors（渠道连接状态）
+  const { data: connectors } = tenant
+    ? await supabase
+        .from('tenant_connectors')
+        .select('id, connector_type, status, metadata, created_at')
+        .eq('tenant_id', tenant.id)
+    : { data: [] }
+
   // Recent audit logs（最近 10 条系统活动）
   const { data: auditLogs } = await supabase
     .from('audit_logs')
@@ -86,6 +94,7 @@ export default async function DashboardPage() {
       agents={agents ?? []}
       mcpTools={mcpTools ?? []}
       githubBindings={githubBindings ?? []}
+      connectors={connectors ?? []}
       auditLogs={auditLogs ?? []}
     />
   )
