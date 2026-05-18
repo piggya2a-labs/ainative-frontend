@@ -1,134 +1,151 @@
-'use client'
-
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { usePostHog } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
 
-const AGENTS = [
-  {
-    name: 'Support Agent',
-    description: 'Handles inbound tickets, classifies intent, drafts replies, and escalates when needed. Integrates with Zendesk, Intercom, and email.',
-    status: 'Active',
-    category: 'Support',
-    stats: '10,000+ tickets/month',
-  },
-  {
-    name: 'Research Agent',
-    description: 'Searches the web, reads documents, summarises findings, and delivers structured briefs. Runs in parallel across multiple sources.',
-    status: 'Active',
-    category: 'Research',
-    stats: '50+ sources per run',
-  },
-  {
-    name: 'Ops Agent',
-    description: 'Automates repetitive workflows — CRM updates, data sync, report generation, and scheduled tasks. Connects to your existing tools via API.',
-    status: 'Active',
-    category: 'Operations',
-    stats: '24/7 execution',
-  },
-  {
-    name: 'Monitor Agent',
-    description: 'Watches websites, APIs, and data feeds for changes. Triggers alerts or downstream actions when conditions are met.',
-    status: 'Active',
-    category: 'Monitoring',
-    stats: 'Real-time detection',
-  },
-  {
-    name: 'Code Agent',
-    description: 'Reviews pull requests, runs tests, fixes lint errors, and suggests improvements. Works directly with your GitHub repository.',
-    status: 'Beta',
-    category: 'Dev',
-    stats: 'GitHub native',
-  },
-  {
-    name: 'Analytics Agent',
-    description: 'Queries your data warehouse, builds dashboards, and surfaces anomalies. Speaks SQL and natural language equally well.',
-    status: 'Beta',
-    category: 'Analytics',
-    stats: 'SQL + NL queries',
-  },
-  {
-    name: 'Outreach Agent',
-    description: 'Personalises and sends emails at scale. Tracks opens, replies, and follow-ups. Human-in-the-loop approval before sending.',
-    status: 'Active',
-    category: 'Comms',
-    stats: '34% reply rate avg',
-  },
-  {
-    name: 'Content Agent',
-    description: 'Drafts blog posts, social updates, and product copy from a brief. Maintains brand voice using your style guide.',
-    status: 'Soon',
-    category: 'Creative',
-    stats: 'Brand-aware',
-  },
-]
+export const revalidate = 60
 
-const STATUS_COLORS: Record<string, string> = {
-  Active: 'bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.55_0.15_145)] border-[oklch(0.65_0.15_145)]/20',
-  Beta: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  Soon: 'bg-muted text-muted-foreground border-border',
+async function getAgents() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data, error } = await supabase
+    .from('agent_registry')
+    .select('id, name, type, description, url, enabled, skills, capabilities, tags, icon_url')
+    .eq('type', 'agent')
+    .eq('enabled', true)
+    .order('id')
+
+  if (error) return []
+  return data ?? []
 }
 
-export default function AgentsPage() {
-  const posthog = usePostHog()
+function isExternal(id: string) {
+  return id.startsWith('ext-')
+}
 
-  useEffect(() => {
-    posthog?.capture('page_view', { page: 'agents' })
-  }, [posthog])
+function getTier(id: string): string {
+  if (id.startsWith('ext-')) return 'External'
+  if (id.startsWith('l1-')) return 'Operator'
+  if (id.startsWith('l2-')) return 'Architect'
+  if (id.startsWith('l3-')) return 'Auditor'
+  return 'Agent'
+}
+
+type AgentRow = {
+  id: string
+  name: string
+  description: string
+  url?: string
+  skills?: Array<{ id: string; name: string }>
+  capabilities?: string[]
+  tags?: string[]
+  icon_url?: string
+}
+
+function AgentCard({ agent }: { agent: AgentRow }) {
+  const tier = getTier(agent.id)
+  const isLive = agent.url && agent.url !== 'pending'
+  const skills = agent.skills ?? []
+  const caps = agent.capabilities ?? []
+
+  return (
+    <div className="p-5 rounded-lg border border-border hover:border-foreground/20 transition-colors flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-semibold leading-snug">{agent.name}</span>
+        <Badge
+          variant="outline"
+          className={`text-xs shrink-0 ${
+            isLive
+              ? 'bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.55_0.15_145)] border-[oklch(0.65_0.15_145)]/20'
+              : 'bg-muted text-muted-foreground border-border'
+          }`}
+        >
+          {isLive ? 'Live' : 'Pending'}
+        </Badge>
+      </div>
+
+      {agent.description && (
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+          {agent.description}
+        </p>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap mt-auto">
+        <Badge variant="secondary" className="text-xs">{tier}</Badge>
+        {skills.length > 0 && (
+          <span className="text-xs text-muted-foreground">{skills.length} skills</span>
+        )}
+        {caps.length > 0 && (
+          <span className="text-xs text-muted-foreground">{caps.length} capabilities</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default async function AgentsPage() {
+  const agents = await getAgents()
+  const coreAgents = agents.filter((a) => !isExternal(a.id))
+  const externalAgents = agents.filter((a) => isExternal(a.id))
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 pt-28 pb-16">
-        {/* Header */}
+      <main className="max-w-5xl mx-auto px-4 pt-28 pb-16">
         <div className="mb-12 text-center">
           <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground mb-4">
-            Agent Catalogue
+            Agent Team
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            Your AI workforce
+            {agents.length} agents, always running
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Pre-built agents ready to deploy in minutes. Each one is purpose-built, tool-equipped, and designed to run autonomously.
+            Each agent has a defined role, a set of capabilities, and a live endpoint.
+            New agents are discovered automatically from the backend registry.
           </p>
         </div>
 
-        {/* Agent grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {AGENTS.map((agent) => (
-            <Card
-              key={agent.name}
-              className="border border-border hover:border-foreground/20 transition-colors cursor-pointer group"
-              onClick={() => posthog?.capture('agent_card_click', { agent: agent.name })}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base font-semibold">{agent.name}</CardTitle>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs shrink-0 ${STATUS_COLORS[agent.status] ?? ''}`}
-                  >
-                    {agent.status}
-                  </Badge>
-                </div>
-                <Badge variant="secondary" className="w-fit text-xs mt-1">
-                  {agent.category}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {agent.description}
-                </p>
-                <p className="text-xs font-mono text-foreground/60">
-                  {agent.stats}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {coreAgents.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center gap-3 mb-5">
+              <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+                Core — always loaded
+              </h2>
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">{coreAgents.length}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {coreAgents.map((agent) => (
+                <AgentCard key={agent.id} agent={agent} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {externalAgents.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-5">
+              <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+                External — deferred, on-demand
+              </h2>
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">{externalAgents.length}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {externalAgents.map((agent) => (
+                <AgentCard key={agent.id} agent={agent} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {agents.length === 0 && (
+          <p className="text-center text-muted-foreground py-20 text-sm font-mono">
+            No agents found in registry.
+          </p>
+        )}
       </main>
       <CTASection />
       <Footer />
