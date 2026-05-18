@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   const { data: connectors } = tenant
     ? await supabase
         .from('tenant_connectors')
-        .select('id, connector_type, status, metadata, created_at')
+        .select('id, agent_id, status, metadata, created_at')
         .eq('tenant_id', tenant.id)
     : { data: [] }
 

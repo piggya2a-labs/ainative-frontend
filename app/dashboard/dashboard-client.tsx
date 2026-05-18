@@ -70,7 +70,7 @@ interface McpTool {
 
 interface Connector {
   id: string
-  connector_type: string
+  agent_id: string
   status: string
   metadata?: Record<string, unknown>
   created_at: string
@@ -107,6 +107,7 @@ interface Props {
 const INTEGRATIONS = [
   {
     id: 'slack',
+    agentId: 'ext-slack-agent',
     name: 'Slack',
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#4A154B]" aria-hidden>
@@ -118,6 +119,7 @@ const INTEGRATIONS = [
   },
   {
     id: 'telegram',
+    agentId: 'ext-telegram-agent',
     name: 'Telegram',
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
@@ -129,6 +131,7 @@ const INTEGRATIONS = [
   },
   {
     id: 'feishu',
+    agentId: 'ext-feishu-agent',
     name: '飞书',
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden fill="none">
@@ -143,6 +146,7 @@ const INTEGRATIONS = [
   },
   {
     id: 'wechat',
+    agentId: 'ext-wechat-agent',
     name: '微信',
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#07C160]" aria-hidden>
@@ -271,7 +275,7 @@ export function DashboardClient({
 
   // 渠道连接状态（从 tenant_connectors 读取）
   const connectorMap = Object.fromEntries(
-    (connectors ?? []).map(c => [c.connector_type, c])
+    (connectors ?? []).map(c => [c.agent_id, c])
   )
 
   // Telegram 连接 Dialog 状态
@@ -528,7 +532,7 @@ export function DashboardClient({
               </CardHeader>
               <CardContent className="space-y-1">
                 {INTEGRATIONS.map((integration) => {
-                  const connector = connectorMap[integration.id]
+                  const connector = connectorMap[integration.agentId]
                   const connected = connector?.status === 'connected'
                   const pending = connector?.status === 'pending_start' || connector?.status === 'pending_verify'
                   const comingSoon = (integration as { coming_soon?: boolean }).coming_soon
