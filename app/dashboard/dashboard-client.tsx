@@ -10,11 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen } from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -504,13 +503,18 @@ export function DashboardClient({
                     <TableBody>
                       {realAgents.map((agent) => {
                         const isLive = agent.url && agent.url !== 'pending' && agent.url !== 'N/A'
+                        const hasDetail = (agent.skills && agent.skills.length > 0) || (agent.capabilities?.role_models && agent.capabilities.role_models.length > 0)
                         return (
-                          <Popover key={agent.id}>
+                          <Dialog key={agent.id}>
                             <TableRow className="hover:bg-muted/50 transition-colors">
                               <TableCell className="text-xs font-medium">
-                                <PopoverTrigger className="text-left font-medium text-xs hover:underline cursor-pointer">
-                                  {agent.name}
-                                </PopoverTrigger>
+                                {hasDetail ? (
+                                  <DialogTrigger className="text-left font-medium text-xs hover:underline cursor-pointer">
+                                    {agent.name}
+                                  </DialogTrigger>
+                                ) : (
+                                  agent.name
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Badge variant={agentTypeBadge(agent.type)} className="text-xs">
@@ -526,56 +530,52 @@ export function DashboardClient({
                                 </div>
                               </TableCell>
                             </TableRow>
-                            <PopoverContent className="w-80 p-0" align="start">
-                              <div className="p-4 space-y-3">
-                                {/* Header */}
-                                <div className="flex items-start justify-between gap-2">
-                                  <div>
-                                    <p className="text-sm font-semibold">{agent.name}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{agent.description}</p>
-                                  </div>
-                                  <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <div className="flex items-center gap-2">
+                                  <DialogTitle>{agent.name}</DialogTitle>
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                                 </div>
+                                <DialogDescription>{agent.description}</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 mt-1">
                                 {/* Skills */}
                                 {agent.skills && agent.skills.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-1 mb-1.5">
-                                      <Zap className="w-3 h-3 text-muted-foreground" />
-                                      <span className="text-xs font-medium text-muted-foreground">技能</span>
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                      <Zap className="w-3.5 h-3.5 text-muted-foreground" />
+                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">技能</span>
                                     </div>
-                                    <div className="space-y-1">
-                                      {agent.skills.slice(0, 4).map((skill) => (
-                                        <div key={skill.id} className="flex items-start gap-1.5">
-                                          <span className="text-xs text-foreground font-medium shrink-0">{skill.name}</span>
-                                          <span className="text-xs text-muted-foreground">{skill.description}</span>
+                                    <div className="space-y-2">
+                                      {agent.skills.map((skill) => (
+                                        <div key={skill.id} className="flex items-start gap-2">
+                                          <span className="text-xs font-medium text-foreground shrink-0 min-w-[80px]">{skill.name}</span>
+                                          <span className="text-xs text-muted-foreground leading-relaxed">{skill.description}</span>
                                         </div>
                                       ))}
-                                      {agent.skills.length > 4 && (
-                                        <p className="text-xs text-muted-foreground">+{agent.skills.length - 4} 个技能</p>
-                                      )}
                                     </div>
                                   </div>
                                 )}
                                 {/* Role Models */}
                                 {agent.capabilities?.role_models && agent.capabilities.role_models.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-1 mb-1.5">
-                                      <BookOpen className="w-3 h-3 text-muted-foreground" />
-                                      <span className="text-xs font-medium text-muted-foreground">参考对象</span>
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                      <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">参考对象</span>
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-3">
                                       {agent.capabilities.role_models.map((rm, i) => (
-                                        <div key={i}>
+                                        <div key={i} className="border-l-2 border-border pl-3">
                                           <p className="text-xs font-medium">{rm.name}</p>
-                                          <p className="text-xs text-muted-foreground italic">"{rm.principle.slice(0, 60)}{rm.principle.length > 60 ? '…' : ''}"</p>
+                                          <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{rm.principle}&rdquo;</p>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
                                 )}
                               </div>
-                            </PopoverContent>
-                          </Popover>
+                            </DialogContent>
+                          </Dialog>
                         )
                       })}
                     </TableBody>

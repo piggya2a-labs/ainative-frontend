@@ -1,7 +1,13 @@
 'use client'
 
 import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Zap, BookOpen } from 'lucide-react'
 
 type AgentTiers = { ext?: string; l1?: string; l2?: string; l3?: string; default?: string }
@@ -56,14 +62,14 @@ export function AgentCardWithPopover({
   const hasDetail = skills.length > 0 || roleModels.length > 0
 
   return (
-    <Popover>
+    <Dialog>
       <div className="p-5 rounded-lg border border-border hover:border-foreground/20 transition-colors flex flex-col gap-3">
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           {hasDetail ? (
-            <PopoverTrigger className="text-sm font-semibold leading-snug text-left hover:underline cursor-pointer">
+            <DialogTrigger className="text-sm font-semibold leading-snug text-left hover:underline cursor-pointer">
               {agent.name}
-            </PopoverTrigger>
+            </DialogTrigger>
           ) : (
             <span className="text-sm font-semibold leading-snug">{agent.name}</span>
           )}
@@ -100,39 +106,43 @@ export function AgentCardWithPopover({
         </div>
       </div>
 
-      {/* Popover detail panel */}
-      <PopoverContent className="w-80 p-0" side="bottom" align="start">
-        <div className="p-4 space-y-3">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold">{agent.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                {agent.description}
-              </p>
-            </div>
-            <span
-              className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
-                isLive ? 'bg-[oklch(0.65_0.15_145)]' : 'bg-amber-400'
+      {/* Dialog 详情弹窗 */}
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <DialogTitle>{agent.name}</DialogTitle>
+            <Badge
+              variant="outline"
+              className={`text-xs ${
+                isLive
+                  ? 'bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.55_0.15_145)] border-[oklch(0.65_0.15_145)]/20'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
-            />
+            >
+              {isLive ? 'Live' : 'Pending'}
+            </Badge>
           </div>
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+            {agent.description}
+          </p>
+        </DialogHeader>
 
+        <div className="space-y-4 mt-1">
           {/* Skills */}
           {skills.length > 0 && (
             <div>
-              <div className="flex items-center gap-1 mb-1.5">
-                <Zap className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">技能</span>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">技能</span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {skills.map((skill) => (
-                  <div key={skill.id} className="flex items-start gap-1.5">
-                    <span className="text-xs font-medium text-foreground shrink-0">
+                  <div key={skill.id} className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-foreground shrink-0 min-w-[80px]">
                       {skill.name}
                     </span>
                     {skill.description && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground leading-relaxed">
                         {skill.description}
                       </span>
                     )}
@@ -145,16 +155,19 @@ export function AgentCardWithPopover({
           {/* Role Models */}
           {roleModels.length > 0 && (
             <div>
-              <div className="flex items-center gap-1 mb-1.5">
-                <BookOpen className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">参考对象</span>
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">参考对象</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {roleModels.map((rm, i) => (
-                  <div key={i}>
+                  <div key={i} className="border-l-2 border-border pl-3">
                     <p className="text-xs font-medium">{rm.name}</p>
-                    <p className="text-xs text-muted-foreground italic">
-                      &ldquo;{rm.principle.slice(0, 70)}{rm.principle.length > 70 ? '…' : ''}&rdquo;
+                    {rm.affiliation && (
+                      <p className="text-[10px] text-muted-foreground">{rm.affiliation}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground italic mt-0.5">
+                      &ldquo;{rm.principle}&rdquo;
                     </p>
                   </div>
                 ))}
@@ -162,7 +175,7 @@ export function AgentCardWithPopover({
             </div>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }
