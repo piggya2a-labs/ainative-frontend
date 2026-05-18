@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,19 @@ interface Tenant {
   created_at: string
 }
 
+interface AgentSkill {
+  id: string
+  name: string
+  description: string
+  examples?: string[]
+}
+
+interface RoleModel {
+  name: string
+  principle: string
+  affiliation?: string
+}
+
 interface Agent {
   id: string
   name: string
@@ -41,6 +55,11 @@ interface Agent {
   url?: string
   tags?: string[]
   enabled: boolean
+  skills?: AgentSkill[]
+  capabilities?: {
+    tools?: string[]
+    role_models?: RoleModel[]
+  }
 }
 
 interface McpTool {
@@ -486,22 +505,77 @@ export function DashboardClient({
                       {realAgents.map((agent) => {
                         const isLive = agent.url && agent.url !== 'pending' && agent.url !== 'N/A'
                         return (
-                          <TableRow key={agent.id}>
-                            <TableCell className="text-xs font-medium">{agent.name}</TableCell>
-                            <TableCell>
-                              <Badge variant={agentTypeBadge(agent.type)} className="text-xs">
-                                {agent.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                                <span className="text-xs text-muted-foreground">
-                                  {isLive ? 'Live' : 'Pending'}
-                                </span>
+                          <Popover key={agent.id}>
+                            <TableRow className="hover:bg-muted/50 transition-colors">
+                              <TableCell className="text-xs font-medium">
+                                <PopoverTrigger className="text-left font-medium text-xs hover:underline cursor-pointer">
+                                  {agent.name}
+                                </PopoverTrigger>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={agentTypeBadge(agent.type)} className="text-xs">
+                                  {agent.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                                  <span className="text-xs text-muted-foreground">
+                                    {isLive ? 'Live' : 'Pending'}
+                                  </span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            <PopoverContent className="w-80 p-0" align="start">
+                              <div className="p-4 space-y-3">
+                                {/* Header */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-sm font-semibold">{agent.name}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{agent.description}</p>
+                                  </div>
+                                  <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                                </div>
+                                {/* Skills */}
+                                {agent.skills && agent.skills.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-1 mb-1.5">
+                                      <Zap className="w-3 h-3 text-muted-foreground" />
+                                      <span className="text-xs font-medium text-muted-foreground">技能</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {agent.skills.slice(0, 4).map((skill) => (
+                                        <div key={skill.id} className="flex items-start gap-1.5">
+                                          <span className="text-xs text-foreground font-medium shrink-0">{skill.name}</span>
+                                          <span className="text-xs text-muted-foreground">{skill.description}</span>
+                                        </div>
+                                      ))}
+                                      {agent.skills.length > 4 && (
+                                        <p className="text-xs text-muted-foreground">+{agent.skills.length - 4} 个技能</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Role Models */}
+                                {agent.capabilities?.role_models && agent.capabilities.role_models.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-1 mb-1.5">
+                                      <BookOpen className="w-3 h-3 text-muted-foreground" />
+                                      <span className="text-xs font-medium text-muted-foreground">参考对象</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {agent.capabilities.role_models.map((rm, i) => (
+                                        <div key={i}>
+                                          <p className="text-xs font-medium">{rm.name}</p>
+                                          <p className="text-xs text-muted-foreground italic">"{rm.principle.slice(0, 60)}{rm.principle.length > 60 ? '…' : ''}"</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </PopoverContent>
+                          </Popover>
                         )
                       })}
                     </TableBody>
