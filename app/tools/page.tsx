@@ -6,37 +6,36 @@ import { getSiteConfig } from '@/lib/queries'
 
 export const revalidate = 60
 
-type ToolRow = {
+type Skill = {
   id: string
-  tool_name: string
+  name?: string
   description?: string
-  category?: string
-  annotations?: Record<string, string>
+  tags?: string[]
 }
 
-async function getCapabilityTools(): Promise<ToolRow[]> {
+type PlatformAgent = {
+  id: string
+  name: string
+  description?: string
+  provider?: string
+  skills: Skill[]
+  mcp_url?: string
+  icon_url?: string
+}
+
+async function getPlatformAgents(): Promise<PlatformAgent[]> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
   const { data, error } = await supabase
-    .from('tool_registry')
-    .select('id, tool_name, description, category, annotations, owner_agent')
+    .from('agent_registry')
+    .select('id, name, description, provider, skills, mcp_url, icon_url')
+    .eq('type', 'external')
     .eq('enabled', true)
-    .eq('layer', 'capability')
-    .order('category')
-    .order('tool_name')
+    .order('provider')
   if (error) return []
-  return data ?? []
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  trigger: 'Trigger.dev',
-  n8n_mcp: 'n8n',
-}
-
-function categoryLabel(cat: string) {
-  return CATEGORY_LABELS[cat] ?? cat
+  return (data ?? []) as PlatformAgent[]
 }
 
 // 只取描述的第一句话
@@ -46,27 +45,44 @@ function firstSentence(text: string): string {
   return match ? match[0].trim() : line.slice(0, 80)
 }
 
+// provider → 显示名
+const PROVIDER_LABELS: Record<string, string> = {
+  'trigger.dev': 'Trigger.dev',
+  n8n: 'n8n',
+  slack: 'Slack',
+  telegram: 'Telegram',
+  feishu: '飞书',
+  wechat: '微信',
+  github: 'GitHub',
+  anthropic: 'Anthropic',
+  langsmith: 'LangSmith',
+  langgraph: 'LangGraph',
+  composio: 'Composio',
+  supabase: 'Supabase',
+  steel: 'Steel',
+  sprite: 'Sprite',
+}
+
+function providerLabel(p?: string) {
+  if (!p) return 'Other'
+  return PROVIDER_LABELS[p] ?? p
+}
+
 const MCP_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mcp-server?agent=l1-operator-agent`
 
 export default async function ToolsPage() {
-  const [tools, siteConfig] = await Promise.all([
-    getCapabilityTools(),
+  const [agents, siteConfig] = await Promise.all([
+    getPlatformAgents(),
     getSiteConfig(),
   ])
 
   const p = siteConfig?.pages?.tools
-  const emptyState = p?.empty_state || '注册表中暂无对外暴露的工具。'
+  const emptyState = p?.empty_state || '注册表中暂无平台 Agent。'
   const mcpLabel = p?.mcp_label || 'MCP Server 端点'
   const mcpMethodsLabel = p?.mcp_methods_label || '支持 JSON-RPC 2.0：'
   const mcpMethods: string[] = p?.mcp_methods ?? ['initialize', 'tools/list', 'tools/call']
 
-  const grouped = tools.reduce<Record<string, ToolRow[]>>((acc, tool) => {
-    const cat = tool.category ?? 'other'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(tool)
-    return acc
-  }, {})
-  const categories = Object.keys(grouped).sort()
+  const totalSkills = agents.reduce((sum, a) => sum + (a.skills?.length ?? 0), 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,67 +90,103 @@ export default async function ToolsPage() {
 
       <main className="max-w-4xl mx-auto px-4 pt-28 pb-16">
 
-        {/* Header — 纯数字，无口号 */}
+        {/* Header */}
         <div className="mb-10 flex items-baseline justify-between">
           <h1 className="text-2xl font-semibold tracking-tight">
             Tools
           </h1>
           <span className="text-sm text-muted-foreground font-mono">
-            {tools.length} tools · MCP
+            {agents.length} platforms · {totalSkills} skills · MCP
           </span>
         </div>
 
-        {tools.length === 0 && (
+        {agents.length === 0 && (
           <p className="text-center text-muted-foreground py-20 text-sm font-mono">
             {emptyState}
           </p>
         )}
 
-        {/* Tool list grouped by category */}
+        {/* Platform Agent list */}
         <div className="space-y-8">
-          {categories.map((cat) => (
-            <section key={cat}>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  {categoryLabel(cat)}
-                </span>
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {grouped[cat].length}
-                </span>
-              </div>
+          {agents.map((agent) => {
+            const skills: Skill[] = Array.isArray(agent.skills) ? agent.skills : []
+            return (
+              <section key={agent.id}>
+                {/* Agent header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                    {providerLabel(agent.provider)}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {skills.length}
+                  </span>
+                </div>
 
-              <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
-                {grouped[cat].map((tool) => (
-                  <div
-                    key={tool.id}
-                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
-                  >
+                {/* Agent card */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  {/* Agent name + description */}
+                  <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <span className="text-sm font-mono font-medium block truncate">
-                        {tool.tool_name}
-                      </span>
-                      {tool.description && (
-                        <span className="text-xs text-muted-foreground truncate block mt-0.5">
-                          {firstSentence(tool.description)}
+                      <span className="text-sm font-medium block truncate">{agent.name}</span>
+                      {agent.description && (
+                        <span className="text-xs text-muted-foreground block mt-0.5 truncate">
+                          {firstSentence(agent.description)}
                         </span>
                       )}
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                    >
-                      {tool.annotations?.visibility === 'external' ? 'External' : 'Active'}
-                    </Badge>
+                    {agent.mcp_url && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] shrink-0 bg-blue-500/10 text-blue-600 border-blue-500/20"
+                      >
+                        MCP
+                      </Badge>
+                    )}
                   </div>
-                ))}
-              </div>
-            </section>
-          ))}
+
+                  {/* Skills list */}
+                  {skills.length > 0 ? (
+                    <div className="divide-y divide-border">
+                      {skills.map((skill) => (
+                        <div
+                          key={skill.id}
+                          className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <span className="text-sm font-mono font-medium block truncate">
+                              {skill.id}
+                            </span>
+                            {skill.description && (
+                              <span className="text-xs text-muted-foreground truncate block mt-0.5">
+                                {firstSentence(skill.description)}
+                              </span>
+                            )}
+                          </div>
+                          {skill.tags && skill.tags.length > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] shrink-0 font-mono"
+                            >
+                              {skill.tags[0]}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-muted-foreground font-mono">
+                      no skills registered
+                    </div>
+                  )}
+                </div>
+              </section>
+            )
+          })}
         </div>
 
-        {/* MCP endpoint — compact */}
-        {tools.length > 0 && (
+        {/* MCP endpoint */}
+        {agents.length > 0 && (
           <div className="mt-10 flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/20">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1.5">
