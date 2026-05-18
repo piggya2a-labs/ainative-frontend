@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
@@ -12,7 +13,8 @@ interface NavbarProps {
 
 export function Navbar({ siteConfig }: NavbarProps) {
   const posthog = usePostHog()
-  const { user, loading, signInAnonymously, signOut } = useUser()
+  const router = useRouter()
+  const { user, loading, signOut } = useUser()
   const nav = siteConfig?.nav
   const logo = nav?.logo || 'ONIT'
   const links = nav?.links ?? []
@@ -22,10 +24,12 @@ export function Navbar({ siteConfig }: NavbarProps) {
     posthog?.capture('nav_click', { label })
   }
 
-  const handleGetStarted = async () => {
+  const handleGetStarted = () => {
     posthog?.capture('cta_click', { location: 'navbar', action: 'get_started' })
-    if (!user) {
-      await signInAnonymously()
+    if (user && !user.is_anonymous) {
+      router.push('/dashboard')
+    } else {
+      router.push('/login')
     }
   }
 
@@ -58,14 +62,23 @@ export function Navbar({ siteConfig }: NavbarProps) {
           <Badge variant="secondary" className="hidden sm:flex text-xs">
             {nav?.badge || 'Beta'}
           </Badge>
-          {!loading && user ? (
+          {!loading && user && !user.is_anonymous ? (
+            // 已登录（非匿名）：显示用户名 + Dashboard + 退出
             <div className="flex items-center gap-2">
               <span className="hidden sm:block text-xs text-muted-foreground">
-                {user.is_anonymous ? '访客' : (user.email || user.id.slice(0, 8))}
+                {user.email?.split('@')[0] || user.id.slice(0, 8)}
               </span>
               <Button
                 size="sm"
                 variant="outline"
+                className="text-xs h-8"
+                onClick={() => router.push('/dashboard')}
+              >
+                Dashboard
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 className="text-xs h-8"
                 onClick={() => {
                   posthog?.capture('sign_out')
@@ -76,14 +89,25 @@ export function Navbar({ siteConfig }: NavbarProps) {
               </Button>
             </div>
           ) : (
-            <Button
-              size="sm"
-              className="text-xs h-8"
-              disabled={loading}
-              onClick={handleGetStarted}
-            >
-              {loading ? '...' : ctaText}
-            </Button>
+            // 未登录或匿名：显示登录 + 开始使用
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs h-8"
+                onClick={() => router.push('/login')}
+              >
+                登录
+              </Button>
+              <Button
+                size="sm"
+                className="text-xs h-8"
+                disabled={loading}
+                onClick={handleGetStarted}
+              >
+                {loading ? '...' : ctaText}
+              </Button>
+            </div>
           )}
         </div>
       </div>
