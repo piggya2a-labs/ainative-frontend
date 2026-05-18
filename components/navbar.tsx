@@ -9,22 +9,12 @@ interface NavbarProps {
   siteConfig?: SiteConfig | null
 }
 
-const DEFAULT_NAV = {
-  logo: 'ONIT',
-  links: [
-    { _key: 'n1', label: 'Agents', url: '/agents' },
-    { _key: 'n2', label: 'Tools', url: '/tools' },
-    { _key: 'n3', label: 'Docs', url: '/docs' },
-  ],
-  ctaText: '开始使用',
-  ctaUrl: '#contact',
-}
-
 export function Navbar({ siteConfig }: NavbarProps) {
   const posthog = usePostHog()
-  const nav = siteConfig?.nav ?? DEFAULT_NAV
-  const logo = nav.logo || 'ONIT'
-  const links = nav.links?.length ? nav.links : DEFAULT_NAV.links
+  const nav = siteConfig?.nav
+  const logo = nav?.logo || 'ONIT'
+  const links = nav?.links ?? []
+  const ctaText = nav?.ctaText || '开始使用'
 
   const trackNav = (label: string) => {
     posthog?.capture('nav_click', { label })
@@ -57,14 +47,14 @@ export function Navbar({ siteConfig }: NavbarProps) {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="hidden sm:flex text-xs">
-            Beta
+            {nav?.badge || 'Beta'}
           </Badge>
           <Button
             size="sm"
             className="text-xs h-8"
             onClick={() => posthog?.capture('cta_click', { location: 'navbar', action: 'get_started' })}
           >
-            {nav.ctaText || '开始使用'}
+            {ctaText}
           </Button>
         </div>
       </div>

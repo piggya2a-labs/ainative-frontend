@@ -57,6 +57,7 @@ export interface SiteConfig {
   }>
   nav: {
     logo: string
+    badge?: string
     links: Array<{
       _key: string
       label: string
