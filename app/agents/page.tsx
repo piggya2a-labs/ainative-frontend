@@ -12,7 +12,7 @@ async function getAgents() {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, type, description, url, enabled, skills, capabilities, tags, icon_url')
+    .select('id, name, type, description, url, enabled, skills, tags, icon_url')
     .eq('type', 'agent')
     .eq('enabled', true)
     .order('id')
@@ -38,8 +38,7 @@ type AgentRow = {
   name: string
   description: string
   url?: string
-  skills?: Array<{ id: string; name: string }>
-  capabilities?: string[]
+  skills?: Array<{ id: string; name: string; tags?: string[]; description?: string }>
   tags?: string[]
   icon_url?: string
 }
@@ -48,7 +47,6 @@ function AgentCard({ agent }: { agent: AgentRow }) {
   const tier = getTier(agent.id)
   const isLive = agent.url && agent.url !== 'pending'
   const skills = agent.skills ?? []
-  const caps = agent.capabilities ?? []
 
   return (
     <div className="p-5 rounded-lg border border-border hover:border-foreground/20 transition-colors flex flex-col gap-3">
@@ -74,12 +72,11 @@ function AgentCard({ agent }: { agent: AgentRow }) {
 
       <div className="flex items-center gap-2 flex-wrap mt-auto">
         <Badge variant="secondary" className="text-xs">{tier}</Badge>
-        {skills.length > 0 && (
-          <span className="text-xs text-muted-foreground">{skills.length} skills</span>
-        )}
-        {caps.length > 0 && (
-          <span className="text-xs text-muted-foreground">{caps.length} capabilities</span>
-        )}
+        {skills.map((s) => (
+          <Badge key={s.id} variant="outline" className="text-xs font-mono">
+            {s.name}
+          </Badge>
+        ))}
       </div>
     </div>
   )
