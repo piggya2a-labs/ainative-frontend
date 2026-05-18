@@ -276,7 +276,7 @@ export function DashboardClient({
 
   // Telegram 连接 Dialog 状态
   const [telegramOpen, setTelegramOpen] = useState(false)
-  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'waiting'>('input')
+  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'done'>('input')
   const [tgToken, setTgToken] = useState('')
   const [tgBotInfo, setTgBotInfo] = useState<{ username: string; first_name: string } | null>(null)
   const [tgLoading, setTgLoading] = useState(false)
@@ -328,7 +328,15 @@ export function DashboardClient({
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Connect failed')
-      setTgStep('waiting')
+      setTgStep('done')
+      // 刷新页面让连接状态更新
+      setTimeout(() => {
+        setTelegramOpen(false)
+        setTgStep('input')
+        setTgToken('')
+        setTgBotInfo(null)
+        window.location.reload()
+      }, 1500)
     } catch (e: unknown) {
       setTgError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -600,7 +608,7 @@ export function DashboardClient({
                   <DialogDescription>
                     {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
                     {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
-                    {tgStep === 'waiting' && '请在 Telegram 向 Bot 发送 /start 完成连接。'}
+                    {tgStep === 'done' && `已连接 @${tgBotInfo?.username}！`}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -652,20 +660,12 @@ export function DashboardClient({
                   </div>
                 )}
 
-                {tgStep === 'waiting' && (
+                {tgStep === 'done' && (
                   <div className="space-y-3">
-                    <div className="p-3 rounded-md bg-muted text-xs">
-                      <p className="font-medium mb-1">向 Bot 发送 /start</p>
-                      <p className="text-muted-foreground">打开 Telegram，找到 @{tgBotInfo?.username}，发送 <code className="font-mono">/start</code>。收到回复后连接即完成。</p>
+                    <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                      <p className="font-medium text-emerald-700 dark:text-emerald-400 mb-1">连接成功</p>
+                      <p className="text-muted-foreground">@{tgBotInfo?.username} 已就绪，直接发消息即可与 Agent 团队交互。</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                      onClick={() => setTelegramOpen(false)}
-                    >
-                      Done
-                    </Button>
                   </div>
                 )}
               </DialogContent>
