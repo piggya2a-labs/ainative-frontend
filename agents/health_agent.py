@@ -84,7 +84,17 @@ def check_github_vercel_sync():
     latest_msg = r.json()["commit"]["message"].split("\n")[0][:60]
     return True, f"最新 commit: {latest_sha} — {latest_msg}"
 
-# ── 检查 4: PostHog 接收状态 ─────────────────────────────────────────────
+# ── 检查 4: 前端 /api/health 端点 ──────────────────────────────────────────
+def check_frontend_api():
+    r = requests.get(f"{VERCEL_PROD_URL}/api/health", timeout=10)
+    if r.status_code == 200:
+        data = r.json()
+        status = data.get("status", "unknown")
+        checks = data.get("checks", {})
+        return status == "ok", f"前端健康: {status}, checks={list(checks.keys())}"
+    return False, f"前端 /api/health 返回 {r.status_code}"
+
+# ── 检查 5: PostHog 接收状态 ─────────────────────────────────────────────
 def check_posthog():
     if not POSTHOG_KEY:
         return False, "NEXT_PUBLIC_POSTHOG_KEY 未配置"
@@ -191,6 +201,7 @@ def main():
     sanity_ok = check("Sanity CMS", check_sanity)
     check("Vercel 部署", check_vercel)
     check("GitHub-Vercel 同步", check_github_vercel_sync)
+    check("前端 API 健康", check_frontend_api)
     check("PostHog 事件接收", check_posthog)
 
     # 自动修复：Sanity 内容为空时初始化

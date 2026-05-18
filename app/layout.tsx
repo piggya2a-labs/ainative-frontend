@@ -6,6 +6,8 @@ import { Suspense } from 'react';
 import { PostHogPageView } from '@/components/posthog-pageview';
 import { getSiteConfig } from '@/lib/queries';
 import { AuthProvider } from '@/lib/auth-context';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +52,8 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </PostHogProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
