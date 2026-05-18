@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { SiteConfig } from '@/lib/sanity-schema'
+import { useUser } from '@/lib/auth-context'
 
 interface NavbarProps {
   siteConfig?: SiteConfig | null
@@ -11,6 +12,7 @@ interface NavbarProps {
 
 export function Navbar({ siteConfig }: NavbarProps) {
   const posthog = usePostHog()
+  const { user, loading, signInAnonymously, signOut } = useUser()
   const nav = siteConfig?.nav
   const logo = nav?.logo || 'ONIT'
   const links = nav?.links ?? []
@@ -18,6 +20,13 @@ export function Navbar({ siteConfig }: NavbarProps) {
 
   const trackNav = (label: string) => {
     posthog?.capture('nav_click', { label })
+  }
+
+  const handleGetStarted = async () => {
+    posthog?.capture('cta_click', { location: 'navbar', action: 'get_started' })
+    if (!user) {
+      await signInAnonymously()
+    }
   }
 
   return (
@@ -49,13 +58,33 @@ export function Navbar({ siteConfig }: NavbarProps) {
           <Badge variant="secondary" className="hidden sm:flex text-xs">
             {nav?.badge || 'Beta'}
           </Badge>
-          <Button
-            size="sm"
-            className="text-xs h-8"
-            onClick={() => posthog?.capture('cta_click', { location: 'navbar', action: 'get_started' })}
-          >
-            {ctaText}
-          </Button>
+          {!loading && user ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:block text-xs text-muted-foreground">
+                {user.is_anonymous ? '访客' : (user.email || user.id.slice(0, 8))}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-8"
+                onClick={() => {
+                  posthog?.capture('sign_out')
+                  signOut()
+                }}
+              >
+                退出
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              className="text-xs h-8"
+              disabled={loading}
+              onClick={handleGetStarted}
+            >
+              {loading ? '...' : ctaText}
+            </Button>
+          )}
         </div>
       </div>
     </header>

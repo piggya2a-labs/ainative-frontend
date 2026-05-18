@@ -5,6 +5,7 @@ import { PostHogProvider } from '@/components/posthog-provider';
 import { Suspense } from 'react';
 import { PostHogPageView } from '@/components/posthog-pageview';
 import { getSiteConfig } from '@/lib/queries';
+import { AuthProvider } from '@/lib/auth-context';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,10 +43,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <PostHogProvider>
-          <Suspense>
-            <PostHogPageView />
-          </Suspense>
-          {children}
+          <AuthProvider>
+            <Suspense>
+              <PostHogPageView />
+            </Suspense>
+            {children}
+          </AuthProvider>
         </PostHogProvider>
       </body>
     </html>
