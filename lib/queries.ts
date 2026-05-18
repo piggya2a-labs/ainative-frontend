@@ -37,7 +37,9 @@ export async function getAgentTools(): Promise<AgentTool[]> {
 export async function getSiteConfig(): Promise<SiteConfig | null> {
   try {
     const data = await client.fetch<SiteConfig>(
-      `*[_type == "siteConfig"][0]`
+      `*[_type == "siteConfig"][0]`,
+      {},
+      { next: { revalidate: 60 } }
     )
     return data
   } catch {
