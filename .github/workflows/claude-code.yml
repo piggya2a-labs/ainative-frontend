@@ -1,21 +1,23 @@
 name: Claude Code — 页面补全与构建修复
 
 on:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
-    inputs:
-      task:
-        description: '任务描述（留空使用默认任务）'
-        required: false
-        default: ''
 
 jobs:
   claude-code:
     name: Claude Code 执行
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 只在 issue comment 包含 @claude 时触发，或手动触发
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
     permissions:
       contents: write
       pull-requests: write
+      issues: write
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +29,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
+          mode: agent
           direct_prompt: |
             你是一个 Next.js + Shadcn UI 前端工程师，负责完成以下任务。
             
@@ -37,37 +40,35 @@ jobs:
             ## 任务清单（按顺序完成）
             
             ### 1. 修复构建错误（最优先）
-            `components/hero.tsx` 第 196 行有 TypeScript 错误：
+            `components/hero.tsx` 有 TypeScript 错误：
             Button 组件使用了 `asChild` prop，但当前 Button 实现不支持。
-            修复方式：移除 `asChild` prop，改用条件渲染（如果有 ctaHref 就渲染 `<a>` 标签包裹 Button）。
+            修复方式：移除 `asChild` prop，改用条件渲染（如果有 ctaHref 就用 `<a>` 标签，否则普通 Button）。
             确保 `npm run build` 能通过。
             
             ### 2. 创建 /agents 页面
             路径：`app/agents/page.tsx`
             内容：展示平台提供的 AI Agent 能力列表。
-            参考现有的 features.tsx 和 tools-grid.tsx 的风格（Shadcn UI，极简黑白）。
+            参考现有组件风格（Shadcn UI，极简黑白）。
             包含：页面标题、Agent 卡片列表（至少 6 个，每个有名称、描述、状态、使用场景）。
             
             ### 3. 创建 /tools 页面
             路径：`app/tools/page.tsx`
-            内容：完整的工具目录，比首页的 tools-grid 更详细。
+            内容：完整的工具目录，比首页更详细。
             复用 `components/tools-grid.tsx` 组件，加上页面标题和分类筛选。
             
             ### 4. 创建 /docs 页面
             路径：`app/docs/page.tsx`
             内容：快速上手文档页面。
             包含：Getting Started（3步接入）、API Reference（简单示例）、MCP Server 接入说明。
-            风格参考 Gentic.co/docs，极简，等宽字体代码块。
+            极简风格，等宽字体代码块。
             
             ## 技术要求
-            - 所有页面必须是 'use client' 或纯 Server Component（根据需要）
             - 使用 Shadcn UI 组件（Button、Card、Badge 等，已安装）
             - 使用 TailwindCSS 样式
             - 复用 `components/navbar.tsx` 和 `components/cta-footer.tsx`
-            - PostHog 埋点：每个页面的关键交互都要 `posthog?.capture()`
             - 不要引入新的 npm 包
-            - 确保 TypeScript 类型正确，`npm run build` 必须通过
+            - TypeScript 类型必须正确，`npm run build` 必须通过
             
             ## 完成后
-            所有修改直接 commit 到 main 分支，commit message 格式：
+            所有修改直接 commit 到 main 分支，commit message：
             `feat: 补全 agents/tools/docs 页面，修复构建错误`
