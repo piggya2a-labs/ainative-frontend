@@ -9,6 +9,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Zap, BookOpen } from 'lucide-react'
+import { relativeTime, formatDate } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // 将 tag 映射为对用户友好的中文标签
 const TAG_LABELS: Record<string, string> = {
@@ -43,6 +45,7 @@ type AgentRow = {
   url?: string
   skills?: AgentSkill[]
   tags?: string[]
+  updated_at?: string
   capabilities?: {
     tools?: string[]
     role_models?: RoleModel[]
@@ -108,6 +111,18 @@ export function AgentCardWithPopover({ agent }: { agent: AgentRow }) {
         {/* Role badge + skill badges */}
         <div className="flex items-center gap-2 flex-wrap mt-auto">
           <Badge variant="secondary" className="text-xs">{roleLabel}</Badge>
+          {agent.updated_at && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="text-[10px] text-muted-foreground font-mono ml-auto cursor-default">
+                  {relativeTime(agent.updated_at)}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {formatDate(agent.updated_at)}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {skills.slice(0, 3).map((s) => (
             <Badge key={s.id} variant="outline" className="text-xs font-mono">
               {s.name}

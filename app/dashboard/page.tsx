@@ -49,7 +49,7 @@ export default async function DashboardPage() {
   // Agents（从 agent_registry 读，排除 spec 行，含 skills 和 capabilities 供 Dialog 展示）
   const { data: agents } = await supabase
     .from('agent_registry')
-    .select('id, name, type, description, url, tags, enabled, skills, capabilities')
+    .select('id, name, description, tags, enabled, skills, capabilities, updated_at')
     .eq('enabled', true)
     .neq('type', 'spec')
     .order('created_at', { ascending: true })

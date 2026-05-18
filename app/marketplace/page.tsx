@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig } from '@/lib/queries'
+import { relativeTime, formatDate } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export const revalidate = 60
 
@@ -25,7 +27,8 @@ type PlatformAgent = {
   provider?: string
   skills: Skill[]
   mcp_url?: string
-  icon_url?: string
+  tags?: string[]
+  updated_at?: string
 }
 
 async function getMarketplaceAgents(): Promise<PlatformAgent[]> {
@@ -35,7 +38,7 @@ async function getMarketplaceAgents(): Promise<PlatformAgent[]> {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, description, provider, skills, mcp_url, icon_url')
+    .select('id, name, description, provider, skills, mcp_url, tags, updated_at')
     .eq('type', 'external')
     .eq('enabled', true)
     .order('provider')
@@ -132,14 +135,28 @@ export default async function MarketplacePage() {
                         </span>
                       )}
                     </div>
-                    {agent.mcp_url && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] shrink-0 bg-blue-500/10 text-blue-600 border-blue-500/20"
-                      >
-                        MCP
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {agent.updated_at && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="text-[10px] text-muted-foreground font-mono cursor-default">
+                              {relativeTime(agent.updated_at)}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {formatDate(agent.updated_at)}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {agent.mcp_url && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/20"
+                        >
+                          MCP
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   {/* Skills list */}

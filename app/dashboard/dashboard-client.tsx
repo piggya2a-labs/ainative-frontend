@@ -50,9 +50,7 @@ interface RoleModel {
 interface Agent {
   id: string
   name: string
-  type: string
   description: string
-  url?: string
   tags?: string[]
   enabled: boolean
   skills?: AgentSkill[]
@@ -60,6 +58,7 @@ interface Agent {
     tools?: string[]
     role_models?: RoleModel[]
   }
+  updated_at?: string
 }
 
 interface McpTool {
@@ -177,12 +176,6 @@ function mcpFriendlyName(toolName: string): string {
     .replace(/_mcp$/, '')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase())
-}
-
-// Agent type → badge variant
-function agentTypeBadge(type: string) {
-  if (type === 'external') return 'outline'
-  return 'secondary'
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -366,9 +359,9 @@ export function DashboardClient({
     }
   }
 
-  // 真实 agents：只显示 agent 和 external 类型，排除 capability 和 spec
-  const realAgents = agents.filter(a => a.type === 'agent' || a.type === 'external')
-  const liveAgents = realAgents.filter(a => a.url && a.url !== 'pending' && a.url !== 'N/A')
+  // 所有 enabled 的 agents（查询已排除 spec 和 capability）
+  const realAgents = agents
+  const liveAgents = agents.filter(a => a.enabled)
 
   // MCP 工具按 category 分组
   const mcpByCategory = mcpTools.reduce<Record<string, McpTool[]>>((acc, t) => {
@@ -709,7 +702,7 @@ export function DashboardClient({
                     </TableHeader>
                     <TableBody>
                       {realAgents.map((agent) => {
-                        const isLive = agent.url && agent.url !== 'pending' && agent.url !== 'N/A'
+                        const isLive = agent.enabled
                         const hasDetail = (agent.skills && agent.skills.length > 0) || (agent.capabilities?.role_models && agent.capabilities.role_models.length > 0)
                         return (
                           <Dialog key={agent.id}>
@@ -724,8 +717,8 @@ export function DashboardClient({
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Badge variant={agentTypeBadge(agent.type)} className="text-xs">
-                                  {agent.type}
+                                <Badge variant="secondary" className="text-xs">
+                                  {(agent.tags ?? [])[0] ?? 'agent'}
                                 </Badge>
                               </TableCell>
                               <TableCell>
@@ -741,7 +734,7 @@ export function DashboardClient({
                               <DialogHeader>
                                 <div className="flex items-center gap-2">
                                   <DialogTitle>{agent.name}</DialogTitle>
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
                                 </div>
                                 <DialogDescription>{agent.description}</DialogDescription>
                               </DialogHeader>

@@ -61,7 +61,7 @@ async function getAgents() {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, type, description, url, enabled, skills, capabilities, tags, icon_url')
+    .select('id, name, description, skills, capabilities, tags, enabled, updated_at')
     .eq('type', 'agent')
     .eq('enabled', true)
     .order('id')
