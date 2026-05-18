@@ -1,22 +1,28 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { HeroContent } from '@/lib/sanity-schema'
-import { Sparkles, Zap, Bot, ArrowRight, Play } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 
 interface HeroProps {
   content?: HeroContent | null
 }
 
 const defaultContent = {
-  headline: 'Build Autonomous AI Agents That Work 24/7 Without Code',
-  subheadline: 'Automate customer support, data analysis, or content creation in minutes — not months. Watch your AI agent handle repetitive tasks while you focus on growth.',
-  ctaText: 'Launch Your First Agent Free',
+  headline: 'Your AI workforce,\nrunning 24/7.',
+  subheadline:
+    'Deploy autonomous agents that handle support, research, and operations — without writing a single line of code. Go live in under 5 minutes.',
+  ctaText: 'Start for free',
   ctaHref: '#',
-  badge: '⚡ No coding required · Live in under 5 minutes',
+  badge: 'AI-Native · No code required · Live in 5 min',
 }
+
+const TRUST_STATS = [
+  { value: '10,000+', label: 'tasks automated daily' },
+  { value: '< 5 min', label: 'to first deployment' },
+  { value: '99.9%', label: 'uptime SLA' },
+]
 
 export function Hero({ content }: HeroProps) {
   const posthog = usePostHog()
@@ -30,76 +36,73 @@ export function Hero({ content }: HeroProps) {
   }
 
   return (
-    <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-4 pt-14">
-      {/* Background gradient */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] rounded-full bg-blue-500/5 blur-3xl" />
-        <div className="absolute top-1/2 right-1/4 w-[250px] h-[250px] rounded-full bg-purple-500/5 blur-3xl" />
-      </div>
+    <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-6 pt-16 pb-20">
+      {/* Subtle grid background */}
+      <div
+        className="absolute inset-0 -z-10"
+        aria-hidden="true"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          opacity: 0.4,
+        }}
+      />
+      {/* Fade vignette over grid */}
+      <div
+        className="absolute inset-0 -z-10"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 60% at 50% 40%, transparent 30%, var(--color-background) 100%)',
+        }}
+      />
 
-      <div className="max-w-3xl mx-auto space-y-6">
-        {c.badge && (
-          <Badge variant="outline" className="text-xs px-3 py-1.5 rounded-full border-primary/20 bg-primary/5 inline-flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3" />
-            {c.badge}
-          </Badge>
-        )}
+      <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
+        {/* Eyebrow label */}
+        <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+          {c.badge}
+        </p>
 
-        <div className="flex justify-center gap-4 mb-2">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
-            <Bot className="w-5 h-5" />
-          </div>
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 text-blue-500">
-            <Zap className="w-5 h-5" />
-          </div>
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500/10 text-purple-500">
-            <Sparkles className="w-5 h-5" />
-          </div>
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
+        {/* Headline */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] text-balance whitespace-pre-line">
           {c.headline}
         </h1>
 
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        {/* Subtitle */}
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed text-pretty">
           {c.subheadline}
         </p>
 
-        <div className="flex flex-col items-center gap-4 pt-4">
+        {/* CTA row */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
           <Button
             size="lg"
-            className="text-sm px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all group"
+            className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group"
             onClick={handleCTA}
           >
-            <Zap className="w-4 h-4 mr-2" />
             {c.ctaText}
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
           </Button>
           <Button
             size="lg"
-            variant="ghost"
-            className="text-sm px-6 h-10 text-muted-foreground hover:text-foreground group"
+            variant="outline"
+            className="h-12 px-6 text-base font-medium group"
             onClick={() => posthog?.capture('hero_demo_cta_click')}
           >
-            <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-            Watch 2-Min Demo
+            <Play className="w-4 h-4 mr-2 fill-current opacity-70 group-hover:opacity-100 transition-opacity" />
+            Watch demo
           </Button>
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Free to start
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            No coding skills needed
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Deploy in 5 minutes
-          </span>
+        {/* Trust stats */}
+        <div className="flex flex-col sm:flex-row items-center gap-8 pt-6 border-t border-border w-full max-w-lg">
+          {TRUST_STATS.map((stat) => (
+            <div key={stat.label} className="flex flex-col items-center gap-0.5">
+              <span className="text-2xl font-bold tracking-tight">{stat.value}</span>
+              <span className="text-xs text-muted-foreground">{stat.label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>
