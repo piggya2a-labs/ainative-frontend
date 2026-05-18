@@ -33,15 +33,49 @@ export interface AgentTool {
   order: number
 }
 
+// siteConfig 的真实结构（Sanity 中实际存储的格式）
 export interface SiteConfig {
   _id: string
   _type: 'siteConfig'
-  siteName: string
-  tagline: string
-  navItems: Array<{ label: string; href: string }>
-  footerText: string
-  announcementBar?: string
-  showAnnouncementBar: boolean
+  hero: {
+    hero_title: string
+    hero_subtitle: string
+    headline: string
+    subheadline: string
+    ctaText: string
+    ctaUrl: string
+    secondaryCtaText: string
+    secondaryCtaUrl: string
+    hero_cta: string
+  }
+  features: Array<{
+    _key: string
+    title: string
+    description: string
+    icon: string
+  }>
+  nav: {
+    logo: string
+    links: Array<{
+      _key: string
+      label: string
+      url: string
+    }>
+    ctaText: string
+    ctaUrl: string
+  }
+  tools: Array<{
+    _key: string
+    name: string
+    category: string
+  }>
+  meta: {
+    title: string
+    description: string
+    version: number
+    lastUpdatedAt: string
+    lastUpdatedBy: string
+  }
 }
 
 export interface ABTest {

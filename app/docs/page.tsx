@@ -1,50 +1,63 @@
 'use client'
-
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect, useState } from 'react'
 
+// 真实 Supabase MCP Server 端点
+const MCP_SERVER_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server'
+
 const SECTIONS = [
   {
     id: 'getting-started',
-    title: 'Getting Started',
+    title: '快速开始',
     content: [
       {
         step: '01',
-        title: 'Get your API key',
-        description: 'Sign up and copy your API key from the dashboard. One key works across all agents and tools.',
-        code: `curl https://api.ainative.dev/v1/ping \\
-  -H "Authorization: Bearer YOUR_API_KEY"`,
+        title: '连接 MCP Server',
+        description: '在 Claude Desktop 或任何 MCP 兼容客户端中配置 ONIT MCP Server，即可直接访问所有 Agent 和工具。',
+        code: `# Claude Desktop 配置 (~/.claude/claude_desktop_config.json)
+{
+  "mcpServers": {
+    "onit": {
+      "url": "${MCP_SERVER_URL}",
+      "headers": {
+        "Authorization": "Bearer <your-supabase-anon-key>"
+      }
+    }
+  }
+}`,
       },
       {
         step: '02',
-        title: 'Run your first agent',
-        description: 'Send a task to any agent with a single POST request. The agent runs asynchronously and returns a run ID.',
-        code: `curl -X POST https://api.ainative.dev/v1/runs \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "agent": "support-agent",
-    "task": "Summarise the last 10 support tickets",
-    "tools": ["database-query", "email-sender"]
-  }'`,
+        title: '调用 Agent',
+        description: '通过 MCP 协议向任意 Agent 发送任务，Agent 异步执行并返回结果。',
+        code: `# 通过 MCP 调用 Agent（以 l1-orchestrator 为例）
+POST ${MCP_SERVER_URL}?agent=l1-orchestrator
+Authorization: Bearer <your-supabase-anon-key>
+Content-Type: application/json
+
+{
+  "method": "tools/call",
+  "params": {
+    "name": "run_task",
+    "arguments": {
+      "task": "分析最近 10 条客服工单并生成摘要"
+    }
+  }
+}`,
       },
       {
         step: '03',
-        title: 'Poll for results',
-        description: 'Check the run status and retrieve the output when complete. Webhook callbacks are also supported.',
-        code: `curl https://api.ainative.dev/v1/runs/run_abc123 \\
-  -H "Authorization: Bearer YOUR_API_KEY"
-
-# Response
-{
-  "id": "run_abc123",
-  "status": "completed",
-  "output": "Summarised 10 tickets: ...",
-  "usage": { "tokens": 1240, "tools": 3 }
-}`,
+        title: '查询 Agent 列表',
+        description: '随时查询当前在线的所有 Agent 及其能力，后端新增 Agent 后前端自动发现。',
+        code: `# 查询所有已启用的 Agent
+GET https://bgzrcrftjkcfdszumywd.supabase.co/rest/v1/agent_registry
+  ?enabled=eq.true
+  &select=name,type,description,skills
+Authorization: Bearer <your-supabase-anon-key>
+apikey: <your-supabase-anon-key>`,
       },
     ],
   },
@@ -53,47 +66,53 @@ const SECTIONS = [
     title: 'MCP Server',
     content: null,
     mcp: {
-      description: 'Connect any MCP-compatible client (Claude Desktop, Cursor, Continue) to access all agents and tools directly.',
+      description: '通过标准 MCP 协议连接 ONIT，任何 MCP 兼容客户端（Claude Desktop、Cursor、Continue）都可以直接访问所有 Agent 和工具。',
       config: `{
   "mcpServers": {
-    "ainative": {
-      "command": "npx",
-      "args": ["-y", "@ainative/mcp-server"],
-      "env": {
-        "AINATIVE_API_KEY": "YOUR_API_KEY"
+    "onit": {
+      "url": "${MCP_SERVER_URL}",
+      "headers": {
+        "Authorization": "Bearer <your-supabase-anon-key>"
       }
     }
   }
 }`,
       tools: [
-        { name: 'run_agent', description: 'Execute any agent with a task description' },
-        { name: 'list_agents', description: 'List all available agents and their capabilities' },
-        { name: 'get_run', description: 'Retrieve the output of a completed run' },
-        { name: 'list_tools', description: 'List all tools available to agents' },
+        { name: 'run_task', description: '向指定 Agent 发送任务，异步执行' },
+        { name: 'list_agents', description: '列出所有可用 Agent 及其能力描述' },
+        { name: 'get_agent_status', description: '查询 Agent 当前运行状态' },
+        { name: 'list_tools', description: '列出 Agent 可用的所有 Capability 工具' },
       ],
     },
   },
   {
-    id: 'webhooks',
-    title: 'Webhooks',
+    id: 'architecture',
+    title: '架构说明',
     content: null,
-    webhook: {
-      description: 'Receive real-time notifications when runs complete, fail, or require human approval.',
-      code: `// Express.js example
-app.post('/webhook', (req, res) => {
-  const { event, run } = req.body
-
-  if (event === 'run.completed') {
-    console.log('Run output:', run.output)
-  }
-
-  if (event === 'run.approval_required') {
-    // Human-in-the-loop: approve or reject
-    await approveRun(run.id)
-  }
-
-  res.sendStatus(200)
-})`,
+    architecture: {
+      description: 'ONIT 采用三层 Agent 架构，每层职责明确，协同完成复杂任务。',
+      layers: [
+        {
+          name: 'L1 Orchestrator',
+          prefix: 'l1-',
+          role: '任务拆解与协调，始终加载，不直接执行工具',
+        },
+        {
+          name: 'L2 Specialist',
+          prefix: 'l2-',
+          role: '专业执行层，负责研究、写作、分析等具体工作',
+        },
+        {
+          name: 'L3 Reviewer',
+          prefix: 'l3-',
+          role: '质量审核层，验证输出、触发人工审批',
+        },
+        {
+          name: 'External',
+          prefix: 'ext-',
+          role: '按需加载的外部 Agent（Trigger.dev、N8N 等）',
+        },
+      ],
     },
   },
 ]
@@ -107,16 +126,13 @@ export default function DocsPage() {
   }, [posthog])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 pt-28 pb-16">
-        <div className="flex gap-12">
+      <main className="flex-1 max-w-6xl mx-auto px-4 pt-24 pb-16 w-full">
+        <div className="flex gap-8">
           {/* Sidebar */}
-          <aside className="hidden lg:block w-48 shrink-0">
+          <aside className="hidden md:block w-48 shrink-0">
             <div className="sticky top-24 space-y-1">
-              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-4">
-                Documentation
-              </p>
               {SECTIONS.map((s) => (
                 <button
                   key={s.id}
@@ -135,22 +151,20 @@ export default function DocsPage() {
               ))}
             </div>
           </aside>
-
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Header */}
             <div className="mb-10">
               <Badge variant="secondary" className="font-mono text-xs mb-4">v1.0</Badge>
-              <h1 className="text-4xl font-bold tracking-tight mb-3">Documentation</h1>
+              <h1 className="text-4xl font-bold tracking-tight mb-3">文档</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Everything you need to deploy and manage AI agents in production.
+                在生产环境中部署和管理 AI Agent 所需的一切。
               </p>
             </div>
-
             {/* Getting Started */}
             {activeSection === 'getting-started' && (
               <div className="space-y-10">
-                <h2 className="text-2xl font-semibold">Getting Started</h2>
+                <h2 className="text-2xl font-semibold">快速开始</h2>
                 {SECTIONS[0].content?.map((item) => (
                   <div key={item.step} className="space-y-3">
                     <div className="flex items-center gap-3">
@@ -167,7 +181,6 @@ export default function DocsPage() {
                 ))}
               </div>
             )}
-
             {/* MCP Server */}
             {activeSection === 'mcp' && SECTIONS[1].mcp && (
               <div className="space-y-8">
@@ -177,7 +190,7 @@ export default function DocsPage() {
                 </p>
                 <div>
                   <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                    Claude Desktop config (~/.claude/claude_desktop_config.json)
+                    Claude Desktop 配置 (~/.claude/claude_desktop_config.json)
                   </p>
                   <pre className="p-4 rounded-lg bg-muted border border-border text-xs font-mono overflow-x-auto leading-relaxed">
                     <code>{SECTIONS[1].mcp.config}</code>
@@ -185,7 +198,7 @@ export default function DocsPage() {
                 </div>
                 <div>
                   <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                    Available tools
+                    可用工具
                   </p>
                   <div className="space-y-2">
                     {SECTIONS[1].mcp.tools.map((tool) => (
@@ -198,17 +211,24 @@ export default function DocsPage() {
                 </div>
               </div>
             )}
-
-            {/* Webhooks */}
-            {activeSection === 'webhooks' && SECTIONS[2].webhook && (
+            {/* Architecture */}
+            {activeSection === 'architecture' && SECTIONS[2].architecture && (
               <div className="space-y-8">
-                <h2 className="text-2xl font-semibold">Webhooks</h2>
+                <h2 className="text-2xl font-semibold">架构说明</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {SECTIONS[2].webhook.description}
+                  {SECTIONS[2].architecture.description}
                 </p>
-                <pre className="p-4 rounded-lg bg-muted border border-border text-xs font-mono overflow-x-auto leading-relaxed">
-                  <code>{SECTIONS[2].webhook.code}</code>
-                </pre>
+                <div className="space-y-3">
+                  {SECTIONS[2].architecture.layers.map((layer) => (
+                    <div key={layer.name} className="flex items-start gap-4 p-4 rounded-lg border border-border">
+                      <div className="shrink-0">
+                        <code className="text-xs font-mono text-foreground font-semibold">{layer.name}</code>
+                        <div className="text-[10px] font-mono text-muted-foreground mt-0.5">前缀: {layer.prefix}</div>
+                      </div>
+                      <span className="text-xs text-muted-foreground leading-relaxed">{layer.role}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

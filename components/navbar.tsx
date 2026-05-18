@@ -1,18 +1,30 @@
 'use client'
-
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
+import { SiteConfig } from '@/lib/sanity-schema'
 
-const navLinks = [
-  { label: 'Agents', href: '/agents' },
-  { label: 'Tools', href: '/tools' },
-  { label: 'Docs', href: '/docs' },
-]
+interface NavbarProps {
+  siteConfig?: SiteConfig | null
+}
 
-export function Navbar() {
+const DEFAULT_NAV = {
+  logo: 'ONIT',
+  links: [
+    { _key: 'n1', label: 'Agents', url: '/agents' },
+    { _key: 'n2', label: 'Tools', url: '/tools' },
+    { _key: 'n3', label: 'Docs', url: '/docs' },
+  ],
+  ctaText: '开始使用',
+  ctaUrl: '#contact',
+}
+
+export function Navbar({ siteConfig }: NavbarProps) {
   const posthog = usePostHog()
+  const nav = siteConfig?.nav ?? DEFAULT_NAV
+  const logo = nav.logo || 'ONIT'
+  const links = nav.links?.length ? nav.links : DEFAULT_NAV.links
 
   const trackNav = (label: string) => {
     posthog?.capture('nav_click', { label })
@@ -24,15 +36,17 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 font-semibold text-sm">
             <div className="w-6 h-6 rounded bg-foreground flex items-center justify-center">
-              <span className="text-background text-xs font-bold">A</span>
+              <span className="text-background text-xs font-bold">
+                {logo.charAt(0).toUpperCase()}
+              </span>
             </div>
-            <span>PiggyA2A</span>
+            <span>{logo}</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {links.map((link) => (
               <Link
-                key={link.href}
-                href={link.href}
+                key={link._key}
+                href={link.url}
                 onClick={() => trackNav(link.label)}
                 className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
               >
@@ -47,18 +61,10 @@ export function Navbar() {
           </Badge>
           <Button
             size="sm"
-            variant="outline"
-            className="text-xs h-8"
-            onClick={() => posthog?.capture('cta_click', { location: 'navbar', action: 'sign_in' })}
-          >
-            Sign in
-          </Button>
-          <Button
-            size="sm"
             className="text-xs h-8"
             onClick={() => posthog?.capture('cta_click', { location: 'navbar', action: 'get_started' })}
           >
-            Get started
+            {nav.ctaText || '开始使用'}
           </Button>
         </div>
       </div>

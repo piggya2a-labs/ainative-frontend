@@ -1,11 +1,10 @@
 'use client'
-
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, CheckCircle2, Loader2, Clock, Zap, Shield, Rocket } from 'lucide-react'
+import { ArrowRight, Play, CheckCircle2, Loader2, Clock, Shield, Zap, Rocket } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { SiteConfig } from '@/lib/sanity-schema'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface AgentEvent {
   id: number
   agent: string
@@ -14,69 +13,38 @@ interface AgentEvent {
   ts: string
 }
 
-export interface HeroContent {
-  headline?: string
-  subheadline?: string
-  ctaText?: string
-  ctaHref?: string
-  secondaryCta?: {
-    text: string
-    href?: string
-  }
-  badge?: string
-  variant?: string
-}
-
 interface HeroProps {
-  content?: HeroContent | null
+  siteConfig?: SiteConfig | null
+  agentCount?: number
+  toolCount?: number
   onCtaClick?: () => void
   onDemoClick?: () => void
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const DEFAULT_CONTENT: HeroContent = {
-  headline: 'Build Autonomous AI Agents in Minutes, Not Months',
-  subheadline:
-    'Deploy AI agents that handle customer support, research, and operations automatically. Watch your support team handle 10x more tickets with zero manual work.',
-  ctaText: 'Launch Your First Agent',
-  ctaHref: '#',
-  secondaryCta: {
-    text: 'Watch 2-Minute Demo',
-  },
-  badge: 'AI-Native · No Code Required · Live in 5 Minutes',
-}
-
-const TRUST_STATS = [
-  { value: '10,000+', label: 'tasks automated daily' },
-  { value: '< 5 min', label: 'to first deployment' },
-  { value: '99.9%', label: 'uptime SLA' },
-]
-
 const TRUST_INDICATORS = [
-  { icon: Shield, text: 'No credit card required' },
-  { icon: Zap, text: 'Used by 500+ teams' },
-  { icon: Rocket, text: 'Deploy in <5 minutes' },
+  { icon: Shield, text: '无需信用卡' },
+  { icon: Zap, text: '5 分钟内上线' },
+  { icon: Rocket, text: 'Agent 团队 24/7 在线' },
 ]
 
 const SEED_EVENTS: Omit<AgentEvent, 'id'>[] = [
-  { agent: 'support-agent-1', action: 'Resolved ticket #4821 — billing inquiry', status: 'done', ts: '0s ago' },
-  { agent: 'research-agent-2', action: 'Summarised 14 competitor pages', status: 'done', ts: '3s ago' },
-  { agent: 'ops-agent-1', action: 'Syncing CRM records with Salesforce', status: 'running', ts: 'now' },
-  { agent: 'support-agent-2', action: 'Triaging #4822 — refund request', status: 'queued', ts: 'queued' },
+  { agent: 'l1-orchestrator', action: '拆解任务：季度竞品分析报告', status: 'done', ts: '0s ago' },
+  { agent: 'l2-research', action: '抓取 14 个竞品页面并结构化', status: 'done', ts: '3s ago' },
+  { agent: 'l2-writer', action: '生成执行摘要草稿', status: 'running', ts: 'now' },
+  { agent: 'l3-reviewer', action: '等待审核：draft_v1.md', status: 'queued', ts: 'queued' },
 ]
 
 const ROLLING_EVENTS: Omit<AgentEvent, 'id' | 'ts'>[] = [
-  { agent: 'research-agent-1', action: 'Pulled 32 SEC filings for Q1 analysis', status: 'done' },
-  { agent: 'ops-agent-2', action: 'Sent weekly digest to 1,203 subscribers', status: 'done' },
-  { agent: 'support-agent-3', action: 'Classified 48 inbound emails', status: 'done' },
-  { agent: 'monitor-agent-1', action: 'Detected price change on competitor site', status: 'done' },
-  { agent: 'ops-agent-1', action: 'Updated inventory sheet from warehouse API', status: 'done' },
-  { agent: 'research-agent-2', action: 'Generated executive brief on market trends', status: 'done' },
+  { agent: 'l2-analyst', action: '处理 32 份 SEC 文件', status: 'done' },
+  { agent: 'l2-ops', action: '向 1,203 名订阅者发送周报', status: 'done' },
+  { agent: 'l3-classifier', action: '分类 48 封入站邮件', status: 'done' },
+  { agent: 'l2-monitor', action: '检测到竞品价格变动', status: 'done' },
+  { agent: 'l2-ops', action: '从仓库 API 更新库存表', status: 'done' },
+  { agent: 'l1-orchestrator', action: '生成市场趋势执行简报', status: 'done' },
 ]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
 function StatusIcon({ status }: { status: AgentEvent['status'] }) {
   if (status === 'done') {
     return <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
@@ -101,36 +69,27 @@ function LiveFeed() {
       const newEvent: AgentEvent = {
         ...next,
         id: counterRef.current++,
-        ts: '0s ago',
+        ts: 'just now',
       }
-      setEvents((prev) => [newEvent, ...prev].slice(0, 6))
+      setEvents((prev) => [newEvent, ...prev].slice(0, 5))
     }, 2800)
     return () => clearInterval(interval)
   }, [])
 
+  const activeCount = events.filter((e) => e.status === 'running').length
+
   return (
-    <div
-      className="w-full max-w-2xl mx-auto rounded-xl border border-border bg-card overflow-hidden"
-      role="log"
-      aria-label="Live agent activity feed"
-      aria-live="polite"
-    >
-      {/* Panel header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-2 h-2 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse"
-            aria-hidden="true"
-          />
-          <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-            Live agent activity
-          </span>
-        </div>
-        <span className="text-xs font-mono text-muted-foreground tabular-nums">
-          {events.filter((e) => e.status !== 'queued').length} active
+    <div className="w-full rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm overflow-hidden text-left">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-muted/30">
+        <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+          agent activity
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-[oklch(0.65_0.15_145)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse" />
+          {activeCount} active
         </span>
       </div>
-
       {/* Event rows */}
       <ul className="divide-y divide-border">
         {events.slice(0, 5).map((event) => (
@@ -156,9 +115,20 @@ function LiveFeed() {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
+export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick }: HeroProps) {
+  const hero = siteConfig?.hero
 
-export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
-  const c = { ...DEFAULT_CONTENT, ...content }
+  const headline = hero?.hero_title || hero?.headline || 'AI Agent 团队 24/7 为你的业务工作'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'ONIT 让复杂业务流程自动化。无需编码，无需管理，Agent 团队独立完成从分析到执行的全链路工作。'
+  const ctaText = hero?.ctaText || hero?.hero_cta || '开始使用'
+  const secondaryCtaText = hero?.secondaryCtaText || '了解更多'
+
+  // 真实数字：从 Supabase 读取
+  const trustStats = [
+    { value: agentCount > 0 ? `${agentCount}` : '—', label: '个 Agent 在线' },
+    { value: toolCount > 0 ? `${toolCount}` : '—', label: '个 Capability 工具' },
+    { value: '99.9%', label: '可用性 SLA' },
+  ]
 
   return (
     <section
@@ -176,7 +146,7 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
           opacity: 0.35,
         }}
       />
-      {/* Radial fade — punches a dark hole in the centre */}
+      {/* Radial fade */}
       <div
         className="absolute inset-0 -z-10"
         aria-hidden="true"
@@ -185,31 +155,27 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
             'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)',
         }}
       />
-
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-10">
         {/* Eyebrow */}
         <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">
-          {c.badge}
+          AI Native · 无需编码 · 5 分钟上线
         </p>
-
-        {/* Headline - Value-First Messaging */}
+        {/* Headline */}
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">
-          {c.headline}
+          {headline}
         </h1>
-
-        {/* Subtitle - Benefit-Driven with Use Case */}
+        {/* Subtitle */}
         <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">
-          {c.subheadline}
+          {subheadline}
         </p>
-
-        {/* CTA row - Action-Oriented */}
+        {/* CTA row */}
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
           <Button
             size="lg"
             className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group"
             onClick={onCtaClick}
           >
-            {c.ctaText}
+            {ctaText}
             <ArrowRight
               className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform"
               aria-hidden="true"
@@ -225,11 +191,10 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
               className="w-4 h-4 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity"
               aria-hidden="true"
             />
-            {c.secondaryCta?.text || 'Watch Demo'}
+            {secondaryCtaText}
           </Button>
         </div>
-
-        {/* Trust Indicators - Lower Activation Barriers */}
+        {/* Trust Indicators */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
           {TRUST_INDICATORS.map((indicator) => {
             const Icon = indicator.icon
@@ -241,14 +206,10 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
             )
           })}
         </div>
-
-        {/* Trust stats */}
+        {/* Trust stats — 真实数字 */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-8 pt-2 w-full max-w-md">
-          {TRUST_STATS.map((stat, i) => (
+          {trustStats.map((stat) => (
             <div key={stat.label} className="flex flex-col items-center gap-0.5">
-              {i > 0 && (
-                <div className="hidden sm:block absolute" aria-hidden="true" />
-              )}
               <span className="text-2xl font-bold tracking-tight tabular-nums">
                 {stat.value}
               </span>
@@ -256,7 +217,6 @@ export function Hero({ content, onCtaClick, onDemoClick }: HeroProps) {
             </div>
           ))}
         </div>
-
         {/* Live agent feed */}
         <div className="w-full pt-4">
           <LiveFeed />
