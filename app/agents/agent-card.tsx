@@ -10,7 +10,17 @@ import {
 } from '@/components/ui/dialog'
 import { Zap, BookOpen } from 'lucide-react'
 
-type AgentTiers = { ext?: string; l1?: string; l2?: string; l3?: string; default?: string }
+// 将 tag 映射为对用户友好的中文标签
+const TAG_LABELS: Record<string, string> = {
+  development: '执行',
+  operations: '运维',
+  architecture: '设计',
+  coordination: '协调',
+  audit: '审核',
+  platform: '核心',
+  core: '核心',
+  native: '核心',
+}
 
 type AgentSkill = {
   id: string
@@ -32,30 +42,33 @@ type AgentRow = {
   description: string
   url?: string
   skills?: AgentSkill[]
+  tags?: string[]
   capabilities?: {
     tools?: string[]
     role_models?: RoleModel[]
   }
-  tags?: string[]
   icon_url?: string
 }
 
-function getTier(id: string, tiers?: AgentTiers): string {
-  if (id.startsWith('ext-')) return tiers?.ext ?? 'External'
-  if (id.startsWith('l1-')) return tiers?.l1 ?? 'Operator'
-  if (id.startsWith('l2-')) return tiers?.l2 ?? 'Architect'
-  if (id.startsWith('l3-')) return tiers?.l3 ?? 'Auditor'
-  return tiers?.default ?? 'Agent'
+/**
+ * 从 agent 的 tags 字段推断显示标签。
+ * 优先用 tags 里能映射到中文的第一个，fallback 到 ID 前缀。
+ */
+function getRoleLabel(agent: AgentRow): string {
+  const tags = agent.tags ?? []
+  for (const tag of tags) {
+    if (TAG_LABELS[tag]) return TAG_LABELS[tag]
+  }
+  // fallback: ID 前缀
+  if (agent.id.startsWith('l1-')) return '执行'
+  if (agent.id.startsWith('l2-')) return '设计'
+  if (agent.id.startsWith('l3-')) return '审核'
+  if (agent.id.startsWith('ext-')) return '外部'
+  return 'Agent'
 }
 
-export function AgentCardWithPopover({
-  agent,
-  tiers,
-}: {
-  agent: AgentRow
-  tiers?: AgentTiers
-}) {
-  const tier = getTier(agent.id, tiers)
+export function AgentCardWithPopover({ agent }: { agent: AgentRow }) {
+  const roleLabel = getRoleLabel(agent)
   const isLive = agent.url && agent.url !== 'pending'
   const skills = agent.skills ?? []
   const roleModels = agent.capabilities?.role_models ?? []
@@ -81,7 +94,7 @@ export function AgentCardWithPopover({
                 : 'bg-muted text-muted-foreground border-border'
             }`}
           >
-            {isLive ? 'Live' : 'Pending'}
+            {isLive ? '在线' : '待机'}
           </Badge>
         </div>
 
@@ -92,9 +105,9 @@ export function AgentCardWithPopover({
           </p>
         )}
 
-        {/* Skill badges */}
+        {/* Role badge + skill badges */}
         <div className="flex items-center gap-2 flex-wrap mt-auto">
-          <Badge variant="secondary" className="text-xs">{tier}</Badge>
+          <Badge variant="secondary" className="text-xs">{roleLabel}</Badge>
           {skills.slice(0, 3).map((s) => (
             <Badge key={s.id} variant="outline" className="text-xs font-mono">
               {s.name}
@@ -119,7 +132,7 @@ export function AgentCardWithPopover({
                   : 'bg-muted text-muted-foreground border-border'
               }`}
             >
-              {isLive ? 'Live' : 'Pending'}
+              {isLive ? '在线' : '待机'}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed mt-1">

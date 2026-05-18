@@ -64,6 +64,43 @@ const siteConfigSchema = {
   ],
 }
 
+const articleSchema = {
+  name: 'article',
+  title: '文章',
+  type: 'document' as const,
+  fields: [
+    { name: 'title', title: '标题', type: 'string' },
+    { name: 'slug', title: 'URL Slug', type: 'slug', options: { source: 'title', maxLength: 96 } },
+    { name: 'excerpt', title: '摘要', type: 'text', rows: 3 },
+    { name: 'cover_image', title: '封面图', type: 'image', options: { hotspot: true } },
+    { name: 'published_at', title: '发布日期', type: 'datetime' },
+    { name: 'tags', title: '标签', type: 'array', of: [{ type: 'string' }] },
+    { name: 'seo_title', title: 'SEO 标题', type: 'string' },
+    { name: 'seo_description', title: 'SEO 描述', type: 'text', rows: 2 },
+    {
+      name: 'body',
+      title: '正文',
+      type: 'array',
+      of: [
+        { type: 'block' },
+        { type: 'image', options: { hotspot: true } },
+        {
+          type: 'object',
+          name: 'code_block',
+          title: '代码块',
+          fields: [
+            { name: 'language', title: '语言', type: 'string' },
+            { name: 'code', title: '代码', type: 'text' },
+          ],
+        },
+      ],
+    },
+  ],
+  preview: {
+    select: { title: 'title', subtitle: 'excerpt', media: 'cover_image' },
+  },
+}
+
 const agentTasksBusSchema = {
   name: 'agentTasksBus',
   title: 'Agent 任务总线',
@@ -109,11 +146,14 @@ export default defineConfig({
             S.listItem()
               .title('Agent 任务总线')
               .child(S.document().schemaType('agentTasksBus').documentId('agentTasksBus')),
+            S.listItem()
+              .title('文章')
+              .child(S.documentTypeList('article').title('文章列表')),
           ]),
     }),
     visionTool(),
   ],
   schema: {
-    types: [siteConfigSchema, agentTasksBusSchema],
+    types: [siteConfigSchema, agentTasksBusSchema, articleSchema],
   },
 })

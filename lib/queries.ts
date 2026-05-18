@@ -1,5 +1,5 @@
 import { client } from './sanity'
-import { HeroContent, FeatureCard, AgentTool, SiteConfig } from './sanity-schema'
+import { HeroContent, FeatureCard, AgentTool, SiteConfig, Article } from './sanity-schema'
 
 export async function getHeroContent(): Promise<HeroContent | null> {
   try {
@@ -42,6 +42,43 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
       { next: { revalidate: 60 } }
     )
     return data
+  } catch {
+    return null
+  }
+}
+
+export async function getArticles(): Promise<Article[]> {
+  try {
+    const data = await client.fetch<Article[]>(
+      `*[_type == "article"] | order(published_at desc) {
+        _id, _type, title, slug, excerpt, published_at, tags,
+        cover_image { asset->{ url }, alt }
+      }`,
+      {},
+      { next: { revalidate: 60 } }
+    )
+    return data || []
+  } catch {
+    return []
+  }
+}
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  try {
+    const data = await client.fetch<Article>(
+      `*[_type == "article" && slug.current == $slug][0] {
+        _id, _type, title, slug, excerpt, published_at, tags,
+        seo_title, seo_description,
+        cover_image { asset->{ url }, alt },
+        body[] {
+          ...,
+          _type == "image" => { ..., asset->{ url } }
+        }
+      }`,
+      { slug },
+      { next: { revalidate: 60 } }
+    )
+    return data || null
   } catch {
     return null
   }

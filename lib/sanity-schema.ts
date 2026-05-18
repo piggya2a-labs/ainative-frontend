@@ -126,6 +126,29 @@ export interface SiteConfig {
   }
 }
 
+export interface Article {
+  _id: string
+  _type: 'article'
+  title: string
+  slug: { current: string }
+  excerpt?: string
+  cover_image?: { asset: { url: string }; alt?: string }
+  published_at?: string
+  tags?: string[]
+  seo_title?: string
+  seo_description?: string
+  body?: Array<{
+    _type: string
+    _key: string
+    style?: string
+    children?: Array<{ _type: string; text: string; marks?: string[] }>
+    markDefs?: Array<{ _key: string; _type: string; href?: string }>
+    language?: string
+    code?: string
+    asset?: { url: string }
+  }>
+}
+
 export interface ABTest {
   _id: string
   _type: 'abTest'
@@ -143,11 +166,15 @@ export interface ABTest {
 export interface SiteConfigPages {
   agents?: {
     eyebrow?: string
+    heading?: string
     headline_suffix?: string
     description?: string
     core_label?: string
     external_label?: string
     empty_state?: string
+    activity_label?: string
+    live_label?: string
+    activity_hint?: string
   }
   tools?: {
     eyebrow?: string

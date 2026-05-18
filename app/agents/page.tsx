@@ -73,16 +73,6 @@ function isExternal(id: string) {
   return id.startsWith('ext-')
 }
 
-type AgentTiers = { ext?: string; l1?: string; l2?: string; l3?: string; default?: string }
-
-function getTier(id: string, tiers?: AgentTiers): string {
-  if (id.startsWith('ext-')) return tiers?.ext ?? 'External'
-  if (id.startsWith('l1-')) return tiers?.l1 ?? 'Operator'
-  if (id.startsWith('l2-')) return tiers?.l2 ?? 'Architect'
-  if (id.startsWith('l3-')) return tiers?.l3 ?? 'Auditor'
-  return tiers?.default ?? 'Agent'
-}
-
 type ActivityItem = {
   sha: string
   message: string
@@ -170,10 +160,12 @@ export default async function AgentsPage() {
 
   const p = siteConfig?.pages?.agents
   const eyebrow = p?.eyebrow || 'Agent Team'
-  const description = p?.description || '每个 Agent 有明确的职责、能力集和在线端点。后端新增 Agent 后自动被发现。'
-  const coreLabel = p?.core_label || 'Core — 始终加载'
-  const externalLabel = p?.external_label || 'External — 按需加载'
-  const emptyState = p?.empty_state || '注册表中暂无 Agent。'
+  const headingTemplate = p?.heading || '{count} agents, always running'
+  const description = p?.description || '每位成员有明确的专长，分工协作，随时待命。'
+  const coreLabel = p?.core_label || '核心团队'
+  const externalLabel = p?.external_label || '外部成员'
+  const emptyState = p?.empty_state || '暂无成员。'
+  const heading = headingTemplate.replace('{count}', String(agents.length))
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,7 +177,7 @@ export default async function AgentsPage() {
             {eyebrow}
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            {agents.length} agents, always running
+            {heading}
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
             {description}
@@ -196,19 +188,19 @@ export default async function AgentsPage() {
         <section className="mb-14">
           <div className="flex items-center gap-3 mb-5">
             <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
-              Recent Activity
+              {p?.activity_label || '最近动态'}
             </h2>
             <div className="flex-1 h-px bg-border" />
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse" />
-              <span className="text-[10px] font-mono text-muted-foreground">live</span>
+              <span className="text-[10px] font-mono text-muted-foreground">{p?.live_label || '运行中'}</span>
             </div>
           </div>
           <div className="rounded-lg border border-border bg-muted/20 px-4 py-1">
             <ActivityFeed items={activity} />
           </div>
           <p className="text-[10px] text-muted-foreground font-mono mt-2 text-right">
-            绿点 = AI Agent 自动提交 · 每天 10:00 UTC+8 自动运行
+            {p?.activity_hint || '绿点 = Agent 自动提交 · 每天上午 10 点自动运行'}
           </p>
         </section>
 
@@ -224,7 +216,7 @@ export default async function AgentsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {coreAgents.map((agent) => (
-                <AgentCardWithPopover key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
+                <AgentCardWithPopover key={agent.id} agent={agent} />
               ))}
             </div>
           </section>
@@ -240,7 +232,7 @@ export default async function AgentsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {externalAgents.map((agent) => (
-                <AgentCardWithPopover key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
+                <AgentCardWithPopover key={agent.id} agent={agent} />
               ))}
             </div>
           </section>
