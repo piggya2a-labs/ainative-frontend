@@ -1,8 +1,12 @@
-name: Claude Code — 集成修复与闭环补全
+name: Claude Code — AI 协作
 
 on:
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize]
   workflow_dispatch:
 
 jobs:
@@ -10,10 +14,12 @@ jobs:
     name: Claude Code 执行
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # 只在 issue comment 包含 @claude 时触发，或手动触发
+    # issue/PR comment 包含 @claude 时触发，或 PR 开启/更新时自动 review，或手动触发
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      github.event_name == 'pull_request'
     permissions:
       contents: write
       pull-requests: write
@@ -25,74 +31,14 @@ jobs:
           token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
-          model: claude-sonnet-4-5
-          mode: agent
-          direct_prompt: |
-            你是一个 Next.js + TypeScript 工程师，负责完成以下 4 个任务。
-            所有修改在一次 commit 中完成，commit message：
-            `feat: add /api/health, Vercel Analytics, remove onboarding, fix health_agent`
-
-            ## 项目背景
-            这是 ONIT AI Native Closed Loop 哑前端（Next.js 16 + TypeScript + TailwindCSS + Shadcn UI），
-            部署在 Vercel，集成 PostHog + Sanity CMS + Supabase。
-
-            ## 任务 1：创建 /api/health 端点
-            创建文件 `app/api/health/route.ts`，内容如下（逐字复制，不要修改）：
-
-            export const dynamic = 'force-dynamic'
-            import { NextResponse } from 'next/server'
-            export async function GET() {
-              const checks: Record<string, { ok: boolean; detail?: string }> = {}
-              try {
-                const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
-                if (!projectId) throw new Error('NEXT_PUBLIC_SANITY_PROJECT_ID not set')
-                const r = await fetch(`https://${projectId}.api.sanity.io/v2024-01-01/data/query/production?query=1`, { cache: 'no-store' })
-                checks.sanity = { ok: r.ok, detail: r.ok ? `project=${projectId}` : `HTTP ${r.status}` }
-              } catch (e) { checks.sanity = { ok: false, detail: String(e) } }
-              try {
-                const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-                const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                if (!url || !key) throw new Error('Supabase env not set')
-                const r = await fetch(`${url}/rest/v1/`, { headers: { apikey: key }, cache: 'no-store' })
-                checks.supabase = { ok: r.ok, detail: r.ok ? 'connected' : `HTTP ${r.status}` }
-              } catch (e) { checks.supabase = { ok: false, detail: String(e) } }
-              const requiredEnvs = ['NEXT_PUBLIC_SANITY_PROJECT_ID','NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_POSTHOG_KEY','AGENT_API_SECRET','SANITY_API_WRITE_TOKEN']
-              const envChecks: Record<string, boolean> = {}
-              for (const k of requiredEnvs) envChecks[k] = !!process.env[k]
-              checks.env = { ok: Object.values(envChecks).every(Boolean), detail: JSON.stringify(envChecks) }
-              const allOk = Object.values(checks).every((c) => c.ok)
-              return NextResponse.json({ status: allOk ? 'ok' : 'degraded', timestamp: new Date().toISOString(), checks }, { status: allOk ? 200 : 503 })
-            }
-
-            ## 任务 2：接入 Vercel Analytics 和 Speed Insights
-            1. 在 `package.json` 的 `dependencies` 中添加（在现有依赖后面）：
-               "@vercel/analytics": "^1.5.0",
-               "@vercel/speed-insights": "^1.2.0"
-            2. 在 `app/layout.tsx` 顶部 import 区域添加：
-               import { Analytics } from '@vercel/analytics/react'
-               import { SpeedInsights } from '@vercel/speed-insights/next'
-            3. 在 layout.tsx 的 </body> 之前，{children} 之后添加：
-               <Analytics />
-               <SpeedInsights />
-
-            ## 任务 3：删除废弃的 /onboarding 目录
-            删除整个 `app/onboarding/` 目录及其所有文件。
-
-            ## 任务 4：更新 health_agent.py
-            在 `agents/health_agent.py` 中，找到检查前端 API 的函数，将检查 URL 改为 `/api/health`。
-            如果没有这个函数，在 results = [] 之后添加：
-            def check_frontend_api():
-                r = requests.get(f"{VERCEL_PROD_URL}/api/health", timeout=10)
-                if r.status_code == 200:
-                    data = r.json()
-                    status = data.get("status", "unknown")
-                    return status == "ok", f"前端健康: {status}"
-                return False, f"前端 /api/health 返回 {r.status_code}"
-            并在主检查流程中调用：check("前端 API 健康", check_frontend_api)
-
-            ## 完成要求
-            TypeScript 编译必须通过，所有 4 个任务完成后一次性 commit 到 main 分支。
+          # PR 自动 review 时使用 code-review 技能；@claude 手动触发时响应 comment 内容
+          prompt: |
+            ${{ github.event_name == 'pull_request' && '/code-review:code-review' || '' }}
+          claude_args: |
+            --model claude-sonnet-4-5
+            --append-system-prompt "你是 ONIT 前端工程师。遵守 CLAUDE.md 中的所有约束。"
+            --max-turns 20

@@ -11,8 +11,12 @@ export async function POST(request: Request) {
   return NextResponse.json({ revalidated: true, ts: Date.now() })
 }
 
-// 允许 GET 方便手动触发（开发用）
-export async function GET() {
+// GET 手动触发（需要 x-revalidate-secret 鉴权）
+export async function GET(request: Request) {
+  const secret = request.headers.get('x-revalidate-secret')
+  if (secret !== process.env.AGENT_API_SECRET) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
   revalidatePath('/', 'layout')
   return NextResponse.json({ revalidated: true, ts: Date.now() })
 }

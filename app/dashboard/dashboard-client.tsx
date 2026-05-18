@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
@@ -252,11 +252,41 @@ export function DashboardClient({
 
   // Telegram 连接 Dialog 状态
   const [telegramOpen, setTelegramOpen] = useState(false)
-  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'done'>('input')
+  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'pending' | 'done'>('input')
   const [tgToken, setTgToken] = useState('')
   const [tgBotInfo, setTgBotInfo] = useState<{ username: string; first_name: string } | null>(null)
+  const [tgDeepLink, setTgDeepLink] = useState<string | null>(null)
   const [tgLoading, setTgLoading] = useState(false)
   const [tgError, setTgError] = useState('')
+  const tgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 轮询 Telegram 连接状态
+  const startTgPolling = (accessToken: string) => {
+    if (tgPollRef.current) clearInterval(tgPollRef.current)
+    tgPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+            body: JSON.stringify({ action: 'status' }),
+          }
+        )
+        const data = await res.json()
+        if (data.status === 'connected') {
+          clearInterval(tgPollRef.current!)
+          tgPollRef.current = null
+          setTgStep('done')
+          setTimeout(() => {
+            setTelegramOpen(false)
+            setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null)
+            window.location.reload()
+          }, 2000)
+        }
+      } catch { /* 网络错误不中断轮询 */ }
+    }, 2000)
+  }
 
   const handleTelegramVerify = async () => {
     if (!tgToken.trim()) return
@@ -304,15 +334,11 @@ export function DashboardClient({
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Connect failed')
-      setTgStep('done')
-      // 刷新页面让连接状态更新
-      setTimeout(() => {
-        setTelegramOpen(false)
-        setTgStep('input')
-        setTgToken('')
-        setTgBotInfo(null)
-        window.location.reload()
-      }, 1500)
+      // 展示 deep_link，进入等待用户点击的 pending 步骤
+      setTgDeepLink(data.deep_link ?? null)
+      setTgStep('pending')
+      // 开始轮询，用户在 Telegram 发 /start 后自动跳转 done
+      if (session?.access_token) startTgPolling(session.access_token)
     } catch (e: unknown) {
       setTgError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -590,14 +616,15 @@ export function DashboardClient({
             </Card>
 
             {/* Telegram 连接 Dialog */}
-            <Dialog open={telegramOpen} onOpenChange={(o) => { if (!o) { setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgError('') } }}>
+            <Dialog open={telegramOpen} onOpenChange={(o) => { if (!o) { if (tgPollRef.current) { clearInterval(tgPollRef.current); tgPollRef.current = null } setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null); setTgError('') } }}>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
                   <DialogTitle className="text-sm">Connect Telegram</DialogTitle>
                   <DialogDescription>
                     {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
                     {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
-                    {tgStep === 'done' && `已连接 @${tgBotInfo?.username}！`}
+                    {tgStep === 'pending' && '点击下方链接完成绑定'}
+                    {tgStep === 'done' && '绑定成功！'}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -649,11 +676,33 @@ export function DashboardClient({
                   </div>
                 )}
 
+                {tgStep === 'pending' && (
+                  <div className="space-y-3">
+                    {tgDeepLink ? (
+                      <a
+                        href={tgDeepLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full h-9 rounded-md bg-[#2AABEE]/10 border border-[#2AABEE]/30 text-sm font-medium text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors"
+                      >
+                        在 Telegram 中完成绑定 →
+                      </a>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">正在生成链接…</p>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                      <span>等待绑定确认，点击链接后在 Telegram 发送 /start 即可自动完成</span>
+                    </div>
+                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
+                  </div>
+                )}
+
                 {tgStep === 'done' && (
                   <div className="space-y-3">
                     <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                      <p className="font-medium text-emerald-700 dark:text-emerald-400 mb-1">连接成功</p>
-                      <p className="text-muted-foreground">@{tgBotInfo?.username} 已就绪，直接发消息即可与 Agent 团队交互。</p>
+                      <p className="font-medium text-emerald-700 dark:text-emerald-400 mb-1">绑定成功 ✅</p>
+                      <p className="text-muted-foreground">@{tgBotInfo?.username} 已就绪，直接发消息即可与 ONIT 对话。</p>
                     </div>
                   </div>
                 )}
