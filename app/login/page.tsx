@@ -33,8 +33,8 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
-        setSuccess('注册成功！请检查邮箱确认链接（如已配置），或直接登录。')
-        setMode('login')
+        // 注册成功，直接跳转 onboarding 生成专属 Dashboard
+        router.push('/onboarding')
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })

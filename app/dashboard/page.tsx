@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { DashboardClient } from './dashboard-client'
+import type { DashboardConfig } from '@/app/api/generate-dashboard/route'
 
 export default async function DashboardPage() {
   const cookieStore = await cookies()
@@ -11,9 +12,7 @@ export default async function DashboardPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
+        getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
@@ -32,12 +31,20 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // 获取用户的 tenant
+  // 获取用户的 tenant（含 metadata）
   const { data: tenant } = await supabase
     .from('tenants')
     .select('*')
     .eq('user_id', user.id)
     .single()
+
+  // 没有 dashboard_config → 跳转 onboarding 生成
+  const dashboardConfig: DashboardConfig | null =
+    tenant?.metadata?.dashboard_config ?? null
+
+  if (!dashboardConfig) {
+    redirect('/onboarding')
+  }
 
   // 获取 API Keys
   const { data: apiKeys } = tenant
@@ -64,6 +71,7 @@ export default async function DashboardPage() {
       tenant={tenant}
       apiKeys={apiKeys ?? []}
       projects={projects ?? []}
+      dashboardConfig={dashboardConfig}
     />
   )
 }
