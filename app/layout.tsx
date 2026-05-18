@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'PiggyA2A — AI Agent Platform',
-  description: 'Delegate complex tasks to specialized AI agents. They coordinate, execute, and iterate — so you can focus on what matters.',
+  title: 'ONIT — AI Agent 团队平台',
+  description: '让 AI Agent 团队为你的业务工作。ONIT 是一个 AI Native 平台，专业 Agent 自主完成你的每一个业务目标。',
   openGraph: {
-    title: 'PiggyA2A — AI Agent Platform',
-    description: 'Delegate complex tasks to specialized AI agents.',
+    title: 'ONIT — AI Agent 团队平台',
+    description: '让 AI Agent 团队为你的业务工作。',
     type: 'website',
   },
 };

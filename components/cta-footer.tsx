@@ -63,7 +63,7 @@ export function Footer() {
           <div className="w-4 h-4 rounded bg-foreground flex items-center justify-center">
             <span className="text-background text-[9px] font-bold">A</span>
           </div>
-          <span>PiggyA2A · AI-native agent platform</span>
+          <span>ONIT · AI Native Agent 团队平台</span>
         </div>
         <div className="flex items-center gap-4">
           <span>Privacy</span>
