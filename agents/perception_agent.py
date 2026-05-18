@@ -144,7 +144,7 @@ directive 示例（hero.tsx）：
             "content-type": "application/json"
         },
         json={
-            "model": "claude-haiku-4-5",
+            "model": "claude-sonnet-4-5",
             "max_tokens": 512,
             "messages": [{"role": "user", "content": prompt}]
         }
