@@ -1,0 +1,47 @@
+name: AI 内循环 — 每日自动优化
+
+on:
+  schedule:
+    # 每天 UTC 02:00（北京时间 10:00）运行
+    - cron: '0 2 * * *'
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  inner-loop:
+    name: 感知 → 生成 → 部署
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装 Python 依赖
+        run: pip install requests
+
+      - name: 安装 Node.js 依赖
+        run: npm install @octokit/rest
+
+      - name: 运行内循环（感知 → 生成 → 推送）
+        env:
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
+          GITHUB_OWNER: piggya2a-labs
+          GITHUB_REPO: ainative-frontend
+        run: |
+          echo "=== 启动 AI 内循环 ==="
+          python3 agents/perception_agent.py | node agents/claude_worker.js
+          echo "=== 内循环完成 ==="

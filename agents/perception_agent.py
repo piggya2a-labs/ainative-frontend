@@ -1,68 +1,60 @@
 """
-感知 Agent (Perception Agent)
-职责：读取 PostHog 行为数据 → 用 LLM 分析 → 生成改进任务 → 写入 Sanity agentTasksBus
+感知 Agent — 内循环分析决策层
 
-运行方式：python3 perception_agent.py
-触发方式：Manus 定时任务，每天运行一次
+职责：
+1. 读取 PostHog 过去 7 天的用户行为数据
+2. 用 Claude 分析数据，生成结构化的改进指令
+3. 将指令输出为 JSON 到 stdout，交给 v0 Worker 执行
 
-环境变量（必须设置）：
-  SANITY_API_WRITE_TOKEN   - Sanity 写权限 Token
-  POSTHOG_PERSONAL_API_KEY - PostHog Personal API Key
-  ANTHROPIC_API_KEY        - Anthropic Claude API Key
-  POSTHOG_PROJECT_ID       - PostHog Project ID（默认 428900）
-  SANITY_PROJECT_ID        - Sanity Project ID（默认 zae9ml5g）
+这个脚本只做分析和决策，不写任何代码，不改任何文件。
+代码生成和部署由 v0_worker.js 负责。
+
+环境变量：
+  POSTHOG_PERSONAL_API_KEY — PostHog Personal API Key
+  POSTHOG_PROJECT_ID       — PostHog Project ID（默认 428900）
+  ANTHROPIC_API_KEY        — Claude API Key
+
+用法：
+  python3 agents/perception_agent.py | node agents/v0_worker.js
 """
 import os
 import json
-import uuid
+import sys
 import requests
 from datetime import datetime, timedelta, timezone
-import anthropic
 
-# ── 配置（全部从环境变量读取）────────────────────────────────────────────
-SANITY_PROJECT_ID = os.environ.get("SANITY_PROJECT_ID", "zae9ml5g")
-SANITY_DATASET = os.environ.get("SANITY_DATASET", "production")
-SANITY_TOKEN = os.environ["SANITY_API_WRITE_TOKEN"]
-
-POSTHOG_HOST = "https://us.posthog.com"
+# ── 配置 ─────────────────────────────────────────────────────────────────
 POSTHOG_PERSONAL_API_KEY = os.environ["POSTHOG_PERSONAL_API_KEY"]
 POSTHOG_PROJECT_ID = os.environ.get("POSTHOG_PROJECT_ID", "428900")
-
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 
-SANITY_MUTATIONS_URL = f"https://{SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/{SANITY_DATASET}"
-SANITY_QUERY_URL = f"https://{SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/{SANITY_DATASET}"
+POSTHOG_HOST = "https://us.posthog.com"
 
-sanity_headers = {
-    "Authorization": f"Bearer {SANITY_TOKEN}",
-    "Content-Type": "application/json"
-}
+# ── Step 1: 读 PostHog 行为数据 ──────────────────────────────────────────
+def fetch_posthog_insights() -> dict:
+    print("📊 读取 PostHog 行为数据...", file=sys.stderr)
+    headers = {"Authorization": f"Personal {POSTHOG_PERSONAL_API_KEY}"}
+    base_url = f"{POSTHOG_HOST}/api/projects/{POSTHOG_PROJECT_ID}"
 
-posthog_headers = {
-    "Authorization": f"Bearer {POSTHOG_PERSONAL_API_KEY}",
-    "Content-Type": "application/json"
-}
-
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-# ── Step 1: 读取 PostHog 行为数据 ─────────────────────────────────────────
-def fetch_posthog_analytics():
-    """从 PostHog 拉取过去 7 天的关键行为数据"""
-    print("[感知 Agent] 正在读取 PostHog 数据...")
-    
     now = datetime.now(timezone.utc)
     seven_days_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
     today = now.strftime("%Y-%m-%d")
-    
-    analytics = {}
-    
-    # 1. 页面访问量
+
+    insights = {
+        "pageviews": 0,
+        "custom_events": {},
+        "cold_start": False,
+        "top_pages": [],
+        "period": f"{seven_days_ago} to {today}",
+    }
+
+    # 页面浏览量
     try:
         resp = requests.get(
-            f"{POSTHOG_HOST}/api/projects/{POSTHOG_PROJECT_ID}/insights/trend/",
-            headers=posthog_headers,
+            f"{base_url}/insights/trend/",
+            headers=headers,
             params={
-                "events": json.dumps([{"id": "$pageview", "name": "Pageview", "type": "events"}]),
+                "events": json.dumps([{"id": "$pageview", "type": "events"}]),
                 "date_from": seven_days_ago,
                 "date_to": today,
                 "interval": "day"
@@ -70,221 +62,134 @@ def fetch_posthog_analytics():
             timeout=15
         )
         if resp.status_code == 200:
-            data = resp.json()
-            results = data.get("result", [])
+            results = resp.json().get("result", [])
             if results:
-                total_views = sum(results[0].get("data", []))
-                analytics["total_pageviews_7d"] = total_views
-                analytics["daily_pageviews"] = results[0].get("data", [])
+                insights["pageviews"] = int(sum(results[0].get("data", [])))
+                insights["daily_pageviews"] = results[0].get("data", [])
+        print(f"  ✓ 页面浏览量: {insights['pageviews']}", file=sys.stderr)
     except Exception as e:
-        print(f"  [警告] 页面访问量查询失败: {e}")
-        analytics["total_pageviews_7d"] = 0
-        analytics["daily_pageviews"] = []
+        print(f"  ⚠️  页面浏览量查询失败: {e}", file=sys.stderr)
 
-    # 2. 关键事件（CTA 点击、功能卡片点击等）
+    # 自定义事件
     try:
         resp = requests.get(
-            f"{POSTHOG_HOST}/api/projects/{POSTHOG_PROJECT_ID}/insights/trend/",
-            headers=posthog_headers,
-            params={
-                "events": json.dumps([
-                    {"id": "cta_click", "name": "CTA Click", "type": "events"},
-                    {"id": "feature_card_click", "name": "Feature Card Click", "type": "events"},
-                    {"id": "hero_cta_click", "name": "Hero CTA Click", "type": "events"},
-                    {"id": "nav_cta_click", "name": "Nav CTA Click", "type": "events"},
-                ]),
-                "date_from": seven_days_ago,
-                "date_to": today,
-            },
+            f"{base_url}/events/?limit=500",
+            headers=headers,
             timeout=15
         )
         if resp.status_code == 200:
-            data = resp.json()
-            results = data.get("result", [])
-            for r in results:
-                event_name = r.get("action", {}).get("name", "unknown")
-                total = sum(r.get("data", []))
-                analytics[f"event_{event_name.lower().replace(' ', '_')}_7d"] = total
+            results = resp.json().get("results", [])
+            custom = [e for e in results if not e.get("event", "").startswith("$")]
+            for e in custom:
+                name = e.get("event", "unknown")
+                insights["custom_events"][name] = insights["custom_events"].get(name, 0) + 1
+        print(f"  ✓ 自定义事件: {insights['custom_events']}", file=sys.stderr)
     except Exception as e:
-        print(f"  [警告] 事件查询失败: {e}")
+        print(f"  ⚠️  事件查询失败: {e}", file=sys.stderr)
 
-    # 3. 会话数量
-    try:
-        resp = requests.get(
-            f"{POSTHOG_HOST}/api/projects/{POSTHOG_PROJECT_ID}/insights/trend/",
-            headers=posthog_headers,
-            params={
-                "events": json.dumps([{"id": "$autocapture", "name": "Sessions", "type": "events", "math": "unique_session"}]),
-                "date_from": seven_days_ago,
-                "date_to": today,
-            },
-            timeout=15
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            results = data.get("result", [])
-            if results:
-                analytics["unique_sessions_7d"] = sum(results[0].get("data", []))
-    except Exception as e:
-        print(f"  [警告] 会话数查询失败: {e}")
-        analytics["unique_sessions_7d"] = 0
+    if insights["pageviews"] < 10:
+        insights["cold_start"] = True
+        print("  ℹ️  数据量不足，启用冷启动策略", file=sys.stderr)
 
-    print(f"  [感知 Agent] PostHog 数据: {json.dumps(analytics, ensure_ascii=False)}")
-    return analytics
+    return insights
 
-# ── Step 2: 读取当前 Sanity 内容 ──────────────────────────────────────────
-def fetch_current_content():
-    """读取当前 Sanity siteConfig 内容"""
-    print("[感知 Agent] 读取当前网站内容...")
-    resp = requests.get(
-        SANITY_QUERY_URL,
-        headers=sanity_headers,
-        params={"query": '*[_id == "siteConfig"][0]'}
+# ── Step 2: Claude 分析数据，生成改进指令 ────────────────────────────────
+def analyze_and_decide(insights: dict) -> dict:
+    print("🧠 Claude 分析数据，生成改进指令...", file=sys.stderr)
+
+    cold_start_context = ""
+    if insights["cold_start"]:
+        cold_start_context = "\n网站刚上线，数据量不足（冷启动状态）。请基于 AI Native 产品最佳实践给出改进方向，重点提升首屏文案清晰度和 CTA 行动导向性。\n"
+
+    event_summary = (
+        json.dumps(insights["custom_events"], ensure_ascii=False, indent=2)
+        if insights["custom_events"] else "暂无用户交互数据"
     )
-    if resp.status_code == 200:
-        result = resp.json().get("result", {})
-        return result
-    return {}
 
-# ── Step 3: LLM 分析并生成改进任务 ───────────────────────────────────────
-def analyze_and_generate_tasks(analytics: dict, current_content: dict) -> list:
-    """用 LLM 分析数据，生成具体的内容改进任务"""
-    print("[感知 Agent] 正在用 LLM 分析数据，生成改进任务...")
+    prompt = f"""你是一个 AI Native 产品的增长分析师，负责分析用户行为数据并指导前端 v0 Agent 优化页面。
 
-    current_hero = current_content.get("hero", {})
-    current_features = current_content.get("features", [])
-    current_cta = current_content.get("cta", {})
+## 过去 7 天的用户行为数据（{insights['period']}）
+- 总页面浏览量：{insights['pageviews']}
+- 用户交互事件：
+{event_summary}
+{cold_start_context}
 
-    prompt = f"""你是一个专业的 AI Native 产品运营 Agent。
+## 任务
+为前端 Hero 组件（首屏区域）生成一个具体的改进指令，交给 v0 Agent 执行。
 
-你的任务是分析网站的用户行为数据，然后生成具体的内容改进任务。
+输出一个 JSON 对象，字段如下：
+- directive: 给 v0 的具体改进指令（英文，清晰描述改什么、怎么改，v0 会直接用这个指令修改代码）
+- target_file: 固定为 "components/hero.tsx"
+- analysis_summary: 中文分析摘要（一句话说明为什么做这个改动）
+- cold_start: 是否冷启动（布尔值）
+- priority: 优先级（"high" / "medium" / "low"）
 
-## 当前网站内容
-Hero 标题: {current_hero.get('headline', '未知')}
-Hero 副标题: {current_hero.get('subheadline', '未知')}
-Hero CTA: {current_hero.get('ctaText', '未知')}
-功能数量: {len(current_features)} 个
-CTA 标题: {current_cta.get('headline', '未知')}
+directive 示例：
+"Update the hero headline to emphasize that AI agents work autonomously 24/7. Change CTA button from 'Get Started' to 'Deploy Your First Agent'. Add a specific use case in the subheadline showing concrete value."
 
-## 过去 7 天的用户行为数据
-{json.dumps(analytics, ensure_ascii=False, indent=2)}
+只返回 JSON，不要任何解释。"""
 
-## 分析要求
-1. 如果数据为空或访问量很低（<50次），说明网站刚上线，需要优化内容吸引力
-2. 如果 CTA 点击率低（点击数/访问量 < 3%），需要优化 CTA 文案
-3. 如果功能卡片点击率低，需要优化功能描述
-4. 基于数据生成 1-3 个具体的内容改进任务
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        },
+        json={
+            "model": "claude-haiku-4-5",
+            "max_tokens": 512,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+    )
 
-## 输出格式（严格 JSON）
-返回一个 JSON 数组，每个任务包含：
-- id: 唯一 ID（字符串）
-- type: 任务类型（"hero_update" | "feature_update" | "cta_update" | "nav_update"）
-- priority: 优先级（"high" | "medium" | "low"）
-- reason: 改进原因（基于数据的分析，中文，50字以内）
-- changes: 具体的改动内容（对象，包含要修改的字段和新值）
-- hypothesis: 预期效果（中文，30字以内）
+    if resp.status_code != 200:
+        print(f"  ⚠️  Claude API 失败: {resp.status_code}，使用默认指令", file=sys.stderr)
+        return _default_instruction(insights)
 
-只返回 JSON 数组，不要任何其他文字。"""
+    content = resp.json()["content"][0]["text"].strip()
+
+    # 提取 JSON
+    if "```json" in content:
+        start = content.find("```json") + 7
+        end = content.rfind("```")
+        content = content[start:end].strip()
+    elif "```" in content:
+        start = content.find("```") + 3
+        end = content.rfind("```")
+        content = content[start:end].strip()
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500
-        )
-        content = response.content[0].text.strip()
-        # 清理可能的 markdown 代码块
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
-        tasks = json.loads(content)
-        print(f"  [感知 Agent] 生成了 {len(tasks)} 个改进任务")
-        for t in tasks:
-            print(f"    - [{t.get('priority','?')}] {t.get('type','?')}: {t.get('reason','?')}")
-        return tasks
-    except Exception as e:
-        print(f"  [错误] LLM 分析失败: {e}")
-        # 降级：生成一个默认的优化任务
-        return [{
-            "id": str(uuid.uuid4())[:8],
-            "type": "hero_update",
-            "priority": "medium",
-            "reason": "网站刚上线，优化 Hero 区域以提升第一印象",
-            "changes": {
-                "headline": "让 AI Agent 团队替你完成一切",
-                "subheadline": "ONIT 将复杂的业务目标拆解为 Agent 可执行的任务，自动完成研究、规划、执行的全流程。"
-            },
-            "hypothesis": "更直接的价值主张提升用户理解度"
-        }]
+        instruction = json.loads(content)
+        print(f"  ✓ 改进指令: {instruction.get('analysis_summary', '')}", file=sys.stderr)
+        return instruction
+    except json.JSONDecodeError as e:
+        print(f"  ⚠️  JSON 解析失败: {e}，使用默认指令", file=sys.stderr)
+        return _default_instruction(insights)
 
-# ── Step 4: 写入 Sanity agentTasksBus ────────────────────────────────────
-def write_tasks_to_sanity(tasks: list, analytics: dict):
-    """将生成的任务写入 Sanity agentTasksBus"""
-    print("[感知 Agent] 将任务写入 Sanity agentTasksBus...")
-    
-    now = datetime.now(timezone.utc).isoformat()
-    
-    enriched_tasks = []
-    for task in tasks:
-        enriched_tasks.append({
-            "_key": task.get("id", str(uuid.uuid4())[:8]),
-            "taskId": task.get("id", str(uuid.uuid4())[:8]),
-            "type": task.get("type", "unknown"),
-            "priority": task.get("priority", "medium"),
-            "status": "pending",
-            "reason": task.get("reason", ""),
-            "hypothesis": task.get("hypothesis", ""),
-            "changes": json.dumps(task.get("changes", {}), ensure_ascii=False),
-            "createdAt": now,
-            "executedAt": None,
-            "result": None
-        })
-    
-    mutations = [
-        {
-            "patch": {
-                "id": "agentTasksBus",
-                "setIfMissing": {"tasks": []},
-                "insert": {
-                    "after": "tasks[-1]",
-                    "items": enriched_tasks
-                }
-            }
-        },
-        {
-            "patch": {
-                "id": "agentTasksBus",
-                "set": {
-                    "lastAnalysisAt": now,
-                    "lastAnalyticsSnapshot": json.dumps(analytics, ensure_ascii=False)
-                },
-                "inc": {"cycleCount": 1}
-            }
-        }
-    ]
-    
-    resp = requests.post(SANITY_MUTATIONS_URL, headers=sanity_headers, json={"mutations": mutations})
-    if resp.status_code == 200:
-        print(f"  [感知 Agent] 成功写入 {len(enriched_tasks)} 个任务")
-    else:
-        print(f"  [错误] 写入失败: {resp.json()}")
+def _default_instruction(insights: dict) -> dict:
+    return {
+        "directive": "Update the hero headline to be more specific about autonomous AI agent capabilities. Change the main headline to 'Your AI Agent Team, Working 24/7'. Update the subheadline to: 'Deploy specialized AI agents that research, plan, and execute tasks autonomously — no human supervision required.' Change CTA button text to 'Deploy Your First Agent'.",
+        "target_file": "components/hero.tsx",
+        "analysis_summary": "冷启动优化：提升 Hero 文案的具体性，强调 Agent 自主性这一核心价值主张",
+        "cold_start": insights["cold_start"],
+        "priority": "medium"
+    }
 
 # ── 主流程 ────────────────────────────────────────────────────────────────
 def main():
-    print("=" * 60)
-    print(f"[感知 Agent] 启动 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
-    print("=" * 60)
-    
-    analytics = fetch_posthog_analytics()
-    current_content = fetch_current_content()
-    tasks = analyze_and_generate_tasks(analytics, current_content)
-    
-    if tasks:
-        write_tasks_to_sanity(tasks, analytics)
-    
-    print("\n[感知 Agent] 完成。等待执行 Agent 处理任务。")
-    print("=" * 60)
+    print("=" * 60, file=sys.stderr)
+    print("🔍 感知 Agent 启动", file=sys.stderr)
+    print(f"   时间: {datetime.now(timezone.utc).isoformat()}", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+
+    insights = fetch_posthog_insights()
+    instruction = analyze_and_decide(insights)
+
+    # 输出 JSON 到 stdout，供 v0 Worker 通过 pipe 读取
+    print(json.dumps(instruction, ensure_ascii=False, indent=2))
+
+    print("\n✅ 感知 Agent 完成，指令已传递给 v0 Worker", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
