@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { HeroContent } from '@/lib/sanity-schema'
-import { Sparkles, Zap, Bot, ArrowRight } from 'lucide-react'
+import { Sparkles, Zap, Bot, ArrowRight, Play } from 'lucide-react'
 
 interface HeroProps {
   content?: HeroContent | null
 }
 
 const defaultContent = {
-  headline: 'AI-Native Product Growth.\nAutonomous. Instant. Intelligent.',
-  subheadline: 'Deploy AI agents that analyze user behavior, identify growth opportunities, and generate optimization recommendations automatically — all in minutes, not weeks.',
-  ctaText: 'Start Free Analysis',
+  headline: 'Build Autonomous AI Agents That Work 24/7 Without Code',
+  subheadline: 'Automate customer support, data analysis, or content creation in minutes — not months. Watch your AI agent handle repetitive tasks while you focus on growth.',
+  ctaText: 'Launch Your First Agent Free',
   ctaHref: '#',
-  badge: '🚀 AI-Powered · Analyze in 60 seconds',
+  badge: '⚡ No coding required · Live in under 5 minutes',
 }
 
 export function Hero({ content }: HeroProps) {
@@ -58,7 +58,7 @@ export function Hero({ content }: HeroProps) {
           </div>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] whitespace-pre-line">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
           {c.headline}
         </h1>
 
@@ -66,7 +66,7 @@ export function Hero({ content }: HeroProps) {
           {c.subheadline}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+        <div className="flex flex-col items-center gap-4 pt-4">
           <Button
             size="lg"
             className="text-sm px-8 h-12 font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all group"
@@ -78,27 +78,27 @@ export function Hero({ content }: HeroProps) {
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="text-sm px-8 h-12 group"
-            onClick={() => posthog?.capture('hero_secondary_cta_click')}
+            variant="ghost"
+            className="text-sm px-6 h-10 text-muted-foreground hover:text-foreground group"
+            onClick={() => posthog?.capture('hero_demo_cta_click')}
           >
-            <Bot className="w-4 h-4 mr-2" />
-            View Demo
+            <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+            Watch 2-Min Demo
           </Button>
         </div>
 
         <div className="flex items-center justify-center gap-6 pt-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            No credit card
+            Free to start
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            No account needed
+            No coding skills needed
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Results in 60 seconds
+            Deploy in 5 minutes
           </span>
         </div>
       </div>
