@@ -3,6 +3,7 @@ import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@supabase/supabase-js'
 import { getSiteConfig } from '@/lib/queries'
+import { AgentCardWithPopover } from './agent-card'
 
 export const revalidate = 60
 
@@ -21,7 +22,6 @@ async function getAgentActivity() {
     )
     if (!res.ok) return []
     const commits = await res.json()
-    // 只取 Agent 写的 commit（包含 claude-agent、inner-loop、health-check 关键词）
     return commits
       .filter((c: { commit: { message: string } }) => {
         const msg = c.commit.message.toLowerCase()
@@ -53,7 +53,7 @@ async function getAgentActivity() {
   }
 }
 
-// ── 从 Supabase 读取 Agent 注册表 ────────────────────────────────────────
+// ── 从 Supabase 读取 Agent 注册表（含 capabilities） ─────────────────────
 async function getAgents() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,7 +61,7 @@ async function getAgents() {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, type, description, url, enabled, skills, tags, icon_url')
+    .select('id, name, type, description, url, enabled, skills, capabilities, tags, icon_url')
     .eq('type', 'agent')
     .eq('enabled', true)
     .order('id')
@@ -83,58 +83,12 @@ function getTier(id: string, tiers?: AgentTiers): string {
   return tiers?.default ?? 'Agent'
 }
 
-type AgentRow = {
-  id: string
-  name: string
-  description: string
-  url?: string
-  skills?: Array<{ id: string; name: string; tags?: string[]; description?: string }>
-  tags?: string[]
-  icon_url?: string
-}
-
 type ActivityItem = {
   sha: string
   message: string
   author: string
   date: string
   url: string
-}
-
-function AgentCard({ agent, tiers }: { agent: AgentRow; tiers?: AgentTiers }) {
-  const tier = getTier(agent.id, tiers)
-  const isLive = agent.url && agent.url !== 'pending'
-  const skills = agent.skills ?? []
-  return (
-    <div className="p-5 rounded-lg border border-border hover:border-foreground/20 transition-colors flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-semibold leading-snug">{agent.name}</span>
-        <Badge
-          variant="outline"
-          className={`text-xs shrink-0 ${
-            isLive
-              ? 'bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.55_0.15_145)] border-[oklch(0.65_0.15_145)]/20'
-              : 'bg-muted text-muted-foreground border-border'
-          }`}
-        >
-          {isLive ? 'Live' : 'Pending'}
-        </Badge>
-      </div>
-      {agent.description && (
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-          {agent.description}
-        </p>
-      )}
-      <div className="flex items-center gap-2 flex-wrap mt-auto">
-        <Badge variant="secondary" className="text-xs">{tier}</Badge>
-        {skills.map((s) => (
-          <Badge key={s.id} variant="outline" className="text-xs font-mono">
-            {s.name}
-          </Badge>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
@@ -270,7 +224,7 @@ export default async function AgentsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {coreAgents.map((agent) => (
-                <AgentCard key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
+                <AgentCardWithPopover key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
               ))}
             </div>
           </section>
@@ -286,7 +240,7 @@ export default async function AgentsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {externalAgents.map((agent) => (
-                <AgentCard key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
+                <AgentCardWithPopover key={agent.id} agent={agent} tiers={siteConfig?.agent_tiers} />
               ))}
             </div>
           </section>
