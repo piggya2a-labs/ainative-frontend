@@ -65,6 +65,8 @@ export default async function ToolsPage() {
   const description = p?.description || '这些是通过 MCP Server 对外暴露的 Capability 工具。Infrastructure 和 System 工具为内部工具，不在此列。'
   const emptyState = p?.empty_state || '注册表中暂无 Capability 工具。'
   const mcpLabel = p?.mcp_label || 'MCP Server 端点'
+  const mcpMethodsLabel = p?.mcp_methods_label || 'Supports JSON-RPC 2.0:'
+  const mcpMethods = p?.mcp_methods ?? ['initialize', 'tools/list', 'tools/call']
 
   return (
     <div className="min-h-screen bg-background">
@@ -139,9 +141,13 @@ export default async function ToolsPage() {
               {MCP_ENDPOINT}
             </code>
             <p className="text-xs text-muted-foreground">
-              Supports JSON-RPC 2.0: <span className="font-mono">initialize</span>,{' '}
-              <span className="font-mono">tools/list</span>,{' '}
-              <span className="font-mono">tools/call</span>
+              {mcpMethodsLabel}{' '}
+              {mcpMethods.map((m: string, i: number) => (
+                <span key={m}>
+                  <span className="font-mono">{m}</span>
+                  {i < mcpMethods.length - 1 ? ', ' : ''}
+                </span>
+              ))}
             </p>
           </div>
         )}

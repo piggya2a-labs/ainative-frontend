@@ -4,6 +4,7 @@ import "./globals.css";
 import { PostHogProvider } from '@/components/posthog-provider';
 import { Suspense } from 'react';
 import { PostHogPageView } from '@/components/posthog-pageview';
+import { getSiteConfig } from '@/lib/queries';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,15 +16,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: 'ONIT — AI Agent 团队平台',
-  description: '让 AI Agent 团队为你的业务工作。ONIT 是一个 AI Native 平台，专业 Agent 自主完成你的每一个业务目标。',
-  openGraph: {
-    title: 'ONIT — AI Agent 团队平台',
-    description: '让 AI Agent 团队为你的业务工作。',
-    type: 'website',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const siteConfig = await getSiteConfig()
+  const title = siteConfig?.meta?.title || 'ONIT — AI Agent 团队平台'
+  const description = siteConfig?.meta?.description || '让 AI Agent 团队为你的业务工作。'
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+  }
+}
 
 export default function RootLayout({
   children,

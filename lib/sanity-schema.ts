@@ -47,6 +47,7 @@ export interface SiteConfig {
     secondaryCtaText: string
     secondaryCtaUrl: string
     hero_cta: string
+    eyebrow?: string
   }
   features: Array<{
     _key: string
@@ -85,6 +86,43 @@ export interface SiteConfig {
     hero_cta?: string
   }
   pages?: SiteConfigPages
+  // hero 演示数据（live feed、trust indicators 等）
+  hero_demo?: {
+    trust_indicators?: Array<{ icon: string; text: string }>
+    feed_header?: string
+    sla_label?: string
+    sla_value?: string
+    agent_count_label?: string
+    tool_count_label?: string
+    seed_events?: Array<{ agent: string; action: string; status: 'done' | 'running' | 'queued'; ts: string }>
+    rolling_events?: Array<{ agent: string; action: string; status: 'done' | 'running' | 'queued' }>
+  }
+  // Agent 层级标签
+  agent_tiers?: {
+    ext?: string
+    l1?: string
+    l2?: string
+    l3?: string
+    default?: string
+  }
+  // docs 页面内容
+  docs?: {
+    version?: string
+    page_title?: string
+    page_description?: string
+    mcp_server_url?: string
+    supabase_rest_url?: string
+    sections?: Array<{
+      id: string
+      title: string
+      description?: string
+      steps?: Array<{ step: string; title: string; description: string; code?: string; code_comment?: string }>
+      tools?: Array<{ name: string; description: string }>
+      tools_label?: string
+      layers?: Array<{ name: string; prefix: string; role: string }>
+      mcp_config?: string
+    }>
+  }
 }
 
 export interface ABTest {
@@ -116,6 +154,8 @@ export interface SiteConfigPages {
     description?: string
     empty_state?: string
     mcp_label?: string
+    mcp_methods_label?: string
+    mcp_methods?: string[]
   }
   cta?: {
     headline?: string
