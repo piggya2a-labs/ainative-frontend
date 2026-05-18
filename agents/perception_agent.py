@@ -114,17 +114,24 @@ def analyze_and_decide(insights: dict) -> dict:
 {event_summary}
 {cold_start_context}
 
+## 可优化的目标文件（轮流选择，避免重复优化同一文件）
+- components/hero.tsx — 首屏 Hero 区域（标题、副标题、CTA）
+- components/features.tsx — Features 功能列表（标题、描述文案）
+- components/cta-footer.tsx — CTA 区块（号召性用语、按钮文字）
+- components/tools-grid.tsx — Tools 展示区（标题、分类文案）
+
 ## 任务
-为前端 Hero 组件（首屏区域）生成一个具体的改进指令，交给 v0 Agent 执行。
+根据用户行为数据，选择最需要优化的一个文件，生成具体改进指令，交给 v0 Agent 执行。
+选择策略：如果 pageviews < 100，优先优化 hero.tsx；否则轮流优化其他文件以提升整体质量。
 
 输出一个 JSON 对象，字段如下：
 - directive: 给 v0 的具体改进指令（英文，清晰描述改什么、怎么改，v0 会直接用这个指令修改代码）
-- target_file: 固定为 "components/hero.tsx"
-- analysis_summary: 中文分析摘要（一句话说明为什么做这个改动）
+- target_file: 从上面 4 个文件中选一个（完整路径，如 "components/hero.tsx"）
+- analysis_summary: 中文分析摘要（一句话说明为什么选这个文件、做什么改动）
 - cold_start: 是否冷启动（布尔值）
 - priority: 优先级（"high" / "medium" / "low"）
 
-directive 示例：
+directive 示例（hero.tsx）：
 "Update the hero headline to emphasize that AI agents work autonomously 24/7. Change CTA button from 'Get Started' to 'Deploy Your First Agent'. Add a specific use case in the subheadline showing concrete value."
 
 只返回 JSON，不要任何解释。"""
@@ -167,13 +174,37 @@ directive 示例：
         print(f"  ⚠️  JSON 解析失败: {e}，使用默认指令", file=sys.stderr)
         return _default_instruction(insights)
 
-def _default_instruction(insights: dict) -> dict:
-    return {
-        "directive": "Update the hero headline to be more specific about autonomous AI agent capabilities. Change the main headline to 'Your AI Agent Team, Working 24/7'. Update the subheadline to: 'Deploy specialized AI agents that research, plan, and execute tasks autonomously — no human supervision required.' Change CTA button text to 'Deploy Your First Agent'.",
+# 多文件轮流默认指令
+_DEFAULT_INSTRUCTIONS = [
+    {
+        "directive": "Update the hero headline to be more specific about autonomous AI agent capabilities. Change the main headline to 'Your AI Agent Team, Working 24/7'. Update the subheadline to: 'Deploy specialized AI agents that research, plan, and execute tasks autonomously \u2014 no human supervision required.' Change CTA button text to 'Deploy Your First Agent'.",
         "target_file": "components/hero.tsx",
-        "analysis_summary": "冷启动优化：提升 Hero 文案的具体性，强调 Agent 自主性这一核心价值主张",
-        "cold_start": insights["cold_start"],
+        "analysis_summary": "冷启动优化：提升 Hero 文案的具体性，强调 Agent 自主性这一核心价値主张",
         "priority": "medium"
+    },
+    {
+        "directive": "Update the Features section to highlight three core AI-native capabilities: (1) Autonomous Execution \u2014 agents run 24/7 without human supervision, (2) Self-Healing \u2014 agents detect and fix issues automatically, (3) Composable \u2014 mix and match agents for any workflow. Make descriptions concrete and benefit-focused.",
+        "target_file": "components/features.tsx",
+        "analysis_summary": "优化 Features 文案，强调 AI Native 三大核心能力的具体性",
+        "priority": "medium"
+    },
+    {
+        "directive": "Update the CTA section headline to 'Start Deploying Agents Today'. Change the description to: 'Join teams using AI agents to automate research, content, and operations. No setup required.' Update the button text to 'Deploy Free Agent'.",
+        "target_file": "components/cta-footer.tsx",
+        "analysis_summary": "优化 CTA 区块号召力，降低转化阔値",
+        "priority": "medium"
+    },
+]
+
+import time
+
+def _default_instruction(insights: dict) -> dict:
+    # 根据当前小时轮流选择不同文件
+    idx = (int(time.time()) // 86400) % len(_DEFAULT_INSTRUCTIONS)
+    base = _DEFAULT_INSTRUCTIONS[idx]
+    return {
+        **base,
+        "cold_start": insights["cold_start"],
     }
 
 # ── 主流程 ────────────────────────────────────────────────────────────────

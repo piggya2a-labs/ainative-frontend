@@ -6,6 +6,54 @@ import { getSiteConfig } from '@/lib/queries'
 
 export const revalidate = 60
 
+// ── 从 GitHub 读取 Agent 最近的 commit 活动 ──────────────────────────────
+async function getAgentActivity() {
+  try {
+    const res = await fetch(
+      'https://api.github.com/repos/piggya2a-labs/ainative-frontend/commits?per_page=20&sha=main',
+      {
+        headers: {
+          Authorization: `token ${process.env.INNER_LOOP_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+        next: { revalidate: 60 },
+      }
+    )
+    if (!res.ok) return []
+    const commits = await res.json()
+    // 只取 Agent 写的 commit（包含 claude-agent、inner-loop、health-check 关键词）
+    return commits
+      .filter((c: { commit: { message: string } }) => {
+        const msg = c.commit.message.toLowerCase()
+        return (
+          msg.includes('claude-agent') ||
+          msg.includes('inner-loop') ||
+          msg.includes('agent') ||
+          msg.includes('feat(') ||
+          msg.includes('fix:')
+        )
+      })
+      .slice(0, 8)
+      .map((c: {
+        sha: string
+        commit: {
+          message: string
+          author: { name: string; date: string }
+        }
+        html_url: string
+      }) => ({
+        sha: c.sha.slice(0, 7),
+        message: c.commit.message.split('\n')[0].slice(0, 80),
+        author: c.commit.author.name,
+        date: c.commit.author.date,
+        url: c.html_url,
+      }))
+  } catch {
+    return []
+  }
+}
+
+// ── 从 Supabase 读取 Agent 注册表 ────────────────────────────────────────
 async function getAgents() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +93,14 @@ type AgentRow = {
   icon_url?: string
 }
 
+type ActivityItem = {
+  sha: string
+  message: string
+  author: string
+  date: string
+  url: string
+}
+
 function AgentCard({ agent, tiers }: { agent: AgentRow; tiers?: AgentTiers }) {
   const tier = getTier(agent.id, tiers)
   const isLive = agent.url && agent.url !== 'pending'
@@ -81,10 +137,78 @@ function AgentCard({ agent, tiers }: { agent: AgentRow; tiers?: AgentTiers }) {
   )
 }
 
+function ActivityFeed({ items }: { items: ActivityItem[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground font-mono py-4 text-center">
+        暂无活动记录
+      </p>
+    )
+  }
+  return (
+    <div className="space-y-0 divide-y divide-border">
+      {items.map((item) => {
+        const isAgentCommit =
+          item.message.toLowerCase().includes('claude-agent') ||
+          item.author.toLowerCase().includes('claude') ||
+          item.author.toLowerCase().includes('agent') ||
+          item.author.toLowerCase().includes('inner-loop')
+        const timeAgo = getTimeAgo(item.date)
+        return (
+          <div key={item.sha} className="flex items-start gap-3 py-3">
+            <div className="mt-0.5 shrink-0">
+              <div
+                className={`w-2 h-2 rounded-full mt-1 ${
+                  isAgentCommit
+                    ? 'bg-[oklch(0.65_0.15_145)]'
+                    : 'bg-muted-foreground/40'
+                }`}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs leading-relaxed text-foreground/80 truncate">
+                {item.message}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {item.sha}
+                </span>
+                <span className="text-[10px] text-muted-foreground">·</span>
+                <span className="text-[10px] text-muted-foreground">{item.author}</span>
+                <span className="text-[10px] text-muted-foreground">·</span>
+                <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
+              </div>
+            </div>
+            {isAgentCommit && (
+              <Badge
+                variant="outline"
+                className="text-[10px] shrink-0 bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.45_0.15_145)] border-[oklch(0.65_0.15_145)]/20"
+              >
+                AI
+              </Badge>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function getTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 export default async function AgentsPage() {
-  const [agents, siteConfig] = await Promise.all([
+  const [agents, siteConfig, activity] = await Promise.all([
     getAgents(),
     getSiteConfig(),
+    getAgentActivity(),
   ])
 
   const coreAgents = agents.filter((a) => !isExternal(a.id))
@@ -101,6 +225,7 @@ export default async function AgentsPage() {
     <div className="min-h-screen bg-background">
       <Navbar siteConfig={siteConfig} />
       <main className="max-w-5xl mx-auto px-4 pt-28 pb-16">
+        {/* Header */}
         <div className="mb-12 text-center">
           <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground mb-4">
             {eyebrow}
@@ -112,6 +237,28 @@ export default async function AgentsPage() {
             {description}
           </p>
         </div>
+
+        {/* Agent 活动日志 — 核心"活体演示"区块 */}
+        <section className="mb-14">
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+              Recent Activity
+            </h2>
+            <div className="flex-1 h-px bg-border" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse" />
+              <span className="text-[10px] font-mono text-muted-foreground">live</span>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/20 px-4 py-1">
+            <ActivityFeed items={activity} />
+          </div>
+          <p className="text-[10px] text-muted-foreground font-mono mt-2 text-right">
+            绿点 = AI Agent 自动提交 · 每天 10:00 UTC+8 自动运行
+          </p>
+        </section>
+
+        {/* Agent 注册表 */}
         {coreAgents.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center gap-3 mb-5">

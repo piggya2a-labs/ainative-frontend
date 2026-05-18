@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.4.1",
     "@octokit/rest": "^22.0.1",
     "@sanity/image-url": "^2.1.1",
+    "@sanity/vision": "^5.25.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "@vercel/analytics": "^1.6.1",
