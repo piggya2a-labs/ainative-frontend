@@ -84,10 +84,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || ''
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || ''
-  const ctaText = hero?.ctaText || hero?.hero_cta || ''
-  const secondaryCtaText = hero?.secondaryCtaText || ''
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work - Deploy in Minutes, Not Months'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate 80% of repetitive tasks with intelligent agents that learn from your workflow. Start seeing results in your first hour.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See It In Action'
   const eyebrow = hero?.eyebrow
 
   const trustIndicators = demo?.trust_indicators ?? []
@@ -111,15 +111,21 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
         )}
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
         <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
-        <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
-          <Button size="lg" className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group" onClick={onCtaClick}>
-            {ctaText}
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-          </Button>
-          <Button size="lg" variant="outline" className="h-12 px-7 text-base font-medium group" onClick={onDemoClick}>
-            <Play className="w-4 h-4 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
-            {secondaryCtaText}
-          </Button>
+        <div className="flex flex-col items-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <Button size="lg" className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group" onClick={onCtaClick}>
+              {ctaText}
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+            </Button>
+            <Button size="lg" variant="outline" className="h-12 px-7 text-base font-medium group" onClick={onDemoClick}>
+              <Play className="w-4 h-4 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+              {secondaryCtaText}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            No credit card required • 5-minute setup
+          </p>
         </div>
         {trustIndicators.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
