@@ -23,6 +23,7 @@ async function getCapabilityTools(): Promise<ToolRow[]> {
     .from('tool_registry')
     .select('id, tool_name, description, category, annotations, owner_agent')
     .eq('enabled', true)
+    .eq('layer', 'capability')
     .order('category')
     .order('tool_name')
   if (error) return []
