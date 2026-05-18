@@ -290,12 +290,7 @@ export function DashboardClient({
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-base">{orgName}</CardTitle>
-                <p className="text-xs text-muted-foreground font-mono mt-1.5">
-                  Slug: <code className="bg-muted px-1.5 py-0.5 rounded">{orgSlug}</code>
-                </p>
-              </div>
+              <CardTitle className="text-base">{orgName}</CardTitle>
               <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
             </div>
           </CardHeader>
