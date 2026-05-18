@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { DashboardClient } from './dashboard-client'
-import type { DashboardConfig } from '@/app/api/generate-dashboard/route'
 
 export default async function DashboardPage() {
   const cookieStore = await cookies()
@@ -31,37 +30,20 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // 获取用户的 tenant（含 metadata）
+  // 获取用户的 tenant
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('*')
+    .select('id, name, slug, status, created_at')
     .eq('user_id', user.id)
     .single()
 
-  // 没有 dashboard_config → 跳转 onboarding 生成
-  const dashboardConfig: DashboardConfig | null =
-    tenant?.metadata?.dashboard_config ?? null
-
-  if (!dashboardConfig) {
-    redirect('/onboarding')
-  }
-
-  // 获取 API Keys
+  // 获取 API Keys（初始值，客户端会 refresh）
   const { data: apiKeys } = tenant
     ? await supabase
         .from('tenant_api_keys')
-        .select('id, name, key_prefix, created_at, revoked_at')
+        .select('id, name, key_prefix, created_at, last_used_at')
         .eq('tenant_id', tenant.id)
         .is('revoked_at', null)
-        .order('created_at', { ascending: false })
-    : { data: [] }
-
-  // 获取 Projects
-  const { data: projects } = tenant
-    ? await supabase
-        .from('projects')
-        .select('id, name, slug, status, created_at')
-        .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
     : { data: [] }
 
@@ -69,9 +51,7 @@ export default async function DashboardPage() {
     <DashboardClient
       user={user}
       tenant={tenant}
-      apiKeys={apiKeys ?? []}
-      projects={projects ?? []}
-      dashboardConfig={dashboardConfig}
+      initialApiKeys={apiKeys ?? []}
     />
   )
 }
