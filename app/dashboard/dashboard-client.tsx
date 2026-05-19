@@ -200,16 +200,20 @@ export function DashboardClient({
 
   const refreshKeys = async () => {
     setLoadingKeys(true)
-    const res = await fetch('/api/keys')
-    if (res.ok) {
-      const data = await res.json()
-      setApiKeys(data.keys ?? [])
+    try {
+      const res = await fetch('/api/keys')
+      if (res.ok) {
+        const data = await res.json()
+        setApiKeys(data.keys ?? [])
+      }
+    } finally {
+      setLoadingKeys(false)
     }
-    setLoadingKeys(false)
   }
 
   useEffect(() => {
-    refreshKeys()
+    // SSR 已通过 initialApiKeys 传入数据，不需要重复加载
+    // 只做 PostHog 埋点
     posthog?.capture('page_view', { page: 'dashboard' })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
