@@ -195,6 +195,14 @@ export interface SiteConfigPages {
     mcp_methods_label?: string
     mcp_methods?: string[]
   }
+  marketplace?: {
+    eyebrow?: string
+    heading?: string
+    description?: string
+    group_label?: string
+    empty_state?: string
+    add_button?: string
+  }
   cta?: {
     headline?: string
     description?: string
