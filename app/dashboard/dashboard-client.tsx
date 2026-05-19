@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -11,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2 } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown } from 'lucide-react'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
@@ -129,6 +131,84 @@ function milestoneBadge(status: string) {
   if (status === 'done')   return <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已完成</Badge>
   if (status === 'active') return <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40]">进行中</Badge>
   return <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground">待开始</Badge>
+}
+
+// ─── InlineCollapsible ─────────────────────────────────────────────────────
+// 胶囊内的折叠行：共用同一个 border 容器，每行用 border-t 分隔
+function InlineCollapsible({
+  title,
+  count,
+  children,
+}: {
+  title: string
+  count?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger
+        className="w-full px-4 py-2.5 border-t border-border bg-muted/20 flex items-center justify-between hover:bg-muted/40 transition-colors"
+      >
+        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{title}</span>
+        <div className="flex items-center gap-2">
+          {count !== undefined && (
+            <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+          )}
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
+              open ? 'rotate-180' : ''
+            }`}
+          />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="border-t border-border">
+          {children}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// ─── CollapsibleSection ─────────────────────────────────────────────────────
+// 复用 tools/page.tsx 的 border+header 行语言，加 Collapsible 展开
+function CollapsibleSection({
+  title,
+  count,
+  children,
+}: {
+  title: string
+  count?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="border border-border rounded-lg overflow-hidden">
+        <CollapsibleTrigger
+          className="w-full px-4 py-3 bg-muted/20 flex items-center justify-between hover:bg-muted/40 transition-colors"
+        >
+          <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{title}</span>
+          <div className="flex items-center gap-2">
+            {count !== undefined && (
+              <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+            )}
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
+                open ? 'rotate-180' : ''
+              }`}
+            />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-t border-border">
+            {children}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -399,7 +479,64 @@ export function DashboardClient({
               </Button>
             </a>
           </div>
-          {/* 其他渠道收起一行 */}
+          {/* API KEYS 折叠行 */}
+          <InlineCollapsible
+            title="API KEYS"
+            count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}
+          >
+            {loadingKeys ? (
+              <div className="px-4 py-3 text-xs text-muted-foreground font-mono">加载中…</div>
+            ) : apiKeys.length === 0 ? (
+              <div className="px-4 py-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-mono">还没有 API Key。创建一个开始接入 ONIT。</span>
+                <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>+ 创建</Button>
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-border">
+                  {apiKeys.map((key) => (
+                    <div key={key.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                      <div className="min-w-0 flex items-center gap-3">
+                        <span className="text-xs font-medium truncate">{key.name}</span>
+                        <div className="flex items-center gap-1">
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                            {revealedKeys.has(key.id) ? key.key_prefix : `${key.key_prefix.slice(0, 8)}${'•'.repeat(8)}`}
+                          </code>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => toggleReveal(key.id)}>
+                            {revealedKeys.has(key.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => copyKeyPrefix(key.id, key.key_prefix)}>
+                            {copiedKeyId === key.id ? <Check className="h-3 w-3 text-[oklch(0.65_0.18_145)]" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(key.created_at)}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRevokeKey(key.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-2.5 border-t border-border">
+                  <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>+ 创建</Button>
+                </div>
+              </>
+            )}
+          </InlineCollapsible>
+
+          {/* MCP 折叠行 */}
+          <InlineCollapsible title="MCP 接入 · CLAUDE DESKTOP">
+            <div className="px-4 py-3">
+              <ClaudeConfigBlock />
+              <p className="text-xs text-muted-foreground mt-2">
+                粘贴到 <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+              </p>
+            </div>
+          </InlineCollapsible>
+
+          {/* 其他渠道（胶囊最底，暗示未来开放） */}
           <div className="px-4 py-2 border-t border-border bg-muted/20 flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground font-mono">其他渠道：</span>
             {['Slack', '飞书', '微信'].map((ch) => (
@@ -409,6 +546,38 @@ export function DashboardClient({
             ))}
           </div>
         </div>
+
+        <CollapsibleSection title="已连接 AGENT" count={String(connectedAgents.length)}>
+          {connectedAgents.length === 0 ? (
+            <div className="px-4 py-4 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
+              <Link href="/marketplace">
+                <Button variant="outline" size="sm" className="h-6 text-xs gap-1">
+                  <ExternalLink className="w-3 h-3" />Agent Wiki
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {connectedAgents.map((agent) => (
+                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium block truncate">{agent.name}</span>
+                    {agent.description && (
+                      <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
+                    {agent.skills?.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1">{agent.skills.length} 工具</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CollapsibleSection>
 
         {/* ══════════════════════════════════════
             2. 我的项目
@@ -445,51 +614,7 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* ══════════════════════════════════════
-            3. Agent 列表
-        ══════════════════════════════════════ */}
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-              已连接 Agent
-            </span>
-            <span className="text-xs text-muted-foreground tabular-nums">{connectedAgents.length}</span>
-          </div>
-          {connectedAgents.length === 0 ? (
-            <div className="px-4 py-4 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
-              <Link href="/marketplace">
-                <Button variant="outline" size="sm" className="h-6 text-xs gap-1">
-                  <ExternalLink className="w-3 h-3" />
-                  Agent Wiki
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {connectedAgents.map((agent) => (
-                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium block truncate">{agent.name}</span>
-                    {agent.description && (
-                      <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">
-                      已连接
-                    </Badge>
-                    {agent.skills?.length > 0 && (
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                        {agent.skills.length} 工具
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+
 
         {/* ══════════════════════════════════════
             4. 审计视图（Eva）
@@ -527,66 +652,7 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* ══════════════════════════════════════
-            5. API Keys
-        ══════════════════════════════════════ */}
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">API Keys</span>
-            <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>
-              + 创建
-            </Button>
-          </div>
-          {loadingKeys ? (
-            <div className="px-4 py-3 text-xs text-muted-foreground font-mono">加载中…</div>
-          ) : apiKeys.length === 0 ? (
-            <div className="px-4 py-3 text-xs text-muted-foreground font-mono">还没有 API Key。创建一个开始接入 ONIT。</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {apiKeys.map((key) => (
-                <div key={key.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0 flex items-center gap-3">
-                    <span className="text-xs font-medium truncate">{key.name}</span>
-                    <div className="flex items-center gap-1">
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                        {revealedKeys.has(key.id)
-                          ? key.key_prefix
-                          : `${key.key_prefix.slice(0, 8)}${'•'.repeat(8)}`}
-                      </code>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => toggleReveal(key.id)}>
-                        {revealedKeys.has(key.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => copyKeyPrefix(key.id, key.key_prefix)}>
-                        {copiedKeyId === key.id ? <Check className="h-3 w-3 text-[oklch(0.65_0.18_145)]" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(key.created_at)}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRevokeKey(key.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* ══════════════════════════════════════
-            6. MCP 接入配置
-        ══════════════════════════════════════ */}
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-muted/20 border-b border-border">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">MCP 接入 · Claude Desktop</span>
-          </div>
-          <div className="px-4 py-3">
-            <ClaudeConfigBlock />
-            <p className="text-xs text-muted-foreground mt-2">
-              粘贴到 <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
-            </p>
-          </div>
-        </div>
 
         {/* ══════════════════════════════════════
             7. 最近系统活动
