@@ -193,10 +193,10 @@ function MutualSuccessPlan() {
               </TableHeader>
               <TableBody>
                 {[
-                  ['你（ONIT CSM）', '[你的名字]', '整体进度跟踪、周会主持、风险上报——你是单一责任人', '—'],
-                  ['ONIT 技术负责人', '[姓名]', 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
-                  ['你们的负责人', '[姓名 / 联系方式]', '你们这边推动这个项目、协调资源、最终验收签字', '—'],
-                  ['你们的技术对接人', '[姓名 / 联系方式]', 'API 权限、系统对接——缺这个人会卡死 M0', '—'],
+                  ['客户成功经理 @Lumen', '[你的名字]', '整体进度跟踪、周会主持、风险上报——你是单一责任人', '—'],
+                  ['执行工程师 @Sega', '[姓名]', 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
+                  ['你们的负责人', '[名字或联系方式]', '你们这边推动这个项目、协调资源、最终验收签字', '—'],
+                  ['你们的技术对接人', '[名字或联系方式]', 'API 权限、系统对接——缺这个人会卡死 M0', '—'],
                 ].map(([role, name, scope, contact], i) => (
                   <TableRow key={i}>
                     <TableCell className="text-sm font-medium">{role}</TableCell>
@@ -230,10 +230,10 @@ function MutualSuccessPlan() {
               </TableHeader>
               <TableBody>
                 {[
-                  ['M0', '找到合适的 Agent', '① Polly 在市面上找到可以被我们打包的非 Agent', 'Polly 输出的调研清单，你们确认选哪个', 'YYYY-MM-DD', 'Polly', '待开始'],
-                  ['M1', '交付试用设计方案', '② Lumen 交付共同成功计划 + 里程碑进度文件，你们签认', '这两份文件，你们的负责人签字确认', 'YYYY-MM-DD', 'Lumen', '待开始'],
-                  ['M2', '试运行完成', '③ Sega + Dev 试运行，每个里程碑截图举证，每个问题截图记录', '截图 + 文字记录，可以被 Eva 审计的证据链', 'YYYY-MM-DD', 'Sega', '待开始'],
-                  ['M3', '审计验证通过', '④ Eva 审计结果，通过后更新两份文件，进入下一轮或结束', 'Eva 审计报告，更新后的 MCSP + OMT', 'YYYY-MM-DD', 'Eva', '待开始'],
+                  ['M0', '找到合适的 Agent', '① 研究员 @Polly 在市面上找到可以被我们打包的 Agent', '候选 Agent 调研清单，你们确认选哪个', 'YYYY-MM-DD', '研究员 @Polly', '待开始'],
+                  ['M1', '交付试用设计方案', '② 客户成功经理 @Lumen 交付共同成功计划 + 里程碑进度文件，你们签认', '这两份文件，你们的负责人签字确认', 'YYYY-MM-DD', '客户成功经理 @Lumen', '待开始'],
+                  ['M2', '试运行完成', '③ 执行工程师 @Sega + 开发 @Dev 试运行，每个里程碑截图举证，每个问题截图记录', '截图 + 文字记录，可以被审计员 @Eva 审计的证据链', 'YYYY-MM-DD', '执行工程师 @Sega', '待开始'],
+                  ['M3', '审计验证通过', '④ 审计员 @Eva 审计结果，通过后更新两份文件，进入下一轮或结束', '审计员 @Eva 的审计报告，更新后的 MCSP + OMT', 'YYYY-MM-DD', '审计员 @Eva', '待开始'],
                 ].map(([phase, name, loop, deliverable, date, owner, status], i) => (
                   <TableRow key={i}>
                     <TableCell><Badge variant="outline" className="font-mono text-xs">{phase}</Badge></TableCell>
@@ -269,8 +269,8 @@ function MutualSuccessPlan() {
               <TableBody>
                 {[
                   ['API 权限审批延迟超过 2 周', '中', '高', '提前 2 周发送权限申请清单，你们的技术对接人确认时间线', '你们的技术对接人'],
-                  ['Agent 输出质量不达预期', '低', '高', 'LangSmith 全链路追踪 + 每周 Agent 抽查，有问题我们立刻调整', 'ONIT 技术'],
-                  ['你们的负责人换人', '低', '中', '确保我们有 ≥2 名联系人，文档随时可以交接', '你（ONIT CSM）'],
+                  ['Agent 输出质量不达预期', '低', '高', 'LangSmith 全链路追踪 + 每周 Agent 抽查，有问题我们立刻调整', '执行工程师 @Sega'],
+                  ['你们的负责人换人', '低', '中', '确保我们有 ≥2 名联系人，文档随时可以交接', '客户成功经理 @Lumen'],
                 ].map(([risk, prob, impact, mitigation, owner], i) => (
                   <TableRow key={i}>
                     <TableCell className="text-sm">{risk}</TableCell>
@@ -415,9 +415,9 @@ function MilestoneTracker() {
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: 'Polly 完成市面 Agent 调研，输出候选清单', done: false, owner: 'Polly' },
-                { name: '你们确认选哪个 Agent，或提出调整', done: false, owner: '你们的负责人' },
-                { name: '我们双方签认，进入 M1', done: false, owner: '我们双方' },
+                { name: '候选 Agent 调研清单输出完毕，你们可以做选择', done: false, owner: '研究员 @Polly' },
+                { name: '选定目标 Agent，或提出调整意见', done: false, owner: '你们的负责人' },
+                { name: '双方签认，M1 正式启动', done: false, owner: '我们双方' },
               ],
             },
             {
@@ -427,10 +427,10 @@ function MilestoneTracker() {
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: 'Lumen 输出共同成功计划初稿', done: false, owner: 'Lumen' },
-                { name: 'Sega 输出 pipe/workflow 设计方案（能否 AI Native Closed Loop，人在哪里）', done: false, owner: 'Sega' },
-                { name: '你们确认成功标准，提出修改或签认', done: false, owner: '你们的负责人' },
-                { name: '你们签认 MCSP + OMT，进入 M2', done: false, owner: '我们双方' },
+                { name: '共同成功计划初稿完成，等待你们确认', done: false, owner: '客户成功经理 @Lumen' },
+                { name: 'pipe/workflow 设计方案完成，明确 AI Native Closed Loop 路径和人工介入点', done: false, owner: '执行工程师 @Sega' },
+                { name: '成功标准确认，或提出修改', done: false, owner: '你们的负责人' },
+                { name: 'MCSP + OMT 双方签认，M2 正式启动', done: false, owner: '我们双方' },
               ],
             },
             {
@@ -440,10 +440,10 @@ function MilestoneTracker() {
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: '配置好所需 KEY（你们提供或用平台公 KEY 测试）', done: false, owner: '你们的技术对接人' },
-                { name: 'Sega + Dev 完成试运行，每个里程碑截图举证', done: false, owner: 'Sega' },
-                { name: '遇到问题截图记录，找 Polly 调整后继续', done: false, owner: 'Polly' },
-                { name: '试运行完成，证据链整理完毕，进入 M3', done: false, owner: 'Sega' },
+                { name: '所需 KEY 配置完毕（你们提供或使用平台公 KEY 测试）', done: false, owner: '你们的技术对接人' },
+                { name: '试运行完成，每个里程碑截图举证', done: false, owner: '执行工程师 @Sega + 开发 @Dev' },
+                { name: '遇到的每个问题截图记录，调整后继续', done: false, owner: '研究员 @Polly' },
+                { name: '证据链整理完毕，M3 正式启动', done: false, owner: '执行工程师 @Sega' },
               ],
             },
             {
@@ -453,9 +453,9 @@ function MilestoneTracker() {
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: 'Eva 审计试运行结果', done: false, owner: 'Eva' },
-                { name: '审计通过，更新 MCSP + OMT', done: false, owner: 'Lumen' },
-                { name: '你们确认验收，我们共同决定：下一轮 / 扩容 / 结束', done: false, owner: '我们双方' },
+                { name: '试运行结果审计完成', done: false, owner: '审计员 @Eva' },
+                { name: 'MCSP + OMT 更新完毕，反映本轮结果', done: false, owner: '客户成功经理 @Lumen' },
+                { name: '验收确认，下一轮 / 扩容 / 结束决策落地', done: false, owner: '我们双方' },
               ],
             },
           ].map(({ phase, name, status, progress, dueDate, tasks }) => (
@@ -537,7 +537,7 @@ function MilestoneTracker() {
                 <TableRow className="opacity-30">
                   <TableCell className="text-sm italic text-muted-foreground">[示例：API 权限审批中，卡住了 M0]</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs font-mono">M0</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">你升级至你们的 IT 负责人，本周内确认时间线</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">升级至你们的技术负责人，本周内确认时间线</TableCell>
                   <TableCell className="text-sm text-muted-foreground">你们的技术对接人</TableCell>
                   <TableCell className="text-sm font-mono text-muted-foreground">YYYY-MM-DD</TableCell>
                   <TableCell><Badge variant="secondary" className="text-xs">处理中</Badge></TableCell>
@@ -554,7 +554,7 @@ function MilestoneTracker() {
           <CardContent className="pt-4">
             <div className="space-y-3">
               {[
-                { date: 'YYYY-MM-DD', author: '你（ONIT CSM）', note: '创建本进度表，M0 启动会已安排，我们双方确认了时间' },
+                { date: 'YYYY-MM-DD', author: '客户成功经理 @Lumen', note: '创建本进度表，M0 启动会已安排，我们双方确认了时间' },
               ].map((log, i) => (
                 <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0 opacity-40">
                   <span className="text-xs font-mono text-muted-foreground shrink-0 pt-0.5">{log.date}</span>
