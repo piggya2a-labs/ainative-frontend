@@ -83,6 +83,7 @@ export type MarketplaceAgentItem = Pick<
   | 'icon_url'
   | 'documentation_url'
   | 'connector_type'
+  | 'oauth_config'
 >
 
 // ─── tool_registry ────────────────────────────────────────────────────────────

@@ -112,7 +112,7 @@ export default function MarketplacePage() {
     const anonClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     const { data } = await anonClient
       .from('agent_registry')
-      .select('id, name, description, provider, skills, mcp_url, tags, updated_at, icon_url, documentation_url, connector_type')
+      .select('id, name, description, provider, skills, mcp_url, tags, updated_at, icon_url, documentation_url, connector_type, oauth_config')
       .eq('type', 'external').eq('enabled', true).order('provider')
     setAgents((data ?? []) as MarketplaceAgentItem[])
     setLoading(false)
@@ -164,7 +164,8 @@ export default function MarketplacePage() {
     try {
       const res = await fetch('/api/connector/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ connector_id: agent.id, connector_type: 'custom', mcp_url: agent.mcp_url }),
+        // connector_type 透传，让后端判断是否走 OAuth
+        body: JSON.stringify({ connector_id: agent.id, connector_type: agent.connector_type ?? 'custom', mcp_url: agent.mcp_url }),
       })
       const data = await res.json()
       if (data?.authorization_url) { posthog?.capture('marketplace_agent_oauth_redirect', { agent_id: agent.id }); window.location.href = data.authorization_url; return }
