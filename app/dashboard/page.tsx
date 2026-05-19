@@ -46,21 +46,37 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false })
     : { data: [] }
 
-  // Agents（只取 type=agent 的内部团队成员，供 Dashboard 团队表格展示）
-  const { data: agents } = await supabase
-    .from('agent_registry')
-    .select('id, name, description, tags, enabled, skills, capabilities, updated_at')
-    .eq('type', 'agent')
-    .eq('enabled', true)
-    .order('created_at', { ascending: true })
+  // 用户在 Marketplace 已连接的外部 MCP（从 tenant_connectors 读取）
+  const { data: mcpConnectors } = tenant
+    ? await supabase
+        .from('tenant_connectors')
+        .select('id, agent_id, status, metadata, created_at, discovered_tools')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'connected')
+        .order('created_at', { ascending: false })
+    : { data: [] }
 
-  // MCP Tools（enabled 的 cap_ 工具 = 已接入的 MCP 能力）
-  const { data: mcpTools } = await supabase
-    .from('tool_registry')
-    .select('id, tool_name, category, annotations')
-    .eq('enabled', true)
-    .like('tool_name', 'cap_%')
-    .order('created_at', { ascending: true })
+  // 拿到 agent_registry 里对应的名字和描述
+  const mcpAgentIds = (mcpConnectors ?? []).map(c => c.agent_id).filter(Boolean)
+  const { data: mcpAgentCards } = mcpAgentIds.length > 0
+    ? await supabase
+        .from('agent_registry')
+        .select('id, name, description, skills')
+        .in('id', mcpAgentIds)
+    : { data: [] }
+
+  // 合并成前端需要的格式
+  const mcpTools = (mcpConnectors ?? []).map(c => {
+    const card = (mcpAgentCards ?? []).find(a => a.id === c.agent_id)
+    return {
+      id: c.id,
+      agent_id: c.agent_id,
+      name: card?.name ?? c.agent_id,
+      description: card?.description ?? '',
+      skills: (card?.skills ?? []) as Array<{ id: string; name: string; description: string }>,
+      connected_at: c.created_at,
+    }
+  })
 
   // GitHub 集成状态（从 github_installation_bindings 读）
   const { data: githubBindings } = tenant
@@ -71,7 +87,7 @@ export default async function DashboardPage() {
         .eq('status', 'active')
     : { data: [] }
 
-  // Channel connectors（渠道连接状态）
+  // Channel connectors（渠道连接状态，用于 Integrations 区块）
   const { data: connectors } = tenant
     ? await supabase
         .from('tenant_connectors')
@@ -91,8 +107,8 @@ export default async function DashboardPage() {
       user={user}
       tenant={tenant}
       initialApiKeys={apiKeys ?? []}
-      agents={agents ?? []}
-      mcpTools={mcpTools ?? []}
+      agents={[]}
+      mcpTools={mcpTools}
       githubBindings={githubBindings ?? []}
       connectors={connectors ?? []}
       auditLogs={auditLogs ?? []}

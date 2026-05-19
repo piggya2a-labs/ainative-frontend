@@ -41,9 +41,11 @@ type Agent = AgentListItem
 
 interface McpTool {
   id: string
-  tool_name: string
-  category: string
-  annotations?: Record<string, unknown>
+  agent_id: string
+  name: string
+  description: string
+  skills: Array<{ id: string; name: string; description: string }>
+  connected_at: string
 }
 
 // Connector 展示用类型：用 ConnectorRow 的字段子集
@@ -398,13 +400,7 @@ export function DashboardClient({
     return 'Agent'
   }
 
-  // MCP 工具按 category 分组
-  const mcpByCategory = mcpTools.reduce<Record<string, McpTool[]>>((acc, t) => {
-    const cat = t.category || 'other'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(t)
-    return acc
-  }, {})
+
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -449,31 +445,7 @@ export function DashboardClient({
               <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
-                <Bot className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-lg font-semibold leading-none">{liveAgents.length}<span className="text-xs text-muted-foreground font-normal ml-1">/ {realAgents.length}</span></p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Agent 在线</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
-                <Plug className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-lg font-semibold leading-none">{mcpTools.length}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">MCP 接入</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
-                <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-lg font-semibold leading-none">{githubBindings.length}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">GitHub</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
+
         </Card>
 
         <Tabs defaultValue="setup">
@@ -749,92 +721,23 @@ export function DashboardClient({
               </DialogContent>
             </Dialog>
 
-            {/* ── Agent 团队 ── */}
+            {/* ── Brand Skills ── */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">🤖 Agent 团队</CardTitle>
-                    <CardDescription>{realAgents.length} 个 Agent，{liveAgents.length} 个在线</CardDescription>
+                    <CardTitle className="text-sm">📚 Brand Skills</CardTitle>
+                    <CardDescription>给 Agent 添加品牌上下文、业务知识和工作规范。</CardDescription>
                   </div>
-                  <Link href="/agents">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">查看详情 →</Button>
-                  </Link>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
+                    + Add Skill
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                {realAgents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">暂无 Agent。</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {realAgents.map((agent) => {
-                      const isLive = agent.enabled
-                      const hasDetail = (agent.skills && agent.skills.length > 0) || (agent.capabilities?.role_models && agent.capabilities.role_models.length > 0)
-                      const initials = agent.name.slice(0, 2).toUpperCase()
-                      return (
-                        <Dialog key={agent.id}>
-                          <DialogTrigger disabled={!hasDetail} className="w-full text-left">
-                            <div className={`flex items-center gap-2.5 p-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors ${hasDetail ? 'cursor-pointer' : 'cursor-default'}`}>
-                              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
-                                {initials}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-medium truncate">{agent.name}</p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                                  <span className="text-[10px] text-muted-foreground">{getRoleLabel(agent.tags ?? [])}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <div className="flex items-center gap-2">
-                                <DialogTitle>{agent.name}</DialogTitle>
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                              </div>
-                              <DialogDescription>{agent.description}</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 mt-1">
-                              {agent.skills && agent.skills.length > 0 && (
-                                <div>
-                                  <div className="flex items-center gap-1.5 mb-2">
-                                    <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">技能</span>
-                                  </div>
-                                  <div className="space-y-2">
-                                    {agent.skills.map((skill) => (
-                                      <div key={skill.id} className="flex items-start gap-2">
-                                        <span className="text-xs font-medium text-foreground shrink-0 min-w-[80px]">{skill.name}</span>
-                                        <span className="text-xs text-muted-foreground leading-relaxed">{skill.description}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {agent.capabilities?.role_models && agent.capabilities.role_models.length > 0 && (
-                                <div>
-                                  <div className="flex items-center gap-1.5 mb-2">
-                                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">参考对象</span>
-                                  </div>
-                                  <div className="space-y-3">
-                                    {agent.capabilities.role_models.map((rm, i) => (
-                                      <div key={i} className="border-l-2 border-border pl-3">
-                                        <p className="text-xs font-medium">{rm.name}</p>
-                                        <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{(rm as { principle?: string; principles?: string }).principle ?? (rm as { principle?: string; principles?: string }).principles}&rdquo;</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )
-                    })}
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  还没有 Skill。添加一个让 Agent 了解你的品牌声音、产品知识或工作流程。
+                </p>
               </CardContent>
             </Card>
 
@@ -845,12 +748,12 @@ export function DashboardClient({
                   <div>
                     <CardTitle className="text-sm">🔌 已接入的 MCP</CardTitle>
                     <CardDescription>
-                      {mcpTools.length} 个 MCP 能力已接入，供 Agent 调用
+                      {mcpTools.length > 0 ? `${mcpTools.length} 个外部工具已连接` : '还没有连接任何外部工具'}
                     </CardDescription>
                   </div>
                   <Link href="/marketplace">
                     <Button variant="outline" size="sm" className="h-7 text-xs">
-                      查看外部 Agent →
+                      Agent Wiki →
                     </Button>
                   </Link>
                 </div>
@@ -858,28 +761,37 @@ export function DashboardClient({
               <CardContent>
                 {mcpTools.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-4">
-                    <p className="text-xs text-muted-foreground">暂无已接入的 MCP。</p>
+                    <p className="text-xs text-muted-foreground">还没有接入任何外部工具。</p>
                     <Link href="/marketplace">
                       <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                         <ExternalLink className="w-3 h-3" />
-                        去 Marketplace 接入
+                        去 Agent Wiki 接入
                       </Button>
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {Object.entries(mcpByCategory).map(([category, tools]) => (
-                      <div key={category}>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">
-                          {category}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {tools.map((tool) => (
-                            <Badge key={tool.id} variant="secondary" className="text-xs font-normal">
-                              {mcpFriendlyName(tool.tool_name)}
-                            </Badge>
-                          ))}
+                  <div className="space-y-2">
+                    {mcpTools.map((mcp) => (
+                      <div key={mcp.id} className="flex items-start gap-3 p-2.5 rounded-lg border border-border">
+                        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
+                          {mcp.name.slice(0, 2).toUpperCase()}
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-medium truncate">{mcp.name}</p>
+                            <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+                              {mcp.skills.length} 工具
+                            </Badge>
+                          </div>
+                          {mcp.description && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{mcp.description}</p>
+                          )}
+                        </div>
+                        <Link href="/marketplace" className="shrink-0">
+                          <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">
+                            管理
+                          </Button>
+                        </Link>
                       </div>
                     ))}
                   </div>
