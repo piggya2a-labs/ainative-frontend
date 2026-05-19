@@ -79,7 +79,7 @@ export function CTASection({ siteConfig }: CTASectionProps) {
 
 export function Footer({ siteConfig }: FooterProps) {
   const footer = siteConfig?.pages?.footer
-  const tagline = footer?.tagline || 'ONIT · AI Native Agent 团队平台'
+  const tagline = footer?.tagline || 'ONIT · Agent 雇主平台'
   const logo = siteConfig?.nav?.logo || 'ONIT'
   const links = footer?.links || ['隐私政策', '服务条款', '文档']
 
