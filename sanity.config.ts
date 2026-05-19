@@ -173,9 +173,9 @@ const brandKnowledgeSchema = {
   ],
   preview: {
     select: { title: 'positioning' },
-    prepare: ({ title }: { title: string }) => ({
+    prepare: (value: Record<string, unknown>) => ({
       title: '品牌知识库',
-      subtitle: title?.slice(0, 60) ?? '未填写',
+      subtitle: typeof value.title === 'string' ? value.title.slice(0, 60) : '未填写',
     }),
   },
 }

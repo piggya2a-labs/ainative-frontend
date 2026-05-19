@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2 } from 'lucide-react'
+import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
 
@@ -168,6 +169,7 @@ export function DashboardClient({
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const posthog = usePostHog()
 
   const [apiKeys, setApiKeys] = useState<ApiKey[]>(initialApiKeys)
   const [loadingKeys, setLoadingKeys] = useState(false)
@@ -204,15 +206,21 @@ export function DashboardClient({
     setLoadingKeys(false)
   }
 
-  useEffect(() => { refreshKeys() }, [])
+  useEffect(() => {
+    refreshKeys()
+    posthog?.capture('page_view', { page: 'dashboard' })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSignOut = async () => {
+    posthog?.capture('dashboard_sign_out')
     await supabase.auth.signOut()
     router.push('/')
   }
 
   const handleCreateKey = async () => {
     if (!newKeyName.trim()) return
+    posthog?.capture('api_key_create', { name: newKeyName.trim() })
     setCreatingKey(true)
     const res = await fetch('/api/keys', {
       method: 'POST',
@@ -229,6 +237,7 @@ export function DashboardClient({
   }
 
   const handleRevokeKey = async (id: string) => {
+    posthog?.capture('api_key_revoke', { id })
     await fetch(`/api/keys?id=${id}`, { method: 'DELETE' })
     setApiKeys(prev => prev.filter(k => k.id !== id))
   }
@@ -290,6 +299,7 @@ export function DashboardClient({
 
   const handleTelegramVerify = async () => {
     if (!tgToken.trim()) return
+    posthog?.capture('telegram_verify_click')
     setTgLoading(true)
     setTgError('')
     try {
@@ -317,6 +327,7 @@ export function DashboardClient({
   }
 
   const handleTelegramConfirm = async () => {
+    posthog?.capture('telegram_confirm_click')
     setTgLoading(true)
     setTgError('')
     try {
@@ -347,6 +358,7 @@ export function DashboardClient({
   }
 
   const handleSlackConnect = async () => {
+    posthog?.capture('slack_connect_click')
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(

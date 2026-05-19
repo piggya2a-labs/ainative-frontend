@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { usePostHog } from 'posthog-js/react'
 import { createClient } from '@/lib/supabase-client'
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
+  const posthog = usePostHog()
 
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
@@ -16,11 +18,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  useEffect(() => {
+    posthog?.capture('page_view', { page: 'login' })
+  }, [posthog])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setSuccess(null)
+
+    posthog?.capture('auth_submit', { mode })
 
     if (mode === 'signup') {
       const { error } = await supabase.auth.signUp({
@@ -32,15 +40,18 @@ export default function LoginPage() {
       })
       if (error) {
         setError(error.message)
+        posthog?.capture('auth_error', { mode: 'signup', error: error.message })
       } else {
-        // 注册成功，直接进 Dashboard
+        posthog?.capture('auth_success', { mode: 'signup' })
         router.push('/dashboard')
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         setError(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)
+        posthog?.capture('auth_error', { mode: 'login', error: error.message })
       } else {
+        posthog?.capture('auth_success', { mode: 'login' })
         router.push('/dashboard')
       }
     }
@@ -70,7 +81,12 @@ export default function LoginPage() {
           <div className="flex border border-gray-200 rounded-md p-0.5 mb-6 bg-gray-50">
             <button
               type="button"
-              onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
+              onClick={() => {
+                setMode('login')
+                setError(null)
+                setSuccess(null)
+                posthog?.capture('auth_mode_switch', { mode: 'login' })
+              }}
               className={`flex-1 py-1.5 text-sm rounded transition-all ${
                 mode === 'login'
                   ? 'bg-white text-black shadow-sm font-medium'
@@ -81,7 +97,12 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode('signup'); setError(null); setSuccess(null) }}
+              onClick={() => {
+                setMode('signup')
+                setError(null)
+                setSuccess(null)
+                posthog?.capture('auth_mode_switch', { mode: 'signup' })
+              }}
               className={`flex-1 py-1.5 text-sm rounded transition-all ${
                 mode === 'signup'
                   ? 'bg-white text-black shadow-sm font-medium'
