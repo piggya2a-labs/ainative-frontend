@@ -78,6 +78,34 @@ interface Props {
   auditLogs: AuditLog[]
 }
 
+// ─── MCP URL ─────────────────────────────────────────────────────────────────
+const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
+
+function ClaudeConfigBlock({ apiKey }: { apiKey?: string }) {
+  const [copied, setCopied] = useState(false)
+  const config = JSON.stringify({
+    mcpServers: {
+      onit: {
+        type: 'http',
+        url: ONIT_MCP_URL,
+        headers: { Authorization: `Bearer ${apiKey ?? 'YOUR_ONIT_API_KEY'}` }
+      }
+    }
+  }, null, 2)
+  function copyConfig() {
+    navigator.clipboard.writeText(config).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
+  return (
+    <div className="relative">
+      <pre className="text-xs font-mono bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap break-all">{config}</pre>
+      <Button variant="outline" size="sm" className="absolute top-2 right-2 h-6 text-[10px] gap-1" onClick={copyConfig}>
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        {copied ? '已复制' : '复制'}
+      </Button>
+    </div>
+  )
+}
+
 // ─── Integrations config ─────────────────────────────────────────────────────
 const INTEGRATIONS = [
   {
@@ -551,6 +579,18 @@ export function DashboardClient({
               </CardContent>
             </Card>
 
+            {/* ── 接入 Claude Desktop ── */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">🔌 接入 Claude Desktop</CardTitle>
+                <CardDescription>创建 API Key 后，将以下配置粘贴到 claude_desktop_config.json 的 mcpServers 里。</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ClaudeConfigBlock />
+                <p className="text-xs text-muted-foreground mt-2">配置文件位置：macOS <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
+              </CardContent>
+            </Card>
+
             {/* ── Integrations ── */}
             <Card>
               <CardHeader className="pb-2">
@@ -929,6 +969,12 @@ export function DashboardClient({
                 <Button variant="outline" size="sm" className="shrink-0 h-7 text-xs" onClick={handleCopy}>
                   {copied ? '已复制' : '复制'}
                 </Button>
+              </div>
+              {/* ── 接入 Claude Desktop ── */}
+              <div className="mt-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">接入 Claude Desktop</p>
+                <p className="text-xs text-muted-foreground">将以下配置粘贴到 <code className="font-mono bg-muted px-1 rounded">claude_desktop_config.json</code> 的 <code className="font-mono bg-muted px-1 rounded">mcpServers</code> 里：</p>
+                <ClaudeConfigBlock apiKey={createdKey} />
               </div>
               <Button
                 className="w-full"

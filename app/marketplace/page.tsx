@@ -200,7 +200,7 @@ export default function MarketplacePage() {
       const res = await fetch('/api/connector/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         // connector_type 透传，让后端判断是否走 OAuth
-        body: JSON.stringify({ connector_id: agent.id, connector_type: agent.connector_type ?? 'custom', mcp_url: agent.mcp_url }),
+        body: JSON.stringify({ agent_id: agent.id, connector_type: agent.connector_type ?? 'custom', mcp_url: agent.mcp_url }),
       })
       const data = await res.json()
       if (data?.authorization_url) { posthog?.capture('marketplace_agent_oauth_redirect', { agent_id: agent.id }); window.location.href = data.authorization_url; return }
