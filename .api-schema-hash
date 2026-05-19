@@ -1,0 +1,17 @@
+{
+  "hash": "f87086cd738b5c86c118c6f70773cfcd",
+  "schema": {
+    "/api/health": [
+      "checks",
+      "status",
+      "timestamp"
+    ],
+    "/api/agents": [
+      "agents"
+    ],
+    "/api/tools": [
+      "tools"
+    ]
+  },
+  "updated": "2026-05-19T06:00:51.124519+00:00"
+}
