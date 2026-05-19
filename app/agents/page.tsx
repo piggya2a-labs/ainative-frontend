@@ -42,7 +42,7 @@ async function getAgents() {
   const { data, error } = await supabase
     .from('agent_registry')
     .select('id, name, description, skills, capabilities, connector_type, tags, enabled, updated_at')
-    .in('connector_type', ['preset', 'platform'])
+    .eq('connector_type', 'preset')
     .eq('enabled', true)
     .order('connector_type')
   if (error) return []
@@ -137,7 +137,6 @@ export default async function AgentsPage() {
   ])
 
   const coreAgents = agents.filter((a) => isCore(a))
-  const externalAgents = agents.filter((a) => !isCore(a))
 
   const p = siteConfig?.pages?.agents
   const eyebrow = p?.eyebrow || 'Agent Team'
@@ -146,7 +145,7 @@ export default async function AgentsPage() {
   const coreLabel = p?.core_label || '核心团队'
   const externalLabel = p?.external_label || '外部成员'
   const emptyState = p?.empty_state || '暂无成员。'
-  const heading = headingTemplate.replace('{count}', String(agents.length))
+  const heading = headingTemplate.replace('{count}', String(coreAgents.length))
 
   return (
     <div className="min-h-screen bg-background">
@@ -202,23 +201,7 @@ export default async function AgentsPage() {
             </div>
           </section>
         )}
-        {externalAgents.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-5">
-              <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
-                {externalLabel}
-              </h2>
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">{externalAgents.length}</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {externalAgents.map((agent) => (
-                <AgentCardWithPopover key={agent.id} agent={agent} />
-              ))}
-            </div>
-          </section>
-        )}
-        {agents.length === 0 && (
+        {coreAgents.length === 0 && (
           <p className="text-center text-muted-foreground py-20 text-sm font-mono">
             {emptyState}
           </p>
