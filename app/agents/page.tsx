@@ -7,53 +7,33 @@ import { AgentCardWithPopover } from './agent-card'
 
 export const revalidate = 60
 
-// ── 从 GitHub 读取 Agent 最近的 commit 活动 ──────────────────────────────
+// ── 从 agent_memory 读取最近的平台活动 ──────────────────────────────────
 async function getAgentActivity() {
   try {
-    const res = await fetch(
-      'https://api.github.com/repos/piggya2a-labs/ainative-frontend/commits?per_page=20&sha=main',
-      {
-        headers: {
-          Authorization: `token ${process.env.INNER_LOOP_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-        next: { revalidate: 60 },
-      }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    if (!res.ok) return []
-    const commits = await res.json()
-    return commits
-      .filter((c: { commit: { message: string } }) => {
-        const msg = c.commit.message.toLowerCase()
-        return (
-          msg.includes('claude-agent') ||
-          msg.includes('inner-loop') ||
-          msg.includes('agent') ||
-          msg.includes('feat(') ||
-          msg.includes('fix:')
-        )
-      })
-      .slice(0, 8)
-      .map((c: {
-        sha: string
-        commit: {
-          message: string
-          author: { name: string; date: string }
-        }
-        html_url: string
-      }) => ({
-        sha: c.sha.slice(0, 7),
-        message: c.commit.message.split('\n')[0].slice(0, 80),
-        author: c.commit.author.name,
-        date: c.commit.author.date,
-        url: c.html_url,
-      }))
+    const { data, error } = await supabase
+      .from('agent_memory')
+      .select('id, agent_id, key, content, tags, created_at')
+      .order('created_at', { ascending: false })
+      .limit(8)
+    if (error || !data) return []
+    return data.map((m) => ({
+      id: m.id,
+      agent_id: m.agent_id,
+      key: m.key,
+      content: String(m.content || '').slice(0, 100),
+      tags: m.tags || [],
+      created_at: m.created_at,
+    }))
   } catch {
     return []
   }
 }
 
-// ── 从 Supabase 读取 Agent 注册表（含 capabilities） ─────────────────────
+// ── 从 Supabase 读取 Agent 注册表 ─────────────────────────────────────────
 async function getAgents() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,24 +41,25 @@ async function getAgents() {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, description, skills, capabilities, tags, enabled, updated_at')
-    .eq('type', 'agent')
+    .select('id, name, description, skills, capabilities, connector_type, tags, enabled, updated_at')
+    .in('connector_type', ['preset', 'platform'])
     .eq('enabled', true)
-    .order('id')
+    .order('connector_type')
   if (error) return []
   return data ?? []
 }
 
-function isExternal(id: string) {
-  return id.startsWith('ext-')
+function isCore(agent: { connector_type: string | null }) {
+  return agent.connector_type === 'preset'
 }
 
 type ActivityItem = {
-  sha: string
-  message: string
-  author: string
-  date: string
-  url: string
+  id: string
+  agent_id: string
+  key: string
+  content: string
+  tags: string[]
+  created_at: string
 }
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
@@ -92,18 +73,14 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
   return (
     <div className="space-y-0 divide-y divide-border">
       {items.map((item) => {
-        const isAgentCommit =
-          item.message.toLowerCase().includes('claude-agent') ||
-          item.author.toLowerCase().includes('claude') ||
-          item.author.toLowerCase().includes('agent') ||
-          item.author.toLowerCase().includes('inner-loop')
-        const timeAgo = getTimeAgo(item.date)
+        const timeAgo = getTimeAgo(item.created_at)
+        const isPlatform = item.agent_id === 'platform'
         return (
-          <div key={item.sha} className="flex items-start gap-3 py-3">
+          <div key={item.id} className="flex items-start gap-3 py-3">
             <div className="mt-0.5 shrink-0">
               <div
                 className={`w-2 h-2 rounded-full mt-1 ${
-                  isAgentCommit
+                  isPlatform
                     ? 'bg-[oklch(0.65_0.15_145)]'
                     : 'bg-muted-foreground/40'
                 }`}
@@ -111,24 +88,28 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs leading-relaxed text-foreground/80 truncate">
-                {item.message}
+                {item.content}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] font-mono text-muted-foreground">
-                  {item.sha}
+                  {item.agent_id}
                 </span>
-                <span className="text-[10px] text-muted-foreground">·</span>
-                <span className="text-[10px] text-muted-foreground">{item.author}</span>
+                {item.key && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground">·</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">{item.key}</span>
+                  </>
+                )}
                 <span className="text-[10px] text-muted-foreground">·</span>
                 <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
               </div>
             </div>
-            {isAgentCommit && (
+            {isPlatform && (
               <Badge
                 variant="outline"
                 className="text-[10px] shrink-0 bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.45_0.15_145)] border-[oklch(0.65_0.15_145)]/20"
               >
-                AI
+                ONIT
               </Badge>
             )}
           </div>
@@ -155,12 +136,12 @@ export default async function AgentsPage() {
     getAgentActivity(),
   ])
 
-  const coreAgents = agents.filter((a) => !isExternal(a.id))
-  const externalAgents = agents.filter((a) => isExternal(a.id))
+  const coreAgents = agents.filter((a) => isCore(a))
+  const externalAgents = agents.filter((a) => !isCore(a))
 
   const p = siteConfig?.pages?.agents
   const eyebrow = p?.eyebrow || 'Agent Team'
-  const headingTemplate = p?.heading || '{count} agents, always running'
+  const headingTemplate = p?.heading || '{count} agents, ready to work'
   const description = p?.description || '每位成员有明确的专长，分工协作，随时待命。'
   const coreLabel = p?.core_label || '核心团队'
   const externalLabel = p?.external_label || '外部成员'
@@ -200,7 +181,7 @@ export default async function AgentsPage() {
             <ActivityFeed items={activity} />
           </div>
           <p className="text-[10px] text-muted-foreground font-mono mt-2 text-right">
-            {p?.activity_hint || '绿点 = Agent 自动提交 · 每天上午 10 点自动运行'}
+            {p?.activity_hint || '绿点 = ONIT 平台活动 · 实时更新'}
           </p>
         </section>
 

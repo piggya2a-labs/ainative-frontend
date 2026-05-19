@@ -66,6 +66,7 @@ export type AgentListItem = Pick<
   | 'capabilities'
   | 'enabled'
   | 'updated_at'
+  | 'connector_type'
 >
 
 /** 前端 /marketplace 页面使用的字段子集 */

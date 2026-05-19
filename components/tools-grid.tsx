@@ -36,7 +36,7 @@ export function ToolsGrid({ siteConfig }: ToolsGridProps) {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12 space-y-3">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            工具生态，开箱即用
+            {siteConfig?.tools_section?.title || '工具生态，开笱即用'}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto text-sm">
             Agent 预装所需工具，通过 API 接入你自己的系统。

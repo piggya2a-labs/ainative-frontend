@@ -30,12 +30,12 @@ async function getPlatformAgents(): Promise<PlatformAgent[]> {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, description, provider, skills, mcp_url, icon_url')
-    .eq('type', 'external')
+    .select('id, name, description, skills, mcp_url, icon_url, connector_type')
+    .in('connector_type', ['platform', 'custom'])
     .eq('enabled', true)
-    .order('provider')
+    .order('name')
   if (error) return []
-  return (data ?? []) as PlatformAgent[]
+  return (data ?? []).map((d) => ({ ...d, provider: d.connector_type })) as PlatformAgent[]
 }
 
 // 只取描述的第一句话
@@ -47,20 +47,8 @@ function firstSentence(text: string): string {
 
 // provider → 显示名
 const PROVIDER_LABELS: Record<string, string> = {
-  'trigger.dev': 'Trigger.dev',
-  n8n: 'n8n',
-  slack: 'Slack',
-  telegram: 'Telegram',
-  feishu: '飞书',
-  wechat: '微信',
-  github: 'GitHub',
-  anthropic: 'Anthropic',
-  langsmith: 'LangSmith',
-  langgraph: 'LangGraph',
-  composio: 'Composio',
-  supabase: 'Supabase',
-  steel: 'Steel',
-  sprite: 'Sprite',
+  platform: 'Platform',
+  custom: 'Custom',
 }
 
 function providerLabel(p?: string) {

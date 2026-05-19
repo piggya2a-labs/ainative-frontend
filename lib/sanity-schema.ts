@@ -98,6 +98,16 @@ export interface SiteConfig {
     seed_events?: Array<{ agent: string; action: string; status: 'done' | 'running' | 'queued'; ts: string }>
     rolling_events?: Array<{ agent: string; action: string; status: 'done' | 'running' | 'queued' }>
   }
+  // features section 标题
+  features_section?: {
+    title?: string
+    subtitle?: string
+  }
+  // tools section 标题
+  tools_section?: {
+    title?: string
+    subtitle?: string
+  }
   // Agent 层级标签
   agent_tiers?: {
     ext?: string
