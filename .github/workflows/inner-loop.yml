@@ -53,6 +53,15 @@ jobs:
         # perception_agent.py 读 PostHog + Gentic 竞品数据，管道输出改进指令给 claude_worker.js
         run: python3 agents/perception_agent.py | node agents/claude_worker.js
 
+      - name: 同步品牌知识 Sanity → Gentic Brain
+        env:
+          GENTIC_API_KEY: ${{ secrets.GENTIC_API_KEY }}
+          SANITY_API_WRITE_TOKEN: ${{ secrets.SANITY_API_WRITE_TOKEN }}
+          SANITY_PROJECT_ID: zae9ml5g
+          SANITY_DATASET: production
+        # 从 Sanity Studio 品牌知识库读取最新内容，同步到 Gentic Brain 向量库
+        run: python3 scripts/seed-brain.py
+
   # ── Job 2: 后端健康检查 + 自动联调 ─────────────────────────────────────
   backend-healthcheck:
     name: 后端健康检查 → 自动修复
