@@ -17,6 +17,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   部署: 'bg-cyan-500/10 text-cyan-400',
   编排: 'bg-yellow-500/10 text-yellow-400',
   自动化: 'bg-red-500/10 text-red-400',
+  工具: 'bg-violet-500/10 text-violet-400',
+  邮件: 'bg-rose-500/10 text-rose-400',
+  语音: 'bg-teal-500/10 text-teal-400',
+  研究: 'bg-amber-500/10 text-amber-400',
 }
 
 export function ToolsGrid({ siteConfig }: ToolsGridProps) {

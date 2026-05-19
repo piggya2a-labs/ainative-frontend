@@ -86,6 +86,27 @@ export type MarketplaceAgentItem = Pick<
   | 'oauth_config'
 >
 
+/** api-connector-list EF 返回的单条数据 */
+export interface ConnectorListItem {
+  id: string
+  name: string
+  description: string | null
+  type: string
+  connector_type: string | null
+  mcp_url: string | null
+  oauth_required: boolean
+  status: 'connected' | 'disconnected' | 'error' | null
+  connected_at: string | null
+  // 以下字段来自 agent_registry，EF 暂未返回，前端用 fallback
+  skills?: AgentSkill[]
+  tags?: string[] | null
+  icon_url?: string | null
+  documentation_url?: string | null
+  provider?: string | null
+  updated_at?: string
+  oauth_config?: Record<string, unknown> | null
+}
+
 // ─── tool_registry ────────────────────────────────────────────────────────────
 
 export type ToolLayer = 'capability' | 'infrastructure' | 'system'
