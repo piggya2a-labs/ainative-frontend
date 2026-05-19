@@ -31,6 +31,40 @@ function firstSentence(text: string): string {
 }
 function providerInitial(name: string): string { return name.slice(0, 2).toUpperCase() }
 
+const SKILL_PREVIEW = 3
+
+function CollapsibleSkillList({ skills, agentId, posthog }: { skills: AgentSkill[]; agentId: string; posthog: ReturnType<typeof usePostHog> }) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? skills : skills.slice(0, SKILL_PREVIEW)
+  const hidden = skills.length - SKILL_PREVIEW
+  return (
+    <div className="divide-y divide-border">
+      {visible.map((skill) => (
+        <div key={skill.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors cursor-default"
+          onClick={() => posthog?.capture('marketplace_skill_click', { agent_id: agentId, skill_id: skill.id })}>
+          <div className="min-w-0">
+            <span className="text-sm font-mono font-medium block truncate">{skill.id}</span>
+            {skill.description && <span className="text-xs text-muted-foreground truncate block mt-0.5">{firstSentence(skill.description)}</span>}
+          </div>
+          {skill.tags && skill.tags.length > 0 && <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{skill.tags[0]}</Badge>}
+        </div>
+      ))}
+      {!expanded && hidden > 0 && (
+        <button className="w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-left font-mono"
+          onClick={() => { setExpanded(true); posthog?.capture('marketplace_skill_expand', { agent_id: agentId, total: skills.length }) }}>
+          + {hidden} 个工具
+        </button>
+      )}
+      {expanded && hidden > 0 && (
+        <button className="w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-left font-mono"
+          onClick={() => setExpanded(false)}>
+          收起
+        </button>
+      )}
+    </div>
+  )
+}
+
 function AgentDetailSheet({ agent, open, onClose }: { agent: MarketplaceAgentItem | null; open: boolean; onClose: () => void }) {
   if (!agent) return null
   const skills = (Array.isArray(agent.skills) ? agent.skills : []) as AgentSkill[]
@@ -113,7 +147,7 @@ export default function MarketplacePage() {
     const { data } = await anonClient
       .from('agent_registry')
       .select('id, name, description, provider, skills, mcp_url, tags, updated_at, icon_url, documentation_url, connector_type, oauth_config')
-      .eq('type', 'external').eq('enabled', true).order('provider')
+      .in('connector_type', ['preset', 'custom']).eq('enabled', true).order('provider')
     setAgents((data ?? []) as MarketplaceAgentItem[])
     setLoading(false)
   }, [])
@@ -243,7 +277,7 @@ export default function MarketplacePage() {
               <div key={provider}>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{providerLabel(provider)}</span>
-                  <span className="text-xs text-muted-foreground">{providerAgents.reduce((s, a) => s + (Array.isArray(a.skills) ? a.skills.length : 0), 0)}</span>
+                  <span className="text-xs text-muted-foreground">{providerAgents.length}</span>
                 </div>
                 <div className="space-y-3">
                   {providerAgents.map((agent) => {
@@ -316,18 +350,7 @@ export default function MarketplacePage() {
                           </div>
                         </div>
                         {skills.length > 0 ? (
-                          <div className="divide-y divide-border">
-                            {skills.map((skill) => (
-                              <div key={skill.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors cursor-default"
-                                onClick={() => posthog?.capture('marketplace_skill_click', { agent_id: agent.id, skill_id: skill.id })}>
-                                <div className="min-w-0">
-                                  <span className="text-sm font-mono font-medium block truncate">{skill.id}</span>
-                                  {skill.description && <span className="text-xs text-muted-foreground truncate block mt-0.5">{firstSentence(skill.description)}</span>}
-                                </div>
-                                {skill.tags && skill.tags.length > 0 && <Badge variant="outline" className="text-[10px] shrink-0 font-mono">{skill.tags[0]}</Badge>}
-                              </div>
-                            ))}
-                          </div>
+                          <CollapsibleSkillList skills={skills} agentId={agent.id} posthog={posthog} />
                         ) : (
                           <div className="px-4 py-3 text-xs text-muted-foreground font-mono">no tools registered</div>
                         )}
