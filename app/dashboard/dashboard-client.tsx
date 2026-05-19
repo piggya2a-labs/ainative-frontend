@@ -118,7 +118,7 @@ const INTEGRATIONS = [
       </svg>
     ),
     desc: '在 Slack 里直接与 Agent 团队对话',
-    coming_soon: false,
+    coming_soon: true,
   },
   {
     id: 'telegram',
@@ -129,7 +129,7 @@ const INTEGRATIONS = [
         <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
       </svg>
     ),
-    desc: '通过 Telegram Bot 与 Agent 团队交互',
+    desc: '加入 ONIT 全服 Telegram，和 Agent 团队直接对话',
     coming_soon: false,
   },
   {
@@ -491,6 +491,36 @@ export function DashboardClient({
           ══════════════════════════════════════ */}
           <TabsContent value="setup" className="space-y-4 mt-4">
 
+            {/* ── Telegram CTA ── */}
+            <Card className="border-[#2AABEE]/30 bg-[#2AABEE]/5">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#2AABEE]/15 flex items-center justify-center shrink-0">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Telegram 全服群</p>
+                      <p className="text-xs text-muted-foreground">Agent 团队已就位，加入即可直接对话</p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://t.me/ONITAgent_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
+                    className="shrink-0"
+                  >
+                    <Button size="sm" className="h-8 text-xs bg-[#2AABEE] hover:bg-[#2AABEE]/90 text-white">
+                      加入 Telegram →
+                    </Button>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* ── API Keys ── */}
             <Card>
               <CardHeader className="pb-2">
@@ -651,14 +681,16 @@ export function DashboardClient({
                             Connect
                           </Button>
                         ) : integration.id === 'telegram' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-xs"
-                            onClick={() => { setTelegramOpen(true); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgError('') }}
+                          <a
+                            href="https://t.me/ONITAgent_bot"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
                           >
-                            Connect
-                          </Button>
+                            <Button variant="outline" size="sm" className="h-6 text-xs">
+                              加入
+                            </Button>
+                          </a>
                         ) : (
                           <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
                             Connect
@@ -765,23 +797,49 @@ export function DashboardClient({
               </DialogContent>
             </Dialog>
 
-            {/* ── Brand Skills ── */}
+            {/* ── 我的项目 ── */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">📚 Brand Skills</CardTitle>
-                    <CardDescription>给 Agent 添加品牌上下文、业务知识和工作规范。</CardDescription>
+                    <CardTitle className="text-sm">📁 我的项目</CardTitle>
+                    <CardDescription>每个项目对应一个 WhileLoop 周期，审计员 @Eva 负责验收。</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
-                    + Add Skill
-                  </Button>
+                  <Link href="/how-we-work">
+                    <Button variant="outline" size="sm" className="h-7 text-xs">
+                      查看流程 →
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  还没有 Skill。添加一个让 Agent 了解你的品牌声音、产品知识或工作流程。
-                </p>
+                <div className="space-y-2">
+                  {/* 示例项目卡片——后续从 Supabase 动态加载 */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
+                        P1
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium">{orgName}</p>
+                        <p className="text-xs text-muted-foreground">ONIT 全局试运行</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs h-5 px-1.5 text-amber-600 border-amber-400">
+                        M1
+                      </Badge>
+                      <Link href="/how-we-work">
+                        <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">
+                          详情
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    里程碑：M0 研究 → M1 方案 → M2 试运行 → M3 验收。当前处于 M1（客户成功经理 @Lumen 交付方案阶段）。
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -891,6 +949,66 @@ export function DashboardClient({
               USAGE TAB
           ══════════════════════════════════════ */}
           <TabsContent value="usage" className="mt-4 space-y-4">
+
+            {/* ── Eva 审计视图 ── */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">🔍 审计员 @Eva 审计视图</CardTitle>
+                    <CardDescription>WhileLoop 当前节点与验收状态。</CardDescription>
+                  </div>
+                  <Link href="/how-we-work">
+                    <Button variant="outline" size="sm" className="h-7 text-xs">
+                      查看 MCSP →
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {([
+                    { label: 'M0 研究', desc: '研究员 @Polly', status: 'done' },
+                    { label: 'M1 方案', desc: '客户成功 @Lumen', status: 'active' },
+                    { label: 'M2 试运行', desc: '执行工程师 @Sega', status: 'pending' },
+                    { label: 'M3 验收', desc: '审计员 @Eva', status: 'pending' },
+                  ] as { label: string; desc: string; status: string }[]).map((m) => (
+                    <div
+                      key={m.label}
+                      className={[
+                        'flex flex-col gap-1 p-3 rounded-lg border text-xs',
+                        m.status === 'active' ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' :
+                        m.status === 'done' ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' :
+                        'border-border bg-muted/30',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{m.label}</span>
+                        <Badge
+                          variant="outline"
+                          className={[
+                            'text-[10px] h-4 px-1',
+                            m.status === 'active' ? 'text-amber-600 border-amber-400' :
+                            m.status === 'done' ? 'text-emerald-600 border-emerald-400' :
+                            'text-muted-foreground',
+                          ].join(' ')}
+                        >
+                          {m.status === 'active' ? '进行中' : m.status === 'done' ? '已完成' : '待开始'}
+                        </Badge>
+                      </div>
+                      <span className="text-muted-foreground">{m.desc}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 p-3 rounded-lg border border-border bg-muted/20 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">审计结论</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-amber-600 border-amber-400">待审</Badge>
+                  </div>
+                  <p className="text-muted-foreground">M1 方案交付后，@Eva 将对实施进度进行全局审计。当前处于待审状态。</p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Recent Activity */}
             <Card>
