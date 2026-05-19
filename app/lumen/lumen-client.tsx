@@ -607,8 +607,7 @@ export function LumenClient() {
         </p>
       </div>
 
-      <Tabs defaultValue="mcsp">
-        <TabsList className="mb-6">
+      <Tabs defaultValue="mcsp" onValueChange={(v) => posthog?.capture('lumen_tab_switch', { tab: v })}>        <TabsList className="mb-6">
           <TabsTrigger value="mcsp" className="gap-2">
             <Target className="w-3.5 h-3.5" />
             共同成功计划
