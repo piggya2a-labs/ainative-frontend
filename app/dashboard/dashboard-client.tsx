@@ -7,18 +7,16 @@ import { createClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Separator } from '@/components/ui/separator'
-import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2, Bot, Plug, GitBranch, ExternalLink } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2 } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
 
-// ─── Types ───────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ApiKey {
   id: string
@@ -36,7 +34,6 @@ interface Tenant {
   created_at: string
 }
 
-// Agent 展示用类型：直接用 database.types 中的 AgentListItem
 type Agent = AgentListItem
 
 interface McpTool {
@@ -48,7 +45,6 @@ interface McpTool {
   connected_at: string
 }
 
-// Connector 展示用类型：用 ConnectorRow 的字段子集
 type Connector = Pick<ConnectorRow, 'id' | 'agent_id' | 'status' | 'metadata' | 'created_at'>
 
 interface GitHubBinding {
@@ -81,6 +77,21 @@ interface Props {
 // ─── MCP URL ─────────────────────────────────────────────────────────────────
 const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('zh-CN', {
+    year: 'numeric', month: 'numeric', day: 'numeric',
+  })
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleString('zh-CN', {
+    month: 'numeric', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 function ClaudeConfigBlock({ apiKey }: { apiKey?: string }) {
   const [copied, setCopied] = useState(false)
   const config = JSON.stringify({
@@ -106,83 +117,18 @@ function ClaudeConfigBlock({ apiKey }: { apiKey?: string }) {
   )
 }
 
-// ─── Integrations config ─────────────────────────────────────────────────────
-const INTEGRATIONS = [
-  {
-    id: 'slack',
-    agentId: 'ext-slack-agent',
-    name: 'Slack',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#4A154B]" aria-hidden>
-        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-      </svg>
-    ),
-    desc: '在 Slack 里直接与 Agent 团队对话',
-    coming_soon: true,
-  },
-  {
-    id: 'telegram',
-    agentId: 'ext-telegram-agent',
-    name: 'Telegram',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
-        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-      </svg>
-    ),
-    desc: '加入 ONIT 全服 Telegram，和 Agent 团队直接对话',
-    coming_soon: false,
-  },
-  {
-    id: 'feishu',
-    agentId: 'ext-feishu-agent',
-    name: '飞书',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden fill="none">
-        <rect width="24" height="24" rx="6" fill="#3370FF"/>
-        <path d="M7 8.5L12 6l5 2.5-5 2.5L7 8.5z" fill="white" opacity="0.9"/>
-        <path d="M7 8.5v5l5 2.5v-5L7 8.5z" fill="white" opacity="0.7"/>
-        <path d="M17 8.5v5l-5 2.5v-5l5-2.5z" fill="white" opacity="0.5"/>
-      </svg>
-    ),
-    desc: '扫码连接飞书，Agent 直接在飞书回复',
-    coming_soon: true,
-  },
-  {
-    id: 'wechat',
-    agentId: 'ext-wechat-agent',
-    name: '微信',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#07C160]" aria-hidden>
-        <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-7.062-6.122zm-3.74 3.668c.532 0 .963.441.963.983a.963.963 0 0 1-.963.983.963.963 0 0 1-.963-.983c0-.542.431-.983.963-.983zm7.355 0c.532 0 .963.441.963.983a.963.963 0 0 1-.963.983.963.963 0 0 1-.963-.983c0-.542.431-.983.963-.983z"/>
-      </svg>
-    ),
-    desc: '扫码连接微信，Agent 直接在微信回复',
-    coming_soon: true,
-  },
+// ─── WhileLoop 里程碑数据 ─────────────────────────────────────────────────────
+const MILESTONES = [
+  { id: 'M0', label: 'M0 研究', role: '研究员 @Polly',         status: 'done'    },
+  { id: 'M1', label: 'M1 方案', role: '客户成功经理 @Lumen',   status: 'active'  },
+  { id: 'M2', label: 'M2 试运行', role: '执行工程师 @Sega',    status: 'pending' },
+  { id: 'M3', label: 'M3 验收',  role: '审计员 @Eva',          status: 'pending' },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('zh-CN', {
-    year: 'numeric', month: 'numeric', day: 'numeric',
-  })
-}
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleString('zh-CN', {
-    month: 'numeric', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-// MCP tool_name → 友好名称
-function mcpFriendlyName(toolName: string): string {
-  return toolName
-    .replace(/^cap_/, '')
-    .replace(/_mcp$/, '')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase())
+function milestoneBadge(status: string) {
+  if (status === 'done')   return <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已完成</Badge>
+  if (status === 'active') return <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40]">进行中</Badge>
+  return <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground">待开始</Badge>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -193,7 +139,7 @@ export function DashboardClient({
   initialApiKeys,
   agents,
   mcpTools,
-  githubBindings,
+  githubBindings: _githubBindings,
   connectors,
   auditLogs,
 }: Props) {
@@ -240,8 +186,6 @@ export function DashboardClient({
   }
 
   useEffect(() => {
-    // SSR 已通过 initialApiKeys 传入数据，不需要重复加载
-    // 只做 PostHog 埋点
     posthog?.capture('page_view', { page: 'dashboard' })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -288,12 +232,7 @@ export function DashboardClient({
   const orgName = tenant?.name || 'My Workspace'
   const orgSlug = tenant?.slug || '—'
 
-  // 渠道连接状态（从 tenant_connectors 读取）
-  const connectorMap = Object.fromEntries(
-    (connectors ?? []).map(c => [c.agent_id, c])
-  )
-
-  // Telegram 连接 Dialog 状态
+  // Telegram 连接 Dialog 状态（保留，供 Integrations 里的私有 Bot 接入流程使用）
   const [telegramOpen, setTelegramOpen] = useState(false)
   const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'pending' | 'done'>('input')
   const [tgToken, setTgToken] = useState('')
@@ -303,7 +242,6 @@ export function DashboardClient({
   const [tgError, setTgError] = useState('')
   const tgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // 轮询 Telegram 连接状态
   const startTgPolling = (accessToken: string) => {
     if (tgPollRef.current) clearInterval(tgPollRef.current)
     tgPollRef.current = setInterval(async () => {
@@ -379,10 +317,8 @@ export function DashboardClient({
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Connect failed')
-      // 展示 deep_link，进入等待用户点击的 pending 步骤
       setTgDeepLink(data.deep_link ?? null)
       setTgStep('pending')
-      // 开始轮询，用户在 Telegram 发 /start 后自动跳转 done
       if (session?.access_token) startTgPolling(session.access_token)
     } catch (e: unknown) {
       setTgError(e instanceof Error ? e.message : 'Unknown error')
@@ -391,48 +327,8 @@ export function DashboardClient({
     }
   }
 
-  const handleSlackConnect = async () => {
-    posthog?.capture('slack_connect_click')
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-slack`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ action: 'get_oauth_url' }),
-        }
-      )
-      const data = await res.json()
-      if (data.oauth_url) {
-        window.location.href = data.oauth_url
-      }
-    } catch (e) {
-      console.error('Slack connect error:', e)
-    }
-  }
-
-  // 已经在 server 侧只查 type=agent，这里直接用
-  const realAgents = agents
-  const liveAgents = agents.filter(a => a.enabled)
-
-  // tag 映射中文（与 agent-card 保持一致）
-  const TAG_LABELS: Record<string, string> = {
-    development: '执行', operations: '运维', architecture: '设计',
-    coordination: '协调', audit: '审核', platform: '核心',
-    core: '核心', native: '核心',
-  }
-  function getRoleLabel(tags: string[] | null): string {
-    for (const tag of (tags ?? [])) {
-      if (TAG_LABELS[tag]) return TAG_LABELS[tag]
-    }
-    return 'Agent'
-  }
-
-
+  // 已连接的 Agent（mcpTools）
+  const connectedAgents = mcpTools
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -467,598 +363,263 @@ export function DashboardClient({
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
         {/* ── Workspace header ── */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-base">{orgName}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">{orgSlug}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-semibold">{orgName}</h1>
+            <p className="text-xs text-muted-foreground font-mono">{orgSlug}</p>
+          </div>
+          <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
+        </div>
+
+        {/* ══════════════════════════════════════
+            1. Telegram 入口行
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          {/* Telegram 主行 */}
+          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-background">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Telegram 彩色 icon */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE] shrink-0" aria-hidden>
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+              </svg>
+              <div className="min-w-0">
+                <span className="text-sm font-medium">Telegram</span>
+                <span className="text-xs text-muted-foreground ml-2">加入全服群，和 Agent 团队直接对话</span>
               </div>
-              <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
             </div>
-          </CardHeader>
+            <a
+              href="https://t.me/ONITAgent_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
+              className="shrink-0"
+            >
+              <Button size="sm" className="h-7 text-xs">
+                加入 →
+              </Button>
+            </a>
+          </div>
+          {/* 其他渠道收起一行 */}
+          <div className="px-4 py-2 border-t border-border bg-muted/20 flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground font-mono">其他渠道：</span>
+            {['Slack', '飞书', '微信'].map((ch) => (
+              <Badge key={ch} variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground">
+                {ch} · Coming soon
+              </Badge>
+            ))}
+          </div>
+        </div>
 
-        </Card>
-
-        <Tabs defaultValue="setup">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="setup" className="text-xs">Setup</TabsTrigger>
-            <TabsTrigger value="usage" className="text-xs">Usage</TabsTrigger>
-          </TabsList>
-
-          {/* ══════════════════════════════════════
-              SETUP TAB
-          ══════════════════════════════════════ */}
-          <TabsContent value="setup" className="space-y-4 mt-4">
-
-            {/* ── Telegram CTA ── */}
-            <Card className="border-[#2AABEE]/30 bg-[#2AABEE]/5">
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#2AABEE]/15 flex items-center justify-center shrink-0">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
-                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Telegram 全服群</p>
-                      <p className="text-xs text-muted-foreground">Agent 团队已就位，加入即可直接对话</p>
-                    </div>
-                  </div>
-                  <a
-                    href="https://t.me/ONITAgent_bot"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
-                    className="shrink-0"
-                  >
-                    <Button size="sm" className="h-8 text-xs bg-[#2AABEE] hover:bg-[#2AABEE]/90 text-white">
-                      加入 Telegram →
-                    </Button>
-                  </a>
+        {/* ══════════════════════════════════════
+            2. 我的项目
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          {/* 区块 header */}
+          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">我的项目</span>
+            <Link href="/how-we-work">
+              <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1">
+                查看流程 <ExternalLink className="w-3 h-3" />
+              </Button>
+            </Link>
+          </div>
+          {/* 项目行 */}
+          <div className="divide-y divide-border">
+            <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-[10px] font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0">P1</span>
+                <div className="min-w-0">
+                  <span className="text-sm font-medium block truncate">{orgName}</span>
+                  <span className="text-xs text-muted-foreground block truncate">ONIT 全局试运行</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40]">
+                  M1 进行中
+                </Badge>
+                <Link href="/how-we-work">
+                  <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">详情</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* ── API Keys ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">🔑 API Keys</CardTitle>
-                    <CardDescription>用于接入 ONIT MCP Server 的认证密钥。</CardDescription>
-                  </div>
-                  <Button size="sm" className="h-7 text-xs" onClick={() => setShowCreateModal(true)}>
-                    + Create API Key
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingKeys ? (
-                  <p className="text-xs text-muted-foreground">加载中...</p>
-                ) : apiKeys.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Name</TableHead>
-                        <TableHead className="text-xs">Key</TableHead>
-                        <TableHead className="text-xs">Created</TableHead>
-                        <TableHead className="text-xs">Last Used</TableHead>
-                        <TableHead className="text-xs text-right"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {apiKeys.map((key) => (
-                        <TableRow key={key.id}>
-                          <TableCell className="text-xs font-medium">{key.name}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                                {revealedKeys.has(key.id)
-                                  ? key.key_prefix
-                                  : `${key.key_prefix.slice(0, 8)}${'\u2022'.repeat(12)}`}
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                                onClick={() => toggleReveal(key.id)}
-                              >
-                                {revealedKeys.has(key.id)
-                                  ? <EyeOff className="h-3 w-3" />
-                                  : <Eye className="h-3 w-3" />}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                                onClick={() => copyKeyPrefix(key.id, key.key_prefix)}
-                              >
-                                {copiedKeyId === key.id
-                                  ? <Check className="h-3 w-3 text-emerald-500" />
-                                  : <Copy className="h-3 w-3" />}
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {formatDate(key.created_at)}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {key.last_used_at ? formatDate(key.last_used_at) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleRevokeKey(key.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    还没有 API Key。创建一个开始接入 ONIT。
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* ── 接入 Claude Desktop ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">🔌 接入 Claude Desktop</CardTitle>
-                <CardDescription>创建 API Key 后，将以下配置粘贴到 claude_desktop_config.json 的 mcpServers 里。</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ClaudeConfigBlock />
-                <p className="text-xs text-muted-foreground mt-2">配置文件位置：macOS <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
-              </CardContent>
-            </Card>
-
-            {/* ── Integrations ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">⚡ Integrations</CardTitle>
-                <CardDescription>选择一个渠道，直接与你的 Agent 团队对话。</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {INTEGRATIONS.map((integration) => {
-                  const connector = connectorMap[integration.agentId]
-                  const connected = connector?.status === 'connected'
-                  const pending = connector?.status === 'pending_start' || connector?.status === 'pending_verify'
-                  const comingSoon = (integration as { coming_soon?: boolean }).coming_soon
-                  return (
-                    <div
-                      key={integration.id}
-                      className="flex items-center justify-between py-2.5 border-b last:border-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-md border flex items-center justify-center bg-background shrink-0">
-                          {integration.icon}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-medium">{integration.name}</p>
-                            {comingSoon && (
-                              <Badge variant="outline" className="text-xs h-4 px-1 text-muted-foreground">
-                                Coming soon
-                              </Badge>
-                            )}
-                            {pending && (
-                              <Badge variant="outline" className="text-xs h-4 px-1 text-amber-600 border-amber-400">
-                                Pending
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">{integration.desc}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-4">
-                        {connected ? (
-                          <>
-                            <span className="text-xs text-emerald-600 font-medium">Connected</span>
-                            <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
-                              Disconnect
-                            </Button>
-                          </>
-                        ) : comingSoon ? (
-                          <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
-                            Connect
-                          </Button>
-                        ) : integration.id === 'slack' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-xs"
-                            onClick={handleSlackConnect}
-                          >
-                            Connect
-                          </Button>
-                        ) : integration.id === 'telegram' ? (
-                          <a
-                            href="https://t.me/ONITAgent_bot"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
-                          >
-                            <Button variant="outline" size="sm" className="h-6 text-xs">
-                              加入
-                            </Button>
-                          </a>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-6 text-xs" disabled>
-                            Connect
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Telegram 连接 Dialog */}
-            <Dialog open={telegramOpen} onOpenChange={(o) => { if (!o) { if (tgPollRef.current) { clearInterval(tgPollRef.current); tgPollRef.current = null } setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null); setTgError('') } }}>
-              <DialogContent className="max-w-sm">
-                <DialogHeader>
-                  <DialogTitle className="text-sm">Connect Telegram</DialogTitle>
-                  <DialogDescription>
-                    {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
-                    {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
-                    {tgStep === 'pending' && '点击下方链接完成绑定'}
-                    {tgStep === 'done' && '绑定成功！'}
-                  </DialogDescription>
-                </DialogHeader>
-
-                {tgStep === 'input' && (
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Bot Token</Label>
-                      <Input
-                        placeholder="1234567890:ABCDef..."
-                        value={tgToken}
-                        onChange={(e) => setTgToken(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleTelegramVerify()}
-                        className="text-xs font-mono"
-                        autoFocus
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        在 <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> 获取 Token
-                      </p>
-                    </div>
-                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
-                    <Button
-                      className="w-full"
-                      size="sm"
-                      onClick={handleTelegramVerify}
-                      disabled={tgLoading || !tgToken.trim()}
-                    >
-                      {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                      Verify
-                    </Button>
-                  </div>
-                )}
-
-                {tgStep === 'confirm' && tgBotInfo && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-md bg-muted text-xs space-y-1">
-                      <p><span className="text-muted-foreground">Name:</span> {tgBotInfo.first_name}</p>
-                      <p><span className="text-muted-foreground">Username:</span> @{tgBotInfo.username}</p>
-                    </div>
-                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
-                    <Button
-                      className="w-full"
-                      size="sm"
-                      onClick={handleTelegramConfirm}
-                      disabled={tgLoading}
-                    >
-                      {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                      Confirm & Connect
-                    </Button>
-                  </div>
-                )}
-
-                {tgStep === 'pending' && (
-                  <div className="space-y-3">
-                    {tgDeepLink ? (
-                      <a
-                        href={tgDeepLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full h-9 rounded-md bg-[#2AABEE]/10 border border-[#2AABEE]/30 text-sm font-medium text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors"
-                      >
-                        在 Telegram 中完成绑定 →
-                      </a>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">正在生成链接…</p>
+        {/* ══════════════════════════════════════
+            3. Agent 列表
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              已连接 Agent
+            </span>
+            <span className="text-xs text-muted-foreground tabular-nums">{connectedAgents.length}</span>
+          </div>
+          {connectedAgents.length === 0 ? (
+            <div className="px-4 py-4 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
+              <Link href="/marketplace">
+                <Button variant="outline" size="sm" className="h-6 text-xs gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  Agent Wiki
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {connectedAgents.map((agent) => (
+                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium block truncate">{agent.name}</span>
+                    {agent.description && (
+                      <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>
                     )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                      <span>等待绑定确认，点击链接后在 Telegram 发送 /start 即可自动完成</span>
-                    </div>
-                    {tgError && <p className="text-xs text-destructive">{tgError}</p>}
                   </div>
-                )}
-
-                {tgStep === 'done' && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                      <p className="font-medium text-emerald-700 dark:text-emerald-400 mb-1">绑定成功 ✅</p>
-                      <p className="text-muted-foreground">@{tgBotInfo?.username} 已就绪，直接发消息即可与 ONIT 对话。</p>
-                    </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-
-            {/* ── 我的项目 ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">📁 我的项目</CardTitle>
-                    <CardDescription>每个项目对应一个 WhileLoop 周期，审计员 @Eva 负责验收。</CardDescription>
-                  </div>
-                  <Link href="/how-we-work">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      查看流程 →
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {/* 示例项目卡片——后续从 Supabase 动态加载 */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
-                        P1
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium">{orgName}</p>
-                        <p className="text-xs text-muted-foreground">ONIT 全局试运行</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs h-5 px-1.5 text-amber-600 border-amber-400">
-                        M1
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">
+                      已连接
+                    </Badge>
+                    {agent.skills?.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                        {agent.skills.length} 工具
                       </Badge>
-                      <Link href="/how-we-work">
-                        <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">
-                          详情
-                        </Button>
-                      </Link>
-                    </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground pt-1">
-                    里程碑：M0 研究 → M1 方案 → M2 试运行 → M3 验收。当前处于 M1（客户成功经理 @Lumen 交付方案阶段）。
-                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          )}
+        </div>
 
-            {/* ── 已接入的 MCP ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">🔌 已接入的 MCP</CardTitle>
-                    <CardDescription>
-                      {mcpTools.length > 0 ? `${mcpTools.length} 个外部工具已连接` : '还没有连接任何外部工具'}
-                    </CardDescription>
-                  </div>
-                  <Link href="/marketplace">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      Agent Wiki →
-                    </Button>
-                  </Link>
+        {/* ══════════════════════════════════════
+            4. 审计视图（Eva）
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              审计员 @Eva · WhileLoop 状态
+            </span>
+            <Link href="/how-we-work">
+              <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1">
+                查看 MCSP <ExternalLink className="w-3 h-3" />
+              </Button>
+            </Link>
+          </div>
+          <div className="divide-y divide-border">
+            {MILESTONES.map((m) => (
+              <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                <div className="min-w-0">
+                  <span className="text-sm font-medium block">{m.label}</span>
+                  <span className="text-xs text-muted-foreground block mt-0.5">{m.role}</span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {mcpTools.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 py-4">
-                    <p className="text-xs text-muted-foreground">还没有接入任何外部工具。</p>
-                    <Link href="/marketplace">
-                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
-                        <ExternalLink className="w-3 h-3" />
-                        去 Agent Wiki 接入
+                <div className="shrink-0">
+                  {milestoneBadge(m.status)}
+                </div>
+              </div>
+            ))}
+            {/* 审计结论行 */}
+            <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-muted/10">
+              <span className="text-xs text-muted-foreground">M1 方案交付后，@Eva 将进行全局审计。</span>
+              <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40] shrink-0">
+                待审
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════
+            5. API Keys
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">API Keys</span>
+            <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>
+              + 创建
+            </Button>
+          </div>
+          {loadingKeys ? (
+            <div className="px-4 py-3 text-xs text-muted-foreground font-mono">加载中…</div>
+          ) : apiKeys.length === 0 ? (
+            <div className="px-4 py-3 text-xs text-muted-foreground font-mono">还没有 API Key。创建一个开始接入 ONIT。</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {apiKeys.map((key) => (
+                <div key={key.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <span className="text-xs font-medium truncate">{key.name}</span>
+                    <div className="flex items-center gap-1">
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                        {revealedKeys.has(key.id)
+                          ? key.key_prefix
+                          : `${key.key_prefix.slice(0, 8)}${'•'.repeat(8)}`}
+                      </code>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => toggleReveal(key.id)}>
+                        {revealedKeys.has(key.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {mcpTools.map((mcp) => (
-                      <div key={mcp.id} className="flex items-start gap-3 p-2.5 rounded-lg border border-border">
-                        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
-                          {mcp.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-medium truncate">{mcp.name}</p>
-                            <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
-                              {mcp.skills.length} 工具
-                            </Badge>
-                          </div>
-                          {mcp.description && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{mcp.description}</p>
-                          )}
-                        </div>
-                        <Link href="/marketplace" className="shrink-0">
-                          <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">
-                            管理
-                          </Button>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* ── Team ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">👥 Team</CardTitle>
-                    <CardDescription>管理成员与邀请。</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
-                    ✉️ Invite Member
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Name</TableHead>
-                      <TableHead className="text-xs">Email</TableHead>
-                      <TableHead className="text-xs">Role</TableHead>
-                      <TableHead className="text-xs">Joined</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="text-xs font-medium">
-                        {displayName}{' '}
-                        <span className="text-muted-foreground font-normal">(you)</span>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{user.email}</TableCell>
-                      <TableCell className="text-xs">
-                        <Badge variant="secondary" className="text-xs">owner</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDate(user.created_at)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-          </TabsContent>
-
-          {/* ══════════════════════════════════════
-              USAGE TAB
-          ══════════════════════════════════════ */}
-          <TabsContent value="usage" className="mt-4 space-y-4">
-
-            {/* ── Eva 审计视图 ── */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">🔍 审计员 @Eva 审计视图</CardTitle>
-                    <CardDescription>WhileLoop 当前节点与验收状态。</CardDescription>
-                  </div>
-                  <Link href="/how-we-work">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      查看 MCSP →
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {([
-                    { label: 'M0 研究', desc: '研究员 @Polly', status: 'done' },
-                    { label: 'M1 方案', desc: '客户成功 @Lumen', status: 'active' },
-                    { label: 'M2 试运行', desc: '执行工程师 @Sega', status: 'pending' },
-                    { label: 'M3 验收', desc: '审计员 @Eva', status: 'pending' },
-                  ] as { label: string; desc: string; status: string }[]).map((m) => (
-                    <div
-                      key={m.label}
-                      className={[
-                        'flex flex-col gap-1 p-3 rounded-lg border text-xs',
-                        m.status === 'active' ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' :
-                        m.status === 'done' ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' :
-                        'border-border bg-muted/30',
-                      ].join(' ')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{m.label}</span>
-                        <Badge
-                          variant="outline"
-                          className={[
-                            'text-[10px] h-4 px-1',
-                            m.status === 'active' ? 'text-amber-600 border-amber-400' :
-                            m.status === 'done' ? 'text-emerald-600 border-emerald-400' :
-                            'text-muted-foreground',
-                          ].join(' ')}
-                        >
-                          {m.status === 'active' ? '进行中' : m.status === 'done' ? '已完成' : '待开始'}
-                        </Badge>
-                      </div>
-                      <span className="text-muted-foreground">{m.desc}</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => copyKeyPrefix(key.id, key.key_prefix)}>
+                        {copiedKeyId === key.id ? <Check className="h-3 w-3 text-[oklch(0.65_0.18_145)]" /> : <Copy className="h-3 w-3" />}
+                      </Button>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-3 p-3 rounded-lg border border-border bg-muted/20 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">审计结论</span>
-                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-amber-600 border-amber-400">待审</Badge>
                   </div>
-                  <p className="text-muted-foreground">M1 方案交付后，@Eva 将对实施进度进行全局审计。当前处于待审状态。</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(key.created_at)}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRevokeKey(key.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          )}
+        </div>
 
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">最近系统活动</CardTitle>
-                <CardDescription>来自 audit_logs 的最新事件记录</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {auditLogs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">暂无活动记录。</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Action</TableHead>
-                        <TableHead className="text-xs">Resource</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs">Time</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {auditLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-xs font-mono max-w-[180px] truncate">
-                            {log.action}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {log.resource_type}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={log.status === 'success' ? 'secondary' : 'destructive'}
-                              className="text-xs"
-                            >
-                              {log.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {formatTime(log.created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+        {/* ══════════════════════════════════════
+            6. MCP 接入配置
+        ══════════════════════════════════════ */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-muted/20 border-b border-border">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">MCP 接入 · Claude Desktop</span>
+          </div>
+          <div className="px-4 py-3">
+            <ClaudeConfigBlock />
+            <p className="text-xs text-muted-foreground mt-2">
+              粘贴到 <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+            </p>
+          </div>
+        </div>
 
-          </TabsContent>
-        </Tabs>
+        {/* ══════════════════════════════════════
+            7. 最近系统活动
+        ══════════════════════════════════════ */}
+        {auditLogs.length > 0 && (
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 bg-muted/20 border-b border-border">
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">最近系统活动</span>
+            </div>
+            <div className="divide-y divide-border">
+              {auditLogs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0">
+                    <span className="text-xs font-mono truncate block">{log.action}</span>
+                    <span className="text-[10px] text-muted-foreground">{log.resource_type}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge
+                      variant={log.status === 'success' ? 'secondary' : 'destructive'}
+                      className="text-[10px] h-4 px-1"
+                    >
+                      {log.status}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap hidden sm:block">
+                      {formatTime(log.created_at)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* ── Modal: Create API Key ── */}
@@ -1088,40 +649,127 @@ export function DashboardClient({
                   {copied ? '已复制' : '复制'}
                 </Button>
               </div>
-              {/* ── 接入 Claude Desktop ── */}
               <div className="mt-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">接入 Claude Desktop</p>
-                <p className="text-xs text-muted-foreground">将以下配置粘贴到 <code className="font-mono bg-muted px-1 rounded">claude_desktop_config.json</code> 的 <code className="font-mono bg-muted px-1 rounded">mcpServers</code> 里：</p>
                 <ClaudeConfigBlock apiKey={createdKey} />
               </div>
-              <Button
-                className="w-full"
-                onClick={() => { setShowCreateModal(false); setCreatedKey(null) }}
-              >
+              <Button className="w-full" onClick={() => { setShowCreateModal(false); setCreatedKey(null) }}>
                 我已保存，关闭
               </Button>
             </>
           ) : (
             <div className="space-y-3">
-              <Input
-                placeholder="e.g. Production Key"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateKey()}
-                className="text-sm"
-                autoFocus
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Key 名称</Label>
+                <Input
+                  placeholder="e.g. claude-desktop"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateKey()}
+                  className="text-xs"
+                  autoFocus
+                />
+              </div>
               <Button
                 className="w-full"
+                size="sm"
                 onClick={handleCreateKey}
                 disabled={creatingKey || !newKeyName.trim()}
               >
-                {creatingKey ? '创建中...' : 'Create API Key'}
+                {creatingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                创建
               </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Telegram 私有 Bot Dialog（保留供未来私有接入） ── */}
+      <Dialog open={telegramOpen} onOpenChange={(o) => {
+        if (!o) {
+          if (tgPollRef.current) { clearInterval(tgPollRef.current); tgPollRef.current = null }
+          setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null); setTgError('')
+        }
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Connect Telegram</DialogTitle>
+            <DialogDescription>
+              {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
+              {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
+              {tgStep === 'pending' && '点击下方链接完成绑定'}
+              {tgStep === 'done' && '绑定成功！'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {tgStep === 'input' && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Bot Token</Label>
+                <Input
+                  placeholder="1234567890:ABCDef..."
+                  value={tgToken}
+                  onChange={(e) => setTgToken(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTelegramVerify()}
+                  className="text-xs font-mono"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground">
+                  在 <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> 获取 Token
+                </p>
+              </div>
+              {tgError && <p className="text-xs text-destructive">{tgError}</p>}
+              <Button className="w-full" size="sm" onClick={handleTelegramVerify} disabled={tgLoading || !tgToken.trim()}>
+                {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                Verify
+              </Button>
+            </div>
+          )}
+
+          {tgStep === 'confirm' && tgBotInfo && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-md bg-muted text-xs space-y-1">
+                <p><span className="text-muted-foreground">Name:</span> {tgBotInfo.first_name}</p>
+                <p><span className="text-muted-foreground">Username:</span> @{tgBotInfo.username}</p>
+              </div>
+              {tgError && <p className="text-xs text-destructive">{tgError}</p>}
+              <Button className="w-full" size="sm" onClick={handleTelegramConfirm} disabled={tgLoading}>
+                {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                Confirm & Connect
+              </Button>
+            </div>
+          )}
+
+          {tgStep === 'pending' && (
+            <div className="space-y-3">
+              {tgDeepLink ? (
+                <a
+                  href={tgDeepLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full h-9 rounded-md border border-border text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  在 Telegram 中完成绑定 →
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground">正在生成链接…</p>
+              )}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                等待你在 Telegram 中发送 /start…
+              </div>
+            </div>
+          )}
+
+          {tgStep === 'done' && (
+            <div className="text-center py-4">
+              <p className="text-sm font-medium text-[oklch(0.45_0.18_145)]">绑定成功！</p>
+              <p className="text-xs text-muted-foreground mt-1">正在刷新页面…</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }
