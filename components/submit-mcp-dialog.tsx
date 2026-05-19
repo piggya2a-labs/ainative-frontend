@@ -180,12 +180,12 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[var(--onit-green)]" />
-            {step === 'done' ? 'Agent 已发布' : '添加 MCP Agent'}
+            {step === 'done' ? 'Agent 已添加' : '添加 Agent'}
           </DialogTitle>
           <DialogDescription>
-            {step === 'url' && '粘贴任意 MCP Server URL，自动识别工具能力'}
+            {step === 'url' && '粘贴任意 MCP Server URL，自动转为标准化 Agent'}
             {step === 'preview' && '确认信息后发布到 Marketplace'}
-            {step === 'done' && '其他用户现在可以直接 Connect 这个 Agent'}
+            {step === 'done' && 'Agent 已加入你的团队，可以立即 Connect 使用'}
             {step === 'error' && '无法连接到该 MCP Server'}
           </DialogDescription>
         </DialogHeader>
@@ -204,7 +204,7 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">
                 API Key
-                <span className="ml-1 text-muted-foreground/60">(可选，需要认证的服务填写)</span>
+                <span className="ml-1 text-muted-foreground/60">（可选）</span>
               </label>
               <Input
                 type="password"
@@ -286,7 +286,7 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
               </Button>
               <Button className="flex-1" onClick={handlePublish} disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {loading ? '发布中…' : '发布到 Marketplace'}
+                {loading ? '添加中…' : '添加到团队'}
               </Button>
             </div>
           </div>
@@ -297,8 +297,8 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
           <div className="flex flex-col items-center gap-4 py-4">
             <CheckCircle2 className="w-10 h-10 text-[var(--onit-green)]" />
             <p className="text-sm text-center text-muted-foreground">
-              <span className="font-medium text-foreground">{name || discovered?.name}</span> 已出现在 Marketplace，
-              任何用户可以直接 Connect。
+              <span className="font-medium text-foreground">{name || discovered?.name}</span> 已成为你的 Agent 团队成员，
+              可以立即 Connect 使用。
             </p>
             <Button className="w-full" onClick={() => { reset(); onOpenChange(false) }}>
               完成

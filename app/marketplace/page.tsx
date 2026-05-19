@@ -261,11 +261,11 @@ export default function MarketplacePage() {
       <main className="max-w-4xl mx-auto px-4 pt-28 pb-16">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Agent Marketplace</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Agent Market</h1>
             {!loading && <p className="text-sm text-muted-foreground font-mono mt-1">{agents.length} agents · {totalSkills} tools</p>}
           </div>
           <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={() => { posthog?.capture('marketplace_submit_mcp_open'); setSubmitOpen(true) }}>
-            <Plus className="w-3.5 h-3.5" />添加 MCP
+            <Plus className="w-3.5 h-3.5" />添加 Agent
           </Button>
         </div>
 
@@ -315,7 +315,7 @@ export default function MarketplacePage() {
           <div className="text-center py-20">
             <p className="text-sm text-muted-foreground font-mono mb-4">No agents yet. Be the first to add one.</p>
             <Button variant="outline" onClick={() => { posthog?.capture('marketplace_submit_mcp_open', { source: 'empty_state' }); setSubmitOpen(true) }}>
-              <Plus className="w-3.5 h-3.5 mr-2" />添加第一个 MCP Agent
+              <Plus className="w-3.5 h-3.5 mr-2" />添加第一个 Agent
             </Button>
           </div>
         )}
