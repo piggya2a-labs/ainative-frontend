@@ -197,9 +197,13 @@ export default function MarketplacePage() {
     posthog?.capture('marketplace_agent_connect_click', { agent_id: agent.id, agent_name: agent.name, mcp_url: agent.mcp_url })
     setConnecting(agent.id)
     try {
-      const res = await fetch('/api/connector/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        // connector_type 透传，让后端判断是否走 OAuth
+      // 直接用客户端 session token 调 Edge Function，绕过 SSR cookie 问题
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { posthog?.capture('marketplace_agent_connect_error', { agent_id: agent.id, reason: 'no_session' }); return }
+      const EDGE_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/api-connector-register`
+      const res = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
         body: JSON.stringify({ agent_id: agent.id, connector_type: agent.connector_type ?? 'custom', mcp_url: agent.mcp_url }),
       })
       const data = await res.json()
