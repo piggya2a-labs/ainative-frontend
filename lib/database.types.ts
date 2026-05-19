@@ -80,6 +80,9 @@ export type MarketplaceAgentItem = Pick<
   | 'mcp_url'
   | 'enabled'
   | 'updated_at'
+  | 'icon_url'
+  | 'documentation_url'
+  | 'connector_type'
 >
 
 // ─── tool_registry ────────────────────────────────────────────────────────────

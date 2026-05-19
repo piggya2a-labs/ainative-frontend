@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2 } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, Zap, BookOpen, Loader2, Bot, Plug, GitBranch, ExternalLink } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
@@ -442,10 +442,38 @@ export function DashboardClient({
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
-              <CardTitle className="text-base">{orgName}</CardTitle>
+              <div>
+                <CardTitle className="text-base">{orgName}</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">{orgSlug}</p>
+              </div>
               <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
             </div>
           </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
+                <Bot className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-lg font-semibold leading-none">{liveAgents.length}<span className="text-xs text-muted-foreground font-normal ml-1">/ {realAgents.length}</span></p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Agent 在线</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
+                <Plug className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-lg font-semibold leading-none">{mcpTools.length}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">MCP 接入</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
+                <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-lg font-semibold leading-none">{githubBindings.length}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">GitHub</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         <Tabs defaultValue="setup">
@@ -727,14 +755,10 @@ export function DashboardClient({
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm">🤖 Agent 团队</CardTitle>
-                    <CardDescription>
-                      {realAgents.length} 个 Agent，{liveAgents.length} 个在线
-                    </CardDescription>
+                    <CardDescription>{realAgents.length} 个 Agent，{liveAgents.length} 个在线</CardDescription>
                   </div>
                   <Link href="/agents">
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      查看详情 →
-                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs">查看详情 →</Button>
                   </Link>
                 </div>
               </CardHeader>
@@ -742,94 +766,74 @@ export function DashboardClient({
                 {realAgents.length === 0 ? (
                   <p className="text-xs text-muted-foreground">暂无 Agent。</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Agent</TableHead>
-                        <TableHead className="text-xs">类型</TableHead>
-                        <TableHead className="text-xs">状态</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {realAgents.map((agent) => {
-                        const isLive = agent.enabled
-                        const hasDetail = (agent.skills && agent.skills.length > 0) || (agent.capabilities?.role_models && agent.capabilities.role_models.length > 0)
-                        return (
-                          <Dialog key={agent.id}>
-                            <TableRow className="hover:bg-muted/50 transition-colors">
-                              <TableCell className="text-xs font-medium">
-                                {hasDetail ? (
-                                  <DialogTrigger className="text-left font-medium text-xs hover:underline cursor-pointer">
-                                    {agent.name}
-                                  </DialogTrigger>
-                                ) : (
-                                  agent.name
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="secondary" className="text-xs">
-                                  {getRoleLabel(agent.tags ?? [])}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                                  <span className="text-xs text-muted-foreground">
-                                    {isLive ? 'Live' : 'Pending'}
-                                  </span>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            <DialogContent className="sm:max-w-md">
-                              <DialogHeader>
-                                <div className="flex items-center gap-2">
-                                  <DialogTitle>{agent.name}</DialogTitle>
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                                </div>
-                                <DialogDescription>{agent.description}</DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4 mt-1">
-                                {/* Skills */}
-                                {agent.skills && agent.skills.length > 0 && (
-                                  <div>
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                      <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">技能</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                      {agent.skills.map((skill) => (
-                                        <div key={skill.id} className="flex items-start gap-2">
-                                          <span className="text-xs font-medium text-foreground shrink-0 min-w-[80px]">{skill.name}</span>
-                                          <span className="text-xs text-muted-foreground leading-relaxed">{skill.description}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                {/* Role Models */}
-                                {agent.capabilities?.role_models && agent.capabilities.role_models.length > 0 && (
-                                  <div>
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                      <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">参考对象</span>
-                                    </div>
-                                    <div className="space-y-3">
-                                      {agent.capabilities.role_models.map((rm, i) => (
-                                        <div key={i} className="border-l-2 border-border pl-3">
-                                          <p className="text-xs font-medium">{rm.name}</p>
-                                          <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{(rm as { principle?: string; principles?: string }).principle ?? (rm as { principle?: string; principles?: string }).principles}&rdquo;</p>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {realAgents.map((agent) => {
+                      const isLive = agent.enabled
+                      const hasDetail = (agent.skills && agent.skills.length > 0) || (agent.capabilities?.role_models && agent.capabilities.role_models.length > 0)
+                      const initials = agent.name.slice(0, 2).toUpperCase()
+                      return (
+                        <Dialog key={agent.id}>
+                          <DialogTrigger disabled={!hasDetail} className="w-full text-left">
+                            <div className={`flex items-center gap-2.5 p-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors ${hasDetail ? 'cursor-pointer' : 'cursor-default'}`}>
+                              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0 text-[10px] font-bold">
+                                {initials}
                               </div>
-                            </DialogContent>
-                          </Dialog>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium truncate">{agent.name}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                                  <span className="text-[10px] text-muted-foreground">{getRoleLabel(agent.tags ?? [])}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <div className="flex items-center gap-2">
+                                <DialogTitle>{agent.name}</DialogTitle>
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+                              </div>
+                              <DialogDescription>{agent.description}</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 mt-1">
+                              {agent.skills && agent.skills.length > 0 && (
+                                <div>
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <Zap className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">技能</span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {agent.skills.map((skill) => (
+                                      <div key={skill.id} className="flex items-start gap-2">
+                                        <span className="text-xs font-medium text-foreground shrink-0 min-w-[80px]">{skill.name}</span>
+                                        <span className="text-xs text-muted-foreground leading-relaxed">{skill.description}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {agent.capabilities?.role_models && agent.capabilities.role_models.length > 0 && (
+                                <div>
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">参考对象</span>
+                                  </div>
+                                  <div className="space-y-3">
+                                    {agent.capabilities.role_models.map((rm, i) => (
+                                      <div key={i} className="border-l-2 border-border pl-3">
+                                        <p className="text-xs font-medium">{rm.name}</p>
+                                        <p className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{(rm as { principle?: string; principles?: string }).principle ?? (rm as { principle?: string; principles?: string }).principles}&rdquo;</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -853,7 +857,15 @@ export function DashboardClient({
               </CardHeader>
               <CardContent>
                 {mcpTools.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">暂无已接入的 MCP。</p>
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <p className="text-xs text-muted-foreground">暂无已接入的 MCP。</p>
+                    <Link href="/marketplace">
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                        <ExternalLink className="w-3 h-3" />
+                        去 Marketplace 接入
+                      </Button>
+                    </Link>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {Object.entries(mcpByCategory).map(([category, tools]) => (
@@ -923,27 +935,6 @@ export function DashboardClient({
               USAGE TAB
           ══════════════════════════════════════ */}
           <TabsContent value="usage" className="mt-4 space-y-4">
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="p-4">
-                <p className="text-xs text-muted-foreground">在线 Agent</p>
-                <p className="text-2xl font-semibold mt-1">{liveAgents.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">共 {realAgents.length} 个</p>
-              </Card>
-              <Card className="p-4">
-                <p className="text-xs text-muted-foreground">已接入 MCP</p>
-                <p className="text-2xl font-semibold mt-1">{mcpTools.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">能力工具</p>
-              </Card>
-              <Card className="p-4">
-                <p className="text-xs text-muted-foreground">GitHub 绑定</p>
-                <p className="text-2xl font-semibold mt-1">{githubBindings.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {githubBindings.length > 0 ? githubBindings[0].repository_full_name.split('/')[1] : '未绑定'}
-                </p>
-              </Card>
-            </div>
 
             {/* Recent Activity */}
             <Card>
