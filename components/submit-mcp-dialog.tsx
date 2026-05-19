@@ -75,9 +75,20 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
       if (!token) throw new Error('请先登录后再添加 MCP')
 
       // 如果用户填了 API Key，传入 mcp_headers
+      // 支持两种格式：
+      // 1. "key: value" 格式 → 自定义 header（如 x-api-key: ak_xxx）
+      // 2. 普通字符串 → 默认包成 Authorization: Bearer
       const mcpHeaders: Record<string, string> = {}
       if (apiKey.trim()) {
-        mcpHeaders['Authorization'] = `Bearer ${apiKey.trim()}`
+        const colonIdx = apiKey.indexOf(':')
+        if (colonIdx > 0 && colonIdx < 40) {
+          // key: value 格式
+          const headerKey = apiKey.substring(0, colonIdx).trim()
+          const headerVal = apiKey.substring(colonIdx + 1).trim()
+          mcpHeaders[headerKey] = headerVal
+        } else {
+          mcpHeaders['Authorization'] = `Bearer ${apiKey.trim()}`
+        }
       }
 
       const res = await fetch(EDGE_FN_URL, {
