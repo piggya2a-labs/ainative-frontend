@@ -203,8 +203,16 @@ export default function MarketplacePage() {
         const cookieName = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL!.split('//')[1].split('.')[0]}-auth-token`
         const cookieVal = document.cookie.split('; ').find(r => r.startsWith(cookieName + '='))?.split('=').slice(1).join('=')
         if (cookieVal) {
-          const decoded = JSON.parse(atob(decodeURIComponent(cookieVal).replace(/-/g,'+').replace(/_/g,'/')))
-          accessToken = decoded.access_token ?? decoded[0]?.access_token ?? null
+          // cookie 值格式可能是 "base64-eyJ..." 或直接 JSON
+          let rawVal = decodeURIComponent(cookieVal)
+          if (rawVal.startsWith('base64-')) rawVal = rawVal.slice(7)
+          try {
+            const decoded = JSON.parse(atob(rawVal))
+            accessToken = decoded.access_token ?? decoded[0]?.access_token ?? null
+          } catch {
+            // 可能是直接 JSON（非 base64）
+            try { const decoded = JSON.parse(rawVal); accessToken = decoded.access_token ?? null } catch {}
+          }
         }
       } catch {}
       // fallback: 用 SDK getSession
