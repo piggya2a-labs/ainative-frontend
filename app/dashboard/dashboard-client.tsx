@@ -492,11 +492,11 @@ export function DashboardClient({
           <TabsContent value="setup" className="space-y-4 mt-4">
 
             {/* ── Telegram CTA ── */}
-            <Card>
+            <Card className="border-[#2AABEE]/30 bg-[#2AABEE]/5">
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-[#2AABEE]/15 flex items-center justify-center shrink-0">
                       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current text-[#2AABEE]" aria-hidden>
                         <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                       </svg>
@@ -513,7 +513,7 @@ export function DashboardClient({
                     onClick={() => posthog?.capture('dashboard_telegram_cta_click')}
                     className="shrink-0"
                   >
-                    <Button size="sm" className="h-8 text-xs">
+                    <Button size="sm" className="h-8 text-xs bg-[#2AABEE] hover:bg-[#2AABEE]/90 text-white">
                       加入 Telegram →
                     </Button>
                   </a>
@@ -837,7 +837,7 @@ export function DashboardClient({
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground pt-1">
-                    里程碑：M0 研究 → M1 方案 → M2 试运行 → M3 验收。当前处于 M1 方案交付阶段，由客户成功经理 @Lumen 负责。
+                    里程碑：M0 研究 → M1 方案 → M2 试运行 → M3 验收。当前处于 M1（客户成功经理 @Lumen 交付方案阶段）。
                   </p>
                 </div>
               </CardContent>
@@ -969,13 +969,18 @@ export function DashboardClient({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {([
                     { label: 'M0 研究', desc: '研究员 @Polly', status: 'done' },
-                    { label: 'M1 方案', desc: '客户成功经理 @Lumen', status: 'active' },
+                    { label: 'M1 方案', desc: '客户成功 @Lumen', status: 'active' },
                     { label: 'M2 试运行', desc: '执行工程师 @Sega', status: 'pending' },
                     { label: 'M3 验收', desc: '审计员 @Eva', status: 'pending' },
                   ] as { label: string; desc: string; status: string }[]).map((m) => (
                     <div
                       key={m.label}
-                      className="flex flex-col gap-1 p-3 rounded-lg border border-border text-xs"
+                      className={[
+                        'flex flex-col gap-1 p-3 rounded-lg border text-xs',
+                        m.status === 'active' ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' :
+                        m.status === 'done' ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' :
+                        'border-border bg-muted/30',
+                      ].join(' ')}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{m.label}</span>
