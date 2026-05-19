@@ -197,13 +197,26 @@ export default function MarketplacePage() {
     posthog?.capture('marketplace_agent_connect_click', { agent_id: agent.id, agent_name: agent.name, mcp_url: agent.mcp_url })
     setConnecting(agent.id)
     try {
-      // 直接用客户端 session token 调 Edge Function，绕过 SSR cookie 问题
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { posthog?.capture('marketplace_agent_connect_error', { agent_id: agent.id, reason: 'no_session' }); return }
+      // 从 cookie 直接读取 access_token（SSR 登录后 session 在 cookie 里，不在 localStorage 里）
+      let accessToken: string | null = null
+      try {
+        const cookieName = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL!.split('//')[1].split('.')[0]}-auth-token`
+        const cookieVal = document.cookie.split('; ').find(r => r.startsWith(cookieName + '='))?.split('=').slice(1).join('=')
+        if (cookieVal) {
+          const decoded = JSON.parse(atob(decodeURIComponent(cookieVal).replace(/-/g,'+').replace(/_/g,'/')))
+          accessToken = decoded.access_token ?? decoded[0]?.access_token ?? null
+        }
+      } catch {}
+      // fallback: 用 SDK getSession
+      if (!accessToken) {
+        const { data: sessionData } = await supabase.auth.getSession()
+        accessToken = sessionData?.session?.access_token ?? null
+      }
+      if (!accessToken) { posthog?.capture('marketplace_agent_connect_error', { agent_id: agent.id, reason: 'no_token' }); setConnecting(null); return }
       const EDGE_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/api-connector-register`
       const res = await fetch(EDGE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
         body: JSON.stringify({ agent_id: agent.id, connector_type: agent.connector_type ?? 'custom', mcp_url: agent.mcp_url }),
       })
       const data = await res.json()
