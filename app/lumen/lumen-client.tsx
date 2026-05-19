@@ -212,16 +212,17 @@ function MutualSuccessPlan() {
       </Section>
 
       {/* Block 5: 里程碑 */}
-      <Section icon={Flag} title="5. 里程碑（Milestones）" subtitle="把整个实施周期切成 4 个可验收的节点——每个节点有明确的交付物和 Owner">
+      <Section icon={Flag} title="5. 里程碑（Milestones）" subtitle="ONIT WhileLoop 的四个节点——找到、设计、试运行、验证通过，每轮闭合一次">
         <Card>
           <CardContent className="pt-4 space-y-4">
-            <Callout text="里程碑不是「完成了某件事」，而是「我们双方都认可某个状态已达到」。每个里程碑必须有具体的交付物——可以被看见、被签字确认的东西，而不是模糊的「进展顺利」。日期在启动会上我们共同确认后填入。" />
+            <Callout text="这四个节点是 ONIT Agent 的使命边界：帮你找到、设计、试运行到验证通过。之后的持久化运行是 Other Agents 的事，不在这里。重要性排序：M3 验证结果 > M0 找 Agent > M1 设计方案 > M2 试运行——没有 M3 的验证，前三个节点的工作都是假设。" />
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px] text-xs">阶段</TableHead>
                   <TableHead className="text-xs">里程碑名称</TableHead>
-                  <TableHead className="text-xs">交付物（我们能拿出来给对方看的东西）</TableHead>
+                  <TableHead className="text-xs">对应 Loop 节点</TableHead>
+                  <TableHead className="text-xs">交付物（可以被签字确认的东西）</TableHead>
                   <TableHead className="text-xs">目标日期</TableHead>
                   <TableHead className="text-xs">Owner</TableHead>
                   <TableHead className="text-xs">状态</TableHead>
@@ -229,14 +230,15 @@ function MutualSuccessPlan() {
               </TableHeader>
               <TableBody>
                 {[
-                  ['M0', '启动会 & 环境准备', '哪些系统已就绪、哪些密钥已交接——可以是截图或清单', 'YYYY-MM-DD', '你（ONIT 技术）', '待开始'],
-                  ['M1', '首个 Agent 上线', '哪个 Agent 在哪个真实场景处理了多少任务', 'YYYY-MM-DD', '你（ONIT CSM）', '待开始'],
-                  ['M2', '团队扩展 & 自动化', '几个 Agent 在协作、我们一起把人工干预率降到了多少', 'YYYY-MM-DD', '我们双方', '待开始'],
-                  ['M3', '验收 & 续约评估', '我们共同做出的续约/扩容/结束决策，附 NPS 和 ROI 数字', 'YYYY-MM-DD', '你（ONIT CSM）', '待开始'],
-                ].map(([phase, name, deliverable, date, owner, status], i) => (
+                  ['M0', '找到合适的 Agent', '① Polly 在市面上找到可以被我们打包的非 Agent', 'Polly 输出的调研清单，你们确认选哪个', 'YYYY-MM-DD', 'Polly', '待开始'],
+                  ['M1', '交付试用设计方案', '② Lumen 交付共同成功计划 + 里程碑进度文件，你们签认', '这两份文件，你们的负责人签字确认', 'YYYY-MM-DD', 'Lumen', '待开始'],
+                  ['M2', '试运行完成', '③ Sega + Dev 试运行，每个里程碑截图举证，每个问题截图记录', '截图 + 文字记录，可以被 Eva 审计的证据链', 'YYYY-MM-DD', 'Sega', '待开始'],
+                  ['M3', '审计验证通过', '④ Eva 审计结果，通过后更新两份文件，进入下一轮或结束', 'Eva 审计报告，更新后的 MCSP + OMT', 'YYYY-MM-DD', 'Eva', '待开始'],
+                ].map(([phase, name, loop, deliverable, date, owner, status], i) => (
                   <TableRow key={i}>
                     <TableCell><Badge variant="outline" className="font-mono text-xs">{phase}</Badge></TableCell>
                     <TableCell className="text-sm font-medium">{name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{loop}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{deliverable}</TableCell>
                     <TableCell className="text-sm font-mono text-muted-foreground">{date}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{owner}</TableCell>
@@ -408,51 +410,52 @@ function MilestoneTracker() {
           {[
             {
               phase: 'M0',
-              name: '启动会 & 环境准备',
+              name: '找到合适的 Agent',
               status: 'pending',
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: '确认我们双方的联系人名单和沟通渠道', done: false, owner: '你（ONIT CSM）' },
-                { name: '完成 API 权限申请和密钥交接', done: false, owner: '你们的技术对接人' },
-                { name: '沙箱环境验证通过', done: false, owner: 'ONIT 技术' },
-                { name: '启动会召开，我们双方签认 MCSP', done: false, owner: '我们双方' },
+                { name: 'Polly 完成市面 Agent 调研，输出候选清单', done: false, owner: 'Polly' },
+                { name: '你们确认选哪个 Agent，或提出调整', done: false, owner: '你们的负责人' },
+                { name: '我们双方签认，进入 M1', done: false, owner: '我们双方' },
               ],
             },
             {
               phase: 'M1',
-              name: '首个 Agent 上线',
+              name: '交付试用设计方案',
               status: 'pending',
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: 'Agent 生产环境部署完成', done: false, owner: 'ONIT 技术' },
-                { name: '真实任务处理验证——我们一起看结果', done: false, owner: '我们双方' },
-                { name: 'M1 验收，你们的负责人签字', done: false, owner: '你们的负责人' },
+                { name: 'Lumen 输出共同成功计划初稿', done: false, owner: 'Lumen' },
+                { name: 'Sega 输出 pipe/workflow 设计方案（能否 AI Native Closed Loop，人在哪里）', done: false, owner: 'Sega' },
+                { name: '你们确认成功标准，提出修改或签认', done: false, owner: '你们的负责人' },
+                { name: '你们签认 MCSP + OMT，进入 M2', done: false, owner: '我们双方' },
               ],
             },
             {
               phase: 'M2',
-              name: '团队扩展 & 自动化',
+              name: '试运行完成',
               status: 'pending',
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: '≥3 个 Agent 协作配置完成', done: false, owner: 'ONIT 技术' },
-                { name: '人工干预率达到我们共同定的目标', done: false, owner: '你（ONIT CSM）' },
-                { name: 'M2 验收，你们的负责人签字', done: false, owner: '你们的负责人' },
+                { name: '配置好所需 KEY（你们提供或用平台公 KEY 测试）', done: false, owner: '你们的技术对接人' },
+                { name: 'Sega + Dev 完成试运行，每个里程碑截图举证', done: false, owner: 'Sega' },
+                { name: '遇到问题截图记录，找 Polly 调整后继续', done: false, owner: 'Polly' },
+                { name: '试运行完成，证据链整理完毕，进入 M3', done: false, owner: 'Sega' },
               ],
             },
             {
               phase: 'M3',
-              name: '验收 & 续约评估',
+              name: '审计验证通过',
               status: 'pending',
               progress: 0,
               dueDate: 'YYYY-MM-DD',
               tasks: [
-                { name: 'NPS 问卷发送 & 收集', done: false, owner: '你（ONIT CSM）' },
-                { name: 'ROI 报告输出——我们一起看数字', done: false, owner: '你（ONIT CSM）' },
-                { name: '续约 / 扩容 / 结束决策，我们共同确认', done: false, owner: '我们双方' },
+                { name: 'Eva 审计试运行结果', done: false, owner: 'Eva' },
+                { name: '审计通过，更新 MCSP + OMT', done: false, owner: 'Lumen' },
+                { name: '你们确认验收，我们共同决定：下一轮 / 扩容 / 结束', done: false, owner: '我们双方' },
               ],
             },
           ].map(({ phase, name, status, progress, dueDate, tasks }) => (
