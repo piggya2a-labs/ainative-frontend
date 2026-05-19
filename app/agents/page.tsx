@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { Badge } from '@/components/ui/badge'
@@ -207,6 +208,43 @@ export default async function AgentsPage() {
           </p>
         )}
       </main>
+      {/* How We Work Section */}
+      <section className="max-w-5xl mx-auto px-4 pb-16">
+        <div className="flex items-center gap-3 mb-5">
+          <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+            我们怎么一起工作
+          </h2>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            href="/how-we-work"
+            className="group block rounded-lg border border-border bg-card p-5 hover:border-foreground/30 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">MCSP</span>
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">→</span>
+            </div>
+            <h3 className="text-sm font-semibold mb-1">Mutual Customer Success Plan</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              共同成功计划——我们双方共同签认的完整操作系统。回答七个问题：目标、现状、成功标准、角色、里程碑、风险、交接。
+            </p>
+          </Link>
+          <Link
+            href="/how-we-work"
+            className="group block rounded-lg border border-border bg-card p-5 hover:border-foreground/30 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">OMT</span>
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">→</span>
+            </div>
+            <h3 className="text-sm font-semibold mb-1">Onboarding Milestone Tracker</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              实施进度表——每天看的施工进度牌。回答四个问题：现在到哪了、还有多久、卡在哪里、下一步你或 Agent 做什么。
+            </p>
+          </Link>
+        </div>
+      </section>
       <CTASection siteConfig={siteConfig} />
       <Footer siteConfig={siteConfig} />
     </div>
