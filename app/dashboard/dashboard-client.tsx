@@ -323,7 +323,7 @@ export function DashboardClient({
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Verification failed')
-      setTgBotInfo(data.bot)
+      setTgBotInfo(data.bot ?? { username: data.bot_username ?? data.username, first_name: data.bot_name ?? data.first_name })
       setTgStep('confirm')
     } catch (e: unknown) {
       setTgError(e instanceof Error ? e.message : 'Unknown error')
