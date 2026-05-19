@@ -2,17 +2,21 @@ name: Backend Change → Frontend Sync
 
 # agent-gateway push 到 supabase/functions 时，
 # notify-frontend.yml 会发一个 repository_dispatch 事件触发这里。
-# Claude 读取 diff，分析前端需要跟进什么，自动开 PR。
+# Claude 读取 diff，分析前端需要跟进什么，自动开 PR 或记录 issue。
 
 on:
   repository_dispatch:
     types: [backend-updated]
   workflow_dispatch:
     inputs:
-      diff_url:
-        description: 'agent-gateway commit URL（用于手动测试）'
+      commit_sha:
+        description: 'agent-gateway commit SHA（用于手动测试）'
         required: false
         default: ''
+      commit_msg:
+        description: 'commit 描述'
+        required: false
+        default: 'Manual trigger'
       changed_files:
         description: '变更文件列表（逗号分隔）'
         required: false
@@ -40,255 +44,18 @@ jobs:
       - name: 安装依赖
         run: pip install requests
 
-      - name: 拉取后端 diff 内容
-        id: fetch-diff
-        env:
-          GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
-          DIFF_URL: ${{ github.event.client_payload.diff_url || github.event.inputs.diff_url }}
-          CHANGED_FILES: ${{ github.event.client_payload.changed_files || github.event.inputs.changed_files }}
-          COMMIT_SHA: ${{ github.event.client_payload.commit_sha || 'manual' }}
-          COMMIT_MSG: ${{ github.event.client_payload.commit_msg || 'Manual trigger' }}
+      - name: 配置 git
         run: |
-          python3 - << 'PYEOF'
-          import os, requests, json
+          git config user.email "sync-agent@ainative.ai"
+          git config user.name  "Backend Sync Agent"
+          git remote set-url origin https://x-access-token:${{ secrets.INNER_LOOP_GITHUB_TOKEN }}@github.com/piggya2a-labs/ainative-frontend.git
 
-          token        = os.environ["GITHUB_TOKEN"]
-          changed_raw  = os.environ.get("CHANGED_FILES", "")
-          commit_sha   = os.environ.get("COMMIT_SHA", "unknown")
-          commit_msg   = os.environ.get("COMMIT_MSG", "")
-
-          # 拉取 agent-gateway 的 commit diff
-          diff_content = ""
-          if commit_sha and commit_sha != "manual":
-              r = requests.get(
-                  f"https://api.github.com/repos/piggya2a-labs/agent-gateway/commits/{commit_sha}",
-                  headers={"Authorization": f"token {token}",
-                           "Accept": "application/vnd.github.v3.diff"},
-                  timeout=30
-              )
-              if r.status_code == 200:
-                  diff_content = r.text[:8000]  # 截断避免超长
-
-          # 读取前端关键文件作为上下文
-          frontend_context = {}
-          key_files = [
-              "lib/database.types.ts",
-              "app/dashboard/dashboard-client.tsx",
-              "app/marketplace/page.tsx",
-          ]
-          for f in key_files:
-              try:
-                  content = open(f).read()[:3000]
-                  frontend_context[f] = content
-              except FileNotFoundError:
-                  pass
-
-          payload = {
-              "commit_sha": commit_sha,
-              "commit_msg": commit_msg,
-              "changed_files": changed_raw,
-              "diff": diff_content,
-              "frontend_context": frontend_context,
-          }
-          with open("/tmp/backend_change.json", "w") as fp:
-              json.dump(payload, fp, ensure_ascii=False, indent=2)
-          print(f"已收集 diff，变更文件: {changed_raw[:200]}")
-          PYEOF
-
-      - name: Claude 分析影响 + 生成前端改动
-        id: claude-analyze
+      - name: 运行 Backend Sync Agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
-        run: |
-          python3 - << 'PYEOF'
-          import os, json, requests, subprocess, re
-          from datetime import datetime, timezone
-
-          api_key = os.environ["ANTHROPIC_API_KEY"]
-          payload = json.load(open("/tmp/backend_change.json"))
-
-          # 读取前端所有 API 调用文件作为上下文
-          frontend_files = {}
-          scan_dirs = ["app/", "components/", "lib/"]
-          for d in scan_dirs:
-              result = subprocess.run(
-                  ["find", d, "-name", "*.ts", "-o", "-name", "*.tsx"],
-                  capture_output=True, text=True
-              )
-              for f in result.stdout.strip().split("\n"):
-                  if f and "node_modules" not in f:
-                      try:
-                          content = open(f).read()
-                          # 只收集包含 fetch/supabase 调用的文件
-                          if any(kw in content for kw in ["fetch(", "supabase.", "functions/v1"]):
-                              frontend_files[f] = content[:2000]
-                      except Exception:
-                          pass
-
-          prompt = f"""你是 ONIT AI Native 前端的代码同步 Agent。
-
-后端仓库（agent-gateway）刚刚有新的 push：
-- Commit: {payload['commit_sha']} — {payload['commit_msg']}
-- 变更文件: {payload['changed_files']}
-
-Diff 内容（截取）：
-```diff
-{payload['diff'][:4000]}
-```
-
-前端当前调用后端的关键文件：
-{json.dumps({k: v[:1000] for k, v in list(frontend_files.items())[:5]}, ensure_ascii=False, indent=2)}
-
-请分析：
-1. 这次后端变化对前端有什么影响？（新增了什么功能/接口/字段，修改了什么，删除了什么）
-2. 前端需要做哪些对应的改动？（具体到文件名和改动内容）
-3. 如果有需要立即修复的兼容性问题，给出具体的代码改动。
-
-返回 JSON 格式：
-{{
-  "summary": "一句话总结后端变化",
-  "frontend_impact": "对前端的影响描述",
-  "needs_frontend_change": true/false,
-  "urgency": "high/medium/low",
-  "changes": [
-    {{
-      "file": "文件路径",
-      "reason": "为什么要改",
-      "code_snippet": "具体改动的代码片段（如果有）"
-    }}
-  ],
-  "pr_title": "PR 标题",
-  "pr_body": "PR 描述（Markdown）"
-}}"""
-
-          r = requests.post(
-              "https://api.anthropic.com/v1/messages",
-              headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                       "content-type": "application/json"},
-              json={"model": "claude-sonnet-4-5", "max_tokens": 4096,
-                    "messages": [{"role": "user", "content": prompt}]},
-              timeout=60
-          )
-
-          if r.status_code != 200:
-              print(f"Claude API 失败: {r.status_code} {r.text[:200]}")
-              with open("/tmp/analysis.json", "w") as f:
-                  json.dump({"needs_frontend_change": False, "summary": "Claude 分析失败"}, f)
-              exit(0)
-
-          content = r.json()["content"][0]["text"].strip()
-          # 提取 JSON
-          for marker in ("```json", "```"):
-              if marker in content:
-                  content = content[content.find(marker)+len(marker):]
-                  content = content[:content.rfind("```")].strip()
-                  break
-
-          try:
-              analysis = json.loads(content)
-          except Exception:
-              analysis = {"needs_frontend_change": False, "summary": content[:200]}
-
-          with open("/tmp/analysis.json", "w") as f:
-              json.dump(analysis, f, ensure_ascii=False, indent=2)
-
-          print(f"分析完成: {analysis.get('summary', '')}")
-          print(f"需要前端改动: {analysis.get('needs_frontend_change', False)}")
-          print(f"紧急程度: {analysis.get('urgency', 'low')}")
-          PYEOF
-
-      - name: 创建 PR 或 Issue
-        env:
-          GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.event.client_payload.commit_sha || 'manual' }}
-        run: |
-          python3 - << 'PYEOF'
-          import os, json, subprocess, requests
-          from datetime import datetime, timezone
-
-          token      = os.environ["GITHUB_TOKEN"]
-          commit_sha = os.environ.get("COMMIT_SHA", "unknown")
-          analysis   = json.load(open("/tmp/analysis.json"))
-
-          needs_change = analysis.get("needs_frontend_change", False)
-          urgency      = analysis.get("urgency", "low")
-          summary      = analysis.get("summary", "后端有变化")
-          pr_title     = analysis.get("pr_title", f"[Backend Sync] {summary[:60]}")
-          pr_body      = analysis.get("pr_body", "")
-          changes      = analysis.get("changes", [])
-
-          timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
-
-          if needs_change and urgency in ("high", "medium") and changes:
-              # 创建 branch 并尝试应用代码改动
-              branch = f"backend-sync/{commit_sha}-{timestamp}"
-              subprocess.run(["git", "config", "user.email", "sync-agent@ainative.ai"], check=True)
-              subprocess.run(["git", "config", "user.name",  "Backend Sync Agent"],     check=True)
-              subprocess.run(["git", "checkout", "-b", branch], check=True)
-
-              # 把 Claude 的分析写入一个 sync note 文件，作为 PR 的证据
-              note_path = f"docs/backend-sync/{timestamp}.md"
-              os.makedirs("docs/backend-sync", exist_ok=True)
-              with open(note_path, "w") as f:
-                  f.write(f"# Backend Sync — {timestamp}\n\n")
-                  f.write(f"**来源 commit**: `{commit_sha}`\n\n")
-                  f.write(f"**摘要**: {summary}\n\n")
-                  f.write(f"## 前端影响\n{analysis.get('frontend_impact', '')}\n\n")
-                  f.write(f"## 需要改动的文件\n")
-                  for c in changes:
-                      f.write(f"### `{c.get('file', '')}`\n{c.get('reason', '')}\n\n")
-                      if c.get("code_snippet"):
-                          f.write(f"```\n{c['code_snippet']}\n```\n\n")
-
-              subprocess.run(["git", "add", note_path], check=True)
-              subprocess.run(["git", "commit", "-m",
-                              f"docs: backend-sync note for {commit_sha}"], check=True)
-              subprocess.run(["git", "push", "origin", branch], check=True)
-
-              # 开 PR
-              pr_body_full = (
-                  f"## 后端变化同步\n\n"
-                  f"**来源**: [`agent-gateway@{commit_sha}`]"
-                  f"(https://github.com/piggya2a-labs/agent-gateway/commit/{commit_sha})\n\n"
-                  f"**Claude 分析**: {summary}\n\n"
-                  f"{pr_body}\n\n"
-                  f"---\n*由 Backend Sync Agent 自动创建*"
-              )
-              r = requests.post(
-                  "https://api.github.com/repos/piggya2a-labs/ainative-frontend/pulls",
-                  headers={"Authorization": f"token {token}"},
-                  json={"title": pr_title, "body": pr_body_full,
-                        "head": branch, "base": "main",
-                        "labels": ["backend-sync", "automated"]},
-                  timeout=15
-              )
-              if r.status_code in (200, 201):
-                  pr_url = r.json().get("html_url", "")
-                  print(f"PR 已创建: {pr_url}")
-              else:
-                  print(f"PR 创建失败: {r.status_code} {r.text[:200]}")
-
-          else:
-              # 低影响：只创建 issue 记录
-              issue_body = (
-                  f"## 后端变化记录\n\n"
-                  f"**来源**: [`agent-gateway@{commit_sha}`]"
-                  f"(https://github.com/piggya2a-labs/agent-gateway/commit/{commit_sha})\n\n"
-                  f"**摘要**: {summary}\n\n"
-                  f"**前端影响**: {analysis.get('frontend_impact', '无需改动')}\n\n"
-                  f"---\n*由 Backend Sync Agent 自动记录*"
-              )
-              r = requests.post(
-                  "https://api.github.com/repos/piggya2a-labs/ainative-frontend/issues",
-                  headers={"Authorization": f"token {token}"},
-                  json={"title": f"[Backend Log] {summary[:80]}",
-                        "body": issue_body,
-                        "labels": ["backend-sync", "no-action-needed"]},
-                  timeout=15
-              )
-              if r.status_code in (200, 201):
-                  print(f"Issue 已创建: {r.json().get('html_url', '')}")
-              else:
-                  print(f"Issue 创建失败: {r.status_code}")
-          PYEOF
+          GITHUB_TOKEN:      ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
+          COMMIT_SHA:        ${{ github.event.client_payload.commit_sha  || github.event.inputs.commit_sha  || '' }}
+          COMMIT_MSG:        ${{ github.event.client_payload.commit_msg  || github.event.inputs.commit_msg  || 'Manual trigger' }}
+          CHANGED_FILES:     ${{ github.event.client_payload.changed_files || github.event.inputs.changed_files || '' }}
+          DIFF_URL:          ${{ github.event.client_payload.diff_url    || '' }}
+        run: python3 agents/backend_sync_agent.py
