@@ -45,12 +45,14 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
   const [discovered, setDiscovered] = useState<DiscoveredMCP | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [apiKey, setApiKey] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   function reset() {
     setStep('url')
     setMcpUrl('')
+    setApiKey('')
     setDiscovered(null)
     setName('')
     setDescription('')
@@ -72,13 +74,22 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
       const token = await getAuthToken()
       if (!token) throw new Error('请先登录后再添加 MCP')
 
+      // 如果用户填了 API Key，传入 mcp_headers
+      const mcpHeaders: Record<string, string> = {}
+      if (apiKey.trim()) {
+        mcpHeaders['Authorization'] = `Bearer ${apiKey.trim()}`
+      }
+
       const res = await fetch(EDGE_FN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ mcp_url: mcpUrl.trim() }),
+        body: JSON.stringify({
+          mcp_url: mcpUrl.trim(),
+          ...(Object.keys(mcpHeaders).length ? { mcp_headers: mcpHeaders } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Discover failed')
@@ -179,6 +190,19 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
               className="font-mono text-sm"
               autoFocus
             />
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                API Key
+                <span className="ml-1 text-muted-foreground/60">(可选，需要认证的服务填写)</span>
+              </label>
+              <Input
+                type="password"
+                placeholder="Bearer token 或 API Key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="font-mono text-sm"
+              />
+            </div>
             <Button
               className="w-full"
               onClick={handleDiscover}
