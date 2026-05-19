@@ -14,6 +14,7 @@ import { SubmitMcpDialog } from '@/components/submit-mcp-dialog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Plus, Plug, CheckCircle2, Loader2, Search, MoreHorizontal, Unplug, ExternalLink, Zap, X } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { MarketplaceAgentItem, AgentSkill } from '@/lib/database.types'
 import { createClient as createBrowserClient } from '@/lib/supabase-client'
 
@@ -253,7 +254,37 @@ export default function MarketplacePage() {
           )}
         </div>
 
-        {loading && <div className="flex items-center justify-center py-20"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}
+        {loading && (
+          <div className="space-y-8">
+            {[1, 2, 3].map((g) => (
+              <div key={g}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Skeleton className="h-4 w-16 rounded" />
+                  <Skeleton className="h-4 w-6 rounded" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[1, 2].map((c) => (
+                    <div key={c} className="rounded-xl border bg-card p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-4 w-32 rounded" />
+                          <Skeleton className="h-3 w-full rounded" />
+                          <Skeleton className="h-3 w-3/4 rounded" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 pt-1">
+                        <Skeleton className="h-8 w-full rounded" />
+                        <Skeleton className="h-8 w-full rounded" />
+                        <Skeleton className="h-8 w-full rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {!loading && agents.length === 0 && (
           <div className="text-center py-20">
