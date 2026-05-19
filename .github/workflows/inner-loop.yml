@@ -46,10 +46,11 @@ jobs:
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GENTIC_API_KEY: ${{ secrets.GENTIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.INNER_LOOP_GITHUB_TOKEN }}
           GITHUB_OWNER: piggya2a-labs
           GITHUB_REPO: ainative-frontend
-        # perception_agent.py 读 PostHog 数据，管道输出改进指令给 claude_worker.js
+        # perception_agent.py 读 PostHog + Gentic 竞品数据，管道输出改进指令给 claude_worker.js
         run: python3 agents/perception_agent.py | node agents/claude_worker.js
 
   # ── Job 2: 后端健康检查 + 自动联调 ─────────────────────────────────────
