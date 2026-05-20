@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
@@ -343,66 +343,38 @@ export function DashboardClient({
   const orgName = tenant?.name || 'My Workspace'
   const orgSlug = tenant?.slug || '—'
 
-  const [telegramOpen, setTelegramOpen] = useState(false)
-  const [tgStep, setTgStep] = useState<'input' | 'confirm' | 'pending' | 'done'>('input')
-  const [tgToken, setTgToken] = useState('')
-  const [tgBotInfo, setTgBotInfo] = useState<{ username: string; first_name: string } | null>(null)
-  const [tgDeepLink, setTgDeepLink] = useState<string | null>(null)
-  const [tgLoading, setTgLoading] = useState(false)
-  const [tgError, setTgError] = useState('')
-  const tgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // ── Telegram 绑定（B 方案，已定稿，勿改回 A 方案）──────────────────────────────
+  // 设计决策：ONIT 使用统一官方 Bot（@onitmeowbot），用户不需要自带 Bot Token。
+  // 流程：点「加入 →」→ 调 channel-telegram（connect）→ 拿带 bind_token 的 deep link
+  //       → 跳转 Telegram → 用户发 /start <bind_token> → webhook 写 tenants.telegram_chat_id
+  // ⚠️ 不要改回「用户输入 Bot Token」的 A 方案——那是废弃设计，已清除。
+  // ⚠️ 不要引入 telegramOpen dialog、tgToken state、handleTelegramVerify/Confirm——均已删除。
+  const [tgBindLoading, setTgBindLoading] = useState(false)
 
-  const startTgPolling = (accessToken: string) => {
-    if (tgPollRef.current) clearInterval(tgPollRef.current)
-    tgPollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-          body: JSON.stringify({ action: 'status' }),
-        })
-        const data = await res.json()
-        if (data.status === 'connected') {
-          clearInterval(tgPollRef.current!); tgPollRef.current = null; setTgStep('done')
-          setTimeout(() => { setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null); window.location.reload() }, 2000)
-        }
-      } catch { /* ignore */ }
-    }, 2000)
-  }
-
-  const handleTelegramVerify = async () => {
-    if (!tgToken.trim()) return
-    posthog?.capture('telegram_verify_click'); setTgLoading(true); setTgError('')
+  const handleTelegramBind = async () => {
+    posthog?.capture('telegram_bind_click')
+    setTgBindLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) { toast.error('请先登录'); return }
       const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ action: 'verify', bot_token: tgToken.trim() }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'connect' }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Verification failed')
-      setTgBotInfo(data.bot ?? { username: data.bot_username ?? data.username, first_name: data.bot_name ?? data.first_name })
-      setTgStep('confirm')
-    } catch (e: unknown) { setTgError(e instanceof Error ? e.message : 'Unknown error') }
-    finally { setTgLoading(false) }
-  }
-
-  const handleTelegramConfirm = async () => {
-    posthog?.capture('telegram_confirm_click'); setTgLoading(true); setTgError('')
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/channel-telegram`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ action: 'connect', bot_token: tgToken.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Connect failed')
-      setTgDeepLink(data.deep_link ?? null); setTgStep('pending')
-      if (session?.access_token) startTgPolling(session.access_token)
-    } catch (e: unknown) { setTgError(e instanceof Error ? e.message : 'Unknown error') }
-    finally { setTgLoading(false) }
+      if (!res.ok) { toast.error(data.error ?? '生成绑定链接失败，请重试'); return }
+      const deepLink = data.deep_link as string
+      if (deepLink) {
+        window.open(deepLink, '_blank', 'noopener,noreferrer')
+      } else {
+        toast.error('未能获取绑定链接，请重试')
+      }
+    } catch {
+      toast.error('网络错误，请重试')
+    } finally {
+      setTgBindLoading(false)
+    }
   }
 
   const connectedAgents = mcpTools
@@ -604,9 +576,16 @@ export function DashboardClient({
                 <span className="text-xs text-muted-foreground ml-2">加入全服群，和 Agent 团队直接对话</span>
               </div>
             </div>
-            <a href="https://t.me/onitmeowbot" target="_blank" rel="noopener noreferrer" onClick={() => posthog?.capture('dashboard_telegram_cta_click')} className="shrink-0">
-              <Button size="sm" className="h-7 text-xs">加入 →</Button>
-            </a>
+            {/* ⚠️ 防回退：按钮调 handleTelegramBind 拿带 bind_token 的 deep link 再跳转，
+                不要改回写死 https://t.me/onitmeowbot（没有 bind_token 无法关联 tenant）*/}
+            <Button
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              disabled={tgBindLoading}
+              onClick={handleTelegramBind}
+            >
+              {tgBindLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : '加入 →'}
+            </Button>
           </div>
 
           {/* Composio 工具授权 */}
@@ -969,68 +948,9 @@ export function DashboardClient({
         </DialogContent>
       </Dialog>
 
-      {/* Telegram Dialog */}
-      <Dialog open={telegramOpen} onOpenChange={(o) => {
-        if (!o) {
-          if (tgPollRef.current) { clearInterval(tgPollRef.current); tgPollRef.current = null }
-          setTelegramOpen(false); setTgStep('input'); setTgToken(''); setTgBotInfo(null); setTgDeepLink(null); setTgError('')
-        }
-      }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-sm">Connect Telegram</DialogTitle>
-            <DialogDescription>
-              {tgStep === 'input' && '输入你的 Telegram Bot Token，我们会验证并连接。'}
-              {tgStep === 'confirm' && `确认连接 @${tgBotInfo?.username} 吗？`}
-              {tgStep === 'pending' && '点击下方链接完成绑定'}
-              {tgStep === 'done' && '绑定成功！'}
-            </DialogDescription>
-          </DialogHeader>
-          {tgStep === 'input' && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Bot Token</Label>
-                <Input placeholder="1234567890:ABCDef..." value={tgToken} onChange={(e) => setTgToken(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleTelegramVerify()} className="text-xs font-mono" autoFocus />
-                <p className="text-xs text-muted-foreground">在 <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> 获取 Token</p>
-              </div>
-              {tgError && <p className="text-xs text-destructive">{tgError}</p>}
-              <Button className="w-full" size="sm" onClick={handleTelegramVerify} disabled={tgLoading || !tgToken.trim()}>
-                {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}Verify
-              </Button>
-            </div>
-          )}
-          {tgStep === 'confirm' && tgBotInfo && (
-            <div className="space-y-3">
-              <div className="p-3 rounded-md bg-muted text-xs space-y-1">
-                <p><span className="text-muted-foreground">Name:</span> {tgBotInfo.first_name}</p>
-                <p><span className="text-muted-foreground">Username:</span> @{tgBotInfo.username}</p>
-              </div>
-              {tgError && <p className="text-xs text-destructive">{tgError}</p>}
-              <Button className="w-full" size="sm" onClick={handleTelegramConfirm} disabled={tgLoading}>
-                {tgLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}Confirm & Connect
-              </Button>
-            </div>
-          )}
-          {tgStep === 'pending' && (
-            <div className="space-y-3">
-              {tgDeepLink ? (
-                <a href={tgDeepLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full h-9 rounded-md border border-border text-sm font-medium hover:bg-muted transition-colors">
-                  在 Telegram 中完成绑定 →
-                </a>
-              ) : <p className="text-xs text-muted-foreground">正在生成链接…</p>}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />等待你在 Telegram 中发送 /start…
-              </div>
-            </div>
-          )}
-          {tgStep === 'done' && (
-            <div className="text-center py-4">
-              <p className="text-sm font-medium text-[oklch(0.45_0.18_145)]">绑定成功！</p>
-              <p className="text-xs text-muted-foreground mt-1">正在刷新页面…</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* ⚠️ 防回退：Telegram Dialog 已删除（A 方案废弃）。
+          绑定流程是 B 方案：handleTelegramBind → deep link → Telegram Bot。
+          不要在这里重新加 Dialog 或 Bot Token 输入框。*/}
 
     </div>
   )
