@@ -407,46 +407,88 @@ export function DashboardClient({
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) return
-      const callbackBase = typeof window !== 'undefined' ? window.location.origin : 'https://ainative-frontend.vercel.app'
-      const res = await fetch('/api/composio', {
+
+      // MCP OAuth 2.1 PKCE 流程
+      const res = await fetch('/api/composio/mcp-oauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          appName: 'github',
-          redirectUrl: `${callbackBase}/dashboard?composio_status=success&composio_app=github`
-        }),
       })
       const data = await res.json()
-      if (data.redirectUrl) {
-        posthog?.capture('composio_connect_start', { app: 'github' })
-        window.location.href = data.redirectUrl
+
+      if (data.authUrl) {
+        // 把 PKCE 数据存入 sessionStorage，回调时用
+        sessionStorage.setItem('composio_pkce', JSON.stringify({
+          state: data.state,
+          codeVerifier: data.codeVerifier,
+          clientId: data.clientId,
+          redirectUri: data.redirectUri,
+        }))
+        posthog?.capture('composio_mcp_connect_start')
+        window.location.href = data.authUrl
       } else {
-        toast.error('获取授权链接失败，请重试')
+        // MCP OAuth 不可用时，fallback 到直接跳 Composio 登录页
+        toast.error(data.error ?? '获取授权链接失败，请重试')
       }
     } catch {
       toast.error('连接失败，请重试')
     } finally { setComposioConnecting(false) }
   }
 
-  // 检测 Composio 回调参数
+  // 检测 Composio MCP OAuth 回调参数
   useEffect(() => {
-    const status = searchParams.get('composio_status')
-    const app = searchParams.get('composio_app')
-    if (status === 'success' && app) {
-      posthog?.capture('composio_connect_success', { app })
-      toast.success(`工具授权成功！Agent 现在可以使用 ${app} 了。`)
+    const mcpCode = searchParams.get('composio_mcp_code')
+    const mcpState = searchParams.get('composio_mcp_state')
+    const composioError = searchParams.get('composio_error')
+
+    if (composioError) {
+      toast.error(`Composio 授权失败：${composioError}`)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('composio_error')
+      window.history.replaceState({}, '', url.toString())
+      return
+    }
+
+    if (mcpCode && mcpState) {
+      // 从 sessionStorage 取 PKCE 数据，完成 token 交换
+      const pkceRaw = sessionStorage.getItem('composio_pkce')
+      if (!pkceRaw) {
+        toast.error('授权状态丢失，请重试')
+        return
+      }
+      const pkce = JSON.parse(pkceRaw) as { state: string; codeVerifier: string; clientId: string; redirectUri: string }
+      if (pkce.state !== mcpState) {
+        toast.error('授权状态不匹配，请重试')
+        return
+      }
+      sessionStorage.removeItem('composio_pkce')
+
       // 清除 URL 参数
       const url = new URL(window.location.href)
-      url.searchParams.delete('composio_status')
-      url.searchParams.delete('composio_app')
-      url.searchParams.delete('connected_account_id')
+      url.searchParams.delete('composio_mcp_code')
+      url.searchParams.delete('composio_mcp_state')
       window.history.replaceState({}, '', url.toString())
-    } else if (status === 'failed') {
-      toast.error('授权失败，请重试。')
-      const url = new URL(window.location.href)
-      url.searchParams.delete('composio_status')
-      url.searchParams.delete('composio_app')
-      window.history.replaceState({}, '', url.toString())
+
+      // 完成 token 交换
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session?.access_token) return
+        const res = await fetch('/api/composio/mcp-callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            code: mcpCode,
+            codeVerifier: pkce.codeVerifier,
+            clientId: pkce.clientId,
+            redirectUri: pkce.redirectUri,
+          }),
+        })
+        const result = await res.json()
+        if (result.success) {
+          posthog?.capture('composio_mcp_connect_success')
+          toast.success('Composio 已连接！所有工具现在可用。')
+        } else {
+          toast.error(result.error ?? 'Token 交换失败，请重试')
+        }
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
