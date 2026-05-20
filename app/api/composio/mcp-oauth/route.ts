@@ -75,28 +75,39 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/composio/mcp-oauth — 检查当前用户是否已连接 Composio MCP
+// GET /api/composio/mcp-oauth — 检查当前用户是否已连接 Composio（从 tenants 表读）
 export async function GET(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const meta = user.user_metadata as Record<string, unknown>
-  const composioMcp = meta?.composio_mcp as Record<string, unknown> | undefined
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('composio_token, composio_connected_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single()
 
-  if (!composioMcp?.access_token) return NextResponse.json({ connected: false })
+  if (!tenant?.composio_token) return NextResponse.json({ connected: false })
   return NextResponse.json({
     connected: true,
-    connectedAt: composioMcp.connected_at,
+    connectedAt: tenant.composio_connected_at,
   })
 }
 
-// DELETE /api/composio/mcp-oauth — 断开 Composio MCP 连接
+// DELETE /api/composio/mcp-oauth — 断开 Composio 连接（清空 tenants 表对应字段）
 export async function DELETE(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await supabase.auth.admin.updateUserById(user.id, {
-    user_metadata: { composio_mcp: null },
-  })
+  await supabase
+    .from('tenants')
+    .update({
+      composio_token: null,
+      composio_connected_at: null,
+      connected_agents: [],
+    })
+    .eq('user_id', user.id)
+
   return NextResponse.json({ success: true })
 }

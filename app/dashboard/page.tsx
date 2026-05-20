@@ -42,10 +42,10 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // ─── 取当前用户的所有 tenant ───────────────────────────────────────────────
+  // ─── 取当前用户的所有 tenant（含新字段）───────────────────────────────────────────────
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
@@ -145,25 +145,30 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  // ─── Composio 连接状态（从 user_metadata 读取，刷新后不丢失）────────────────────────────────
-  const composioMcp = (user.user_metadata as Record<string, unknown> | null)?.composio_mcp as Record<string, unknown> | null
-  const composioConnected = !!(composioMcp?.access_token)
+  // ─── Composio 连接状态（从 tenants 表读，单一来源）──────────────────────────────
+  const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
+  const composioConnected = !!composioToken
 
-  // ─── Composio 已连接工具列表（用用户自己的 token 查，按用户隔离）──────────────────────────
+  // ─── Composio 已连接工具列表（用 admin key + entityId 查，按用户隔离）──────────
   type ComposioAgent = { id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }
   let composioAgents: ComposioAgent[] = []
   let composioToolCount = 0
-  if (composioConnected && composioMcp?.access_token) {
+
+  if (composioConnected) {
     try {
-      const userToken = composioMcp.access_token as string
-      const res = await fetch('https://backend.composio.dev/api/v1/connectedAccounts?status=ACTIVE&limit=100', {
-        headers: { 'Authorization': `Bearer ${userToken}` },
-        next: { revalidate: 60 },
-      })
+      const composioApiKey = process.env.COMPOSIO_API_KEY!
+      const res = await fetch(
+        `https://backend.composio.dev/api/v1/connectedAccounts?entityId=${user.id}&limit=100`,
+        {
+          headers: { 'x-api-key': composioApiKey },
+          next: { revalidate: 60 },
+        }
+      )
       if (res.ok) {
-        const data = await res.json() as { items?: Array<{ id: string; appName?: string; appUniqueId?: string; logo?: string }> }
-        composioToolCount = data.items?.length ?? 0
-        composioAgents = (data.items ?? []).map((item) => {
+        const data = await res.json() as { items?: Array<{ id: string; appName?: string; appUniqueId?: string; logo?: string; status?: string }> }
+        const items = data.items ?? []
+        composioToolCount = items.length
+        composioAgents = items.map((item) => {
           const appName = item.appName ?? item.appUniqueId ?? item.id
           const domain = appName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
           return {
@@ -172,21 +177,26 @@ export default async function DashboardPage() {
             icon_url: item.logo ?? null,
             mcp_url: null,
             url: `https://${domain}`,
-            description: `via Composio`,
+            description: item.status === 'EXPIRED' ? '需重新授权' : 'via Composio',
           }
         })
+
+        // 同步更新 tenants.connected_agents（后台静默写入，不阻塞渲染）
+        if (tenant) {
+          const appNames = items.map(i => (i.appName ?? '').toLowerCase()).filter(Boolean)
+          void adminClient
+            .from('tenants')
+            .update({ connected_agents: appNames })
+            .eq('id', tenant.id)
+        }
       }
     } catch {
       // 查询失败不影响页面加载
     }
   }
 
-  // ─── 用户在 Agent Wiki 手动开启的 agent（仅用户自己的）──────────────────────────────────────
-  // 暂时用空数组，后续可从 user_enabled_agents 表读取
-  const userEnabledAgents: ComposioAgent[] = []
-
   // ─── 合并：Composio 工具 + 用户手动开启的 agent ──────────────────────────────────────────────
-  const allAgents: ComposioAgent[] = [...composioAgents, ...userEnabledAgents]
+  const allAgents: ComposioAgent[] = [...composioAgents]
   const agentCount = allAgents.length
 
   return (
