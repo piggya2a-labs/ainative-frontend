@@ -73,8 +73,9 @@ export async function POST(req: NextRequest) {
     }
 
     const tokenData = await tokenRes.json()
-    // DEBUG: 打印 token exchange 完整响应，确认字段名（验收后删除）
+    // DEBUG: 把 token exchange 完整响应写进 agent_memory，确认字段名（验收后删除）
     console.log('[composio-callback] tokenData keys:', Object.keys(tokenData), 'values:', JSON.stringify(tokenData).slice(0, 300))
+    await supabase.from('agent_memory').upsert({ agent_id: 'debug', key: 'composio-token-exchange-response', content: JSON.stringify(tokenData), tags: ['debug'] }, { onConflict: 'agent_id,key' })
 
     // ─── COMPOSIO KEY 说明（防回退注释，勿删）────────────────────────────────────────
     // Composio MCP OAuth token exchange 会返回两个 key：
