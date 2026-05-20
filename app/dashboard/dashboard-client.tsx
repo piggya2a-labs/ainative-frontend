@@ -497,9 +497,7 @@ export function DashboardClient({
             {tenants.length > 1 ? (
               <Select value={activeTenantId ?? ''} onValueChange={handleTenantSwitch}>
                 <SelectTrigger className="h-8 text-sm font-semibold border-0 shadow-none px-0 gap-1 w-auto max-w-[240px] focus:ring-0">
-                  <SelectValue placeholder="选择看板">
-                    {tenant?.name ?? '选择看板'}
-                  </SelectValue>
+                  <span className="flex-1 text-left truncate">{tenant?.name ?? '选择看板'}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {tenants.map(t => (
