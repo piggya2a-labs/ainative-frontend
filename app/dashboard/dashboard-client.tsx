@@ -34,6 +34,7 @@ interface Tenant {
   slug: string
   status: string
   created_at: string
+  metadata?: Record<string, unknown> | null
 }
 
 type Agent = AgentListItem
@@ -617,40 +618,130 @@ export function DashboardClient({
 
 
         {/* ══════════════════════════════════════
-            4. 审计视图（Eva）
+            4. 审计视图（Eva）+ 汇总数字 + Live 看板链接
         ══════════════════════════════════════ */}
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-              审计员 @Eva · WhileLoop 状态
-            </span>
-            <Link href="/how-we-work">
-              <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1">
-                查看 MCSP <ExternalLink className="w-3 h-3" />
-              </Button>
-            </Link>
-          </div>
-          <div className="divide-y divide-border">
-            {MILESTONES.map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                <div className="min-w-0">
-                  <span className="text-sm font-medium block">{m.label}</span>
-                  <span className="text-xs text-muted-foreground block mt-0.5">{m.role}</span>
+        {(() => {
+          // 从 tenant.metadata 读取 MCSP 数据
+          const meta = tenant?.metadata as {
+            share_token?: string
+            current_milestone?: string
+            milestones?: Record<string, { status: string; tasks_total: number; tasks_done: number; name: string }>
+            audit?: { health: string; last_audit: string | null; conclusion: string | null; next_action: string | null }
+            client?: { contract_start: string; plan_period: string }
+          } | null
+
+          const contractStart = meta?.client?.contract_start
+          const runDays = contractStart
+            ? Math.floor((Date.now() - new Date(contractStart).getTime()) / (1000 * 60 * 60 * 24))
+            : null
+
+          const milestones = meta?.milestones
+          const doneMilestones = milestones
+            ? Object.values(milestones).filter(m => m.status === 'done').length
+            : null
+
+          const currentM = meta?.current_milestone && milestones
+            ? milestones[meta.current_milestone]
+            : null
+          const currentProgress = currentM
+            ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
+            : null
+
+          const health = meta?.audit?.health
+          const shareToken = meta?.share_token
+          const liveUrl = tenant?.name && shareToken
+            ? `/r/${tenant.name}?t=${shareToken}`
+            : null
+
+          return (
+            <>
+              {/* 汇总数字卡片（仅在有 metadata 时展示） */}
+              {meta && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: '里程碑', value: doneMilestones !== null ? `${doneMilestones}/4` : '—', sub: 'M0 → M3' },
+                    { label: '当前进度', value: currentProgress !== null ? `${currentProgress}%` : '—', sub: meta.current_milestone ? `${meta.current_milestone} · ${currentM?.name ?? ''}` : '—' },
+                    { label: '运行天数', value: runDays !== null ? String(runDays) : '—', sub: contractStart ?? '—' },
+                    {
+                      label: '健康度',
+                      value: health === 'green' ? '健康' : health === 'yellow' ? '关注' : health === 'red' ? '风险' : '—',
+                      sub: '待 @Eva 审计',
+                      healthColor: health
+                    },
+                  ].map(({ label, value, sub, healthColor }) => (
+                    <div key={label} className="border border-border rounded-lg px-3 py-2.5">
+                      <p className="text-[10px] text-muted-foreground">{label}</p>
+                      <p
+                        className="text-lg font-bold mt-0.5"
+                        style={healthColor ? {
+                          color: healthColor === 'green'
+                            ? 'var(--onit-green)'
+                            : healthColor === 'yellow'
+                            ? 'var(--onit-amber)'
+                            : healthColor === 'red'
+                            ? 'var(--destructive)'
+                            : undefined
+                        } : undefined}
+                      >
+                        {value}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="shrink-0">
-                  {milestoneBadge(m.status)}
+              )}
+
+              {/* 审计视图 */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                    审计员 @Eva · WhileLoop 状态
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {liveUrl && (
+                      <Link
+                        href={liveUrl}
+                        target="_blank"
+                        onClick={() => posthog?.capture('dashboard_live_report_click', { tenant: tenant?.name })}
+                      >
+                        <Button variant="outline" size="sm" className="h-6 text-xs gap-1">
+                          Live 看板 <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </Link>
+                    )}
+                    <Link href="/how-we-work">
+                      <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1">
+                        查看 MCSP <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="divide-y divide-border">
+                  {MILESTONES.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium block">{m.label}</span>
+                        <span className="text-xs text-muted-foreground block mt-0.5">{m.role}</span>
+                      </div>
+                      <div className="shrink-0">
+                        {milestoneBadge(m.status)}
+                      </div>
+                    </div>
+                  ))}
+                  {/* 审计结论行 */}
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-muted/10">
+                    <span className="text-xs text-muted-foreground">
+                      {meta?.audit?.next_action ?? 'M1 方案交付后，@Eva 将进行全局审计。'}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40] shrink-0">
+                      {meta?.audit?.conclusion ? '已审' : '待审'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            ))}
-            {/* 审计结论行 */}
-            <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-muted/10">
-              <span className="text-xs text-muted-foreground">M1 方案交付后，@Eva 将进行全局审计。</span>
-              <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40] shrink-0">
-                待审
-              </Badge>
-            </div>
-          </div>
-        </div>
+            </>
+          )
+        })()}
 
 
 

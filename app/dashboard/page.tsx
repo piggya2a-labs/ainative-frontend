@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   // Tenant
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at')
+    .select('id, name, slug, status, created_at, metadata')
     .eq('user_id', user.id)
     .single()
 
