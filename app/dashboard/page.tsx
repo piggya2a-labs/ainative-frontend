@@ -149,45 +149,50 @@ export default async function DashboardPage() {
   const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
   const composioConnected = !!composioToken
 
-  // ─── COMPOSIO KEY 说明（防回退注释，勿删）────────────────────────────────────────
-  // tenants.composio_token 存的是 x-consumer-api-key（ck_ 开头），不是 OAuth access_token
-  // 用用户自己的 consumer key 查询天然按用户隔离，不需要 admin key 也不需要 entityId
-  // 错误做法：用 x-api-key 传 access_token，或用 Bearer 传任何 key → 永远 401
+  // ─── COMPOSIO 查询说明（防回退注释，勿删）──────────────────────────────────────
+  // 正确做法：用平台 admin key（COMPOSIO_ADMIN_KEY）+ user_ids[]=user.id 查 v3.1 端点
+  // Composio MCP OAuth 的 access_token 无法查 REST API，不要用它查 connectedAccounts
+  // v3.1 端点返回 status 字段：ACTIVE / EXPIRED / INITIALIZING / INITIATED / FAILED
+  // 全部状态都显示，前端根据 status 渲染不同颜色标记，不过滤任何状态
   // ─────────────────────────────────────────────────────────────────────────────────
-  // ─── Composio 已连接工具列表（用用户自己的 consumer key 查，天然按用户隔离）──────
-  type ComposioAgent = { id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }
+  // ─── Composio 已连接工具列表（admin key + user_id 查，按 user_ids 隔离）──────────
+  type ComposioAgent = { id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null; status?: string | null }
   let composioAgents: ComposioAgent[] = []
   let composioToolCount = 0
 
   if (composioConnected) {
     try {
+      const composioAdminKey = process.env.COMPOSIO_ADMIN_KEY ?? 'ak_n_8uO-2LCmcqCjhkwVQA'
       const res = await fetch(
-        'https://backend.composio.dev/api/v1/connectedAccounts?limit=100',
+        `https://backend.composio.dev/api/v3.1/connected_accounts?user_ids[]=${encodeURIComponent(user.id)}&limit=100`,
         {
-          headers: { 'x-consumer-api-key': composioToken }, // 用用户自己的 consumer key，天然隔离
+          headers: { 'x-api-key': composioAdminKey },
           next: { revalidate: 60 },
         }
       )
       if (res.ok) {
-        const data = await res.json() as { items?: Array<{ id: string; appName?: string; appUniqueId?: string; logo?: string; status?: string }> }
+        const data = await res.json() as { items?: Array<{ id: string; toolkit?: { slug?: string }; status?: string; created_at?: string }> }
         const items = data.items ?? []
         composioToolCount = items.length
         composioAgents = items.map((item) => {
-          const appName = item.appName ?? item.appUniqueId ?? item.id
-          const domain = appName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
+          const slug = item.toolkit?.slug ?? item.id
+          const appName = slug.charAt(0).toUpperCase() + slug.slice(1)
+          const domain = slug.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
+          const status = item.status ?? 'ACTIVE'
           return {
             id: `composio-${item.id}`,
-            name: appName.charAt(0).toUpperCase() + appName.slice(1),
-            icon_url: item.logo ?? null,
+            name: appName,
+            icon_url: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
             mcp_url: null,
             url: `https://${domain}`,
-            description: item.status === 'EXPIRED' ? '需重新授权' : 'via Composio',
+            description: 'via Composio',
+            status,
           }
         })
 
         // 同步更新 tenants.connected_agents（后台静默写入，不阻塞渲染）
         if (tenant) {
-          const appNames = items.map(i => (i.appName ?? '').toLowerCase()).filter(Boolean)
+          const appNames = items.map(i => (i.toolkit?.slug ?? '').toLowerCase()).filter(Boolean)
           void adminClient
             .from('tenants')
             .update({ connected_agents: appNames })

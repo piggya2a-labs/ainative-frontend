@@ -82,7 +82,7 @@ interface Props {
   composioConnected: boolean
   composioToolCount: number
   agentCount: number
-  allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }>
+  allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null; status?: string | null }>
 }
 
 const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
@@ -830,18 +830,33 @@ export function DashboardClient({
             <div className="px-4 py-4">
               {/* Composio 工具 icon 头像墙 */}
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {allAgents.map((agent) => (
-                  <a key={agent.id} href="https://app.composio.dev" target="_blank" rel="noopener noreferrer" title={agent.name}>
-                    <AgentIcon
-                      name={agent.name}
-                      iconUrl={agent.icon_url}
-                      mcpUrl={agent.mcp_url}
-                      url={agent.url}
-                      size={28}
-                      className="opacity-80 hover:opacity-100 hover:scale-110 transition-all cursor-pointer ring-1 ring-border"
-                    />
-                  </a>
-                ))}
+                {allAgents.map((agent) => {
+                  const st = agent.status ?? 'ACTIVE'
+                  const dotColor =
+                    st === 'ACTIVE' ? 'bg-green-400' :
+                    st === 'EXPIRED' ? 'bg-yellow-400' :
+                    st === 'INITIALIZING' || st === 'INITIATED' ? 'bg-gray-400 animate-pulse' :
+                    'bg-red-400'
+                  const tooltip = st === 'ACTIVE' ? agent.name :
+                    st === 'EXPIRED' ? `${agent.name}（需重新授权）` :
+                    st === 'INITIALIZING' || st === 'INITIATED' ? `${agent.name}（连接中...）` :
+                    `${agent.name}（连接失败）`
+                  return (
+                    <a key={agent.id} href="https://app.composio.dev" target="_blank" rel="noopener noreferrer" title={tooltip}>
+                      <div className="relative">
+                        <AgentIcon
+                          name={agent.name}
+                          iconUrl={agent.icon_url}
+                          mcpUrl={agent.mcp_url}
+                          url={agent.url}
+                          size={28}
+                          className={`hover:scale-110 transition-all cursor-pointer ring-1 ring-border ${st !== 'ACTIVE' ? 'opacity-50' : 'opacity-80 hover:opacity-100'}`}
+                        />
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background ${dotColor}`} />
+                      </div>
+                    </a>
+                  )
+                })}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-mono">已连接 {agentCount} 个工具，点击头像管理。</span>
