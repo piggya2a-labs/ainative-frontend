@@ -104,11 +104,11 @@ export default async function LiveReportPage({
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // 查询 tenant
+  // 查询 tenant（用 slug 匹配，避免名字中有空格或特殊字符）
   const { data: tenants, error } = await supabase
     .from('tenants')
     .select('id, slug, name, status, metadata, created_at')
-    .eq('name', name)
+    .eq('slug', name)
     .limit(1)
 
   if (error || !tenants || tenants.length === 0) {

@@ -649,8 +649,8 @@ export function DashboardClient({
 
           const health = meta?.audit?.health
           const shareToken = meta?.share_token
-          const liveUrl = tenant?.name && shareToken
-            ? `/r/${tenant.name}?t=${shareToken}`
+          const liveUrl = tenant?.slug && shareToken
+            ? `/r/${tenant.slug}?t=${shareToken}`
             : null
 
           return (
