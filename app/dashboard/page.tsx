@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { Suspense } from 'react'
 import { DashboardClient } from './dashboard-client'
 
 // ─── MCSP 默认 metadata 生成器 ────────────────────────────────────────────────
@@ -262,16 +263,18 @@ export default async function DashboardPage() {
     .limit(10)
 
   return (
-    <DashboardClient
-      user={user}
-      tenants={tenants}
-      tenant={tenant}
-      initialApiKeys={apiKeys ?? []}
-      agents={[]}
-      mcpTools={mcpTools}
-      githubBindings={githubBindings ?? []}
-      connectors={connectors ?? []}
-      auditLogs={auditLogs ?? []}
-    />
+    <Suspense>
+      <DashboardClient
+        user={user}
+        tenants={tenants}
+        tenant={tenant}
+        initialApiKeys={apiKeys ?? []}
+        agents={[]}
+        mcpTools={mcpTools}
+        githubBindings={githubBindings ?? []}
+        connectors={connectors ?? []}
+        auditLogs={auditLogs ?? []}
+      />
+    </Suspense>
   )
 }

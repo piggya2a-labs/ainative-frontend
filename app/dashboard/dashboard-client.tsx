@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus, Pencil } from 'lucide-react'
+import { toast } from '@/components/ui/sonner'
+import { useSearchParams } from 'next/navigation'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
@@ -397,64 +399,55 @@ export function DashboardClient({
   const connectedAgents = mcpTools
 
   // Composio 连接器状态
-  const [composioConnections, setComposioConnections] = useState<Array<{ id: string; appName: string; status: string; createdAt: string }>>([]) 
-  const [loadingComposio, setLoadingComposio] = useState(false)
-  const [connectingApp, setConnectingApp] = useState<string | null>(null)
-  const [showConnectAppModal, setShowConnectAppModal] = useState(false)
-  const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
+  const [composioConnecting, setComposioConnecting] = useState(false)
+  const searchParams = useSearchParams()
 
-  const loadComposioConnections = async () => {
-    setLoadingComposio(true)
+  const handleComposioConnect = async () => {
+    setComposioConnecting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) return
-      const res = await fetch('/api/composio', {
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setComposioConnections(data.connections ?? [])
-      }
-    } finally { setLoadingComposio(false) }
-  }
-
-  const handleConnectApp = async (appName: string) => {
-    setConnectingApp(appName)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
+      const callbackBase = typeof window !== 'undefined' ? window.location.origin : 'https://ainative-frontend.vercel.app'
       const res = await fetch('/api/composio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ appName }),
+        body: JSON.stringify({
+          appName: 'github',
+          redirectUrl: `${callbackBase}/dashboard?composio_status=success&composio_app=github`
+        }),
       })
       const data = await res.json()
       if (data.redirectUrl) {
-        posthog?.capture('composio_connect_start', { app: appName })
-        window.open(data.redirectUrl, '_blank', 'width=600,height=700')
-        setShowConnectAppModal(false)
-        // 5 秒后刷新连接列表
-        setTimeout(() => loadComposioConnections(), 5000)
+        posthog?.capture('composio_connect_start', { app: 'github' })
+        window.location.href = data.redirectUrl
+      } else {
+        toast.error('获取授权链接失败，请重试')
       }
-    } finally { setConnectingApp(null) }
+    } catch {
+      toast.error('连接失败，请重试')
+    } finally { setComposioConnecting(false) }
   }
 
-  const handleDisconnectApp = async (id: string) => {
-    setDisconnectingId(id)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-      await fetch(`/api/composio?id=${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      posthog?.capture('composio_disconnect', { id })
-      setComposioConnections(prev => prev.filter(c => c.id !== id))
-    } finally { setDisconnectingId(null) }
-  }
-
+  // 检测 Composio 回调参数
   useEffect(() => {
-    loadComposioConnections()
+    const status = searchParams.get('composio_status')
+    const app = searchParams.get('composio_app')
+    if (status === 'success' && app) {
+      posthog?.capture('composio_connect_success', { app })
+      toast.success(`工具授权成功！Agent 现在可以使用 ${app} 了。`)
+      // 清除 URL 参数
+      const url = new URL(window.location.href)
+      url.searchParams.delete('composio_status')
+      url.searchParams.delete('composio_app')
+      url.searchParams.delete('connected_account_id')
+      window.history.replaceState({}, '', url.toString())
+    } else if (status === 'failed') {
+      toast.error('授权失败，请重试。')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('composio_status')
+      url.searchParams.delete('composio_app')
+      window.history.replaceState({}, '', url.toString())
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -562,12 +555,10 @@ export function DashboardClient({
               size="sm"
               className="h-7 text-xs shrink-0"
               variant="default"
-              onClick={() => {
-                posthog?.capture('dashboard_composio_connect_click')
-                window.open('https://app.composio.dev', '_blank')
-              }}
+              disabled={composioConnecting}
+              onClick={handleComposioConnect}
             >
-              连接 →
+              {composioConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : '连接 →'}
             </Button>
           </div>
 
