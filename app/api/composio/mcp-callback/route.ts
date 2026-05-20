@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const TOKEN_ENDPOINT = 'https://connect.composio.dev/mcp/token'
+const TOKEN_ENDPOINT = 'https://connect.composio.dev/api/v3/auth/dash/oauth2/token'
 
 // GET /api/composio/mcp-callback
 // Composio 授权完成后回调到这里

@@ -7,9 +7,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const MCP_BASE = 'https://connect.composio.dev/mcp'
-const REGISTER_ENDPOINT = `${MCP_BASE}/register`
-const AUTHORIZE_ENDPOINT = `${MCP_BASE}/authorize`
+// Composio MCP OAuth 2.1 endpoints (from /.well-known/oauth-authorization-server)
+const AUTHORIZE_ENDPOINT = 'https://connect.composio.dev/api/v3/auth/dash/oauth2/authorize'
+
+// Pre-registered ONIT client_id via Dynamic Client Registration
+const ONIT_CLIENT_ID = 'RSCmuSbSfZdHxcqlNlkTpbTYWequHtkc'
 
 async function getUser(req: NextRequest) {
   const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization')
@@ -41,39 +43,17 @@ export async function POST(req: NextRequest) {
   const redirectUri = `${origin}/api/composio/mcp-callback`
 
   try {
-    // Step 1: Dynamic Client Registration
-    const regRes = await fetch(REGISTER_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_name: 'ONIT',
-        redirect_uris: [redirectUri],
-        grant_types: ['authorization_code'],
-        response_types: ['code'],
-        token_endpoint_auth_method: 'none',
-      }),
-    })
-
-    let clientId: string
-    if (!regRes.ok) {
-      // 如果注册失败（可能 Composio 还不支持），返回错误
-      const text = await regRes.text()
-      return NextResponse.json({ error: `Registration failed (${regRes.status}): ${text.slice(0, 200)}` }, { status: 502 })
-    }
-
-    const regData = await regRes.json()
-    clientId = regData.client_id as string
-
-    // Step 2: Generate PKCE
+    // Generate PKCE
     const codeVerifier = generateCodeVerifier()
     const codeChallenge = generateCodeChallenge(codeVerifier)
     const state = generateState()
 
-    // Step 3: Build authorization URL
+    // Build authorization URL
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: clientId,
+      client_id: ONIT_CLIENT_ID,
       redirect_uri: redirectUri,
+      scope: 'openid profile email offline_access',
       state,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
@@ -81,12 +61,12 @@ export async function POST(req: NextRequest) {
 
     const authUrl = `${AUTHORIZE_ENDPOINT}?${params.toString()}`
 
-    // Step 4: Return authUrl + pkce data (client stores in sessionStorage)
+    // Return authUrl + pkce data (client stores in sessionStorage)
     return NextResponse.json({
       authUrl,
       state,
       codeVerifier,
-      clientId,
+      clientId: ONIT_CLIENT_ID,
       redirectUri,
     })
   } catch (e) {
