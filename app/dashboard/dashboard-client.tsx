@@ -775,6 +775,7 @@ export function DashboardClient({
                               <>
                                 <Loader2 className="w-3.5 h-3.5 shrink-0 text-muted-foreground animate-spin" />
                                 <span className="text-xs text-muted-foreground">Building…</span>
+                                <span className="text-[10px] text-muted-foreground/50">去 Telegram 跟 Agent 说项目目标</span>
                               </>
                             )}
                           </div>

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { AgentIcon } from '@/components/agent-icon'
 import {
@@ -192,6 +192,16 @@ export function AgentCard({
   const interfaces = Array.isArray(agent.supported_interfaces) ? agent.supported_interfaces : []
   const typeLabel = getTypeLabel(agent)
   const timestamp = agent.updated_at ?? agent.created_at
+
+  // 连接成功后自动关闭 Dialog
+  // connecting 从 true → false 且 agent 已连接，说明连接成功，关闭弹窗
+  const prevConnectingRef = React.useRef(connecting)
+  React.useEffect(() => {
+    if (prevConnectingRef.current && !connecting && isActive(agent)) {
+      setOpen(false)
+    }
+    prevConnectingRef.current = connecting
+  }, [connecting, agent])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -400,9 +410,12 @@ function AgentCardDialog({
 
         {/* Endpoint URL */}
         {(agent.mcp_url || agent.url) && (
-          <code className="mt-2 block text-[10px] font-mono bg-muted px-2.5 py-1.5 rounded-lg break-all text-muted-foreground">
-            {agent.mcp_url ?? agent.url}
-          </code>
+          <div className="mt-2">
+            <p className="text-[10px] text-muted-foreground mb-1">接入地址（Agent 调用时使用）</p>
+            <code className="block text-[10px] font-mono bg-muted px-2.5 py-1.5 rounded-lg break-all text-muted-foreground">
+              {agent.mcp_url ?? agent.url}
+            </code>
+          </div>
         )}
       </DialogHeader>
 
@@ -438,12 +451,10 @@ function AgentCardDialog({
                 <Badge variant="secondary" className="text-[10px] ml-0.5">{notes.length}</Badge>
               )}
             </TabsTrigger>
-            {(agent.tags?.length ?? 0) > 0 && (
-              <TabsTrigger value="meta" className="text-xs gap-1.5">
-                <Tag className="w-3 h-3" />
-                元数据
-              </TabsTrigger>
-            )}
+          <TabsTrigger value="meta" className="text-xs gap-1.5">
+            <Tag className="w-3 h-3" />
+            元数据
+          </TabsTrigger>
           </TabsList>
 
           {/* Tools tab */}
@@ -539,35 +550,48 @@ function AgentCardDialog({
             </TabsContent>
           )}
 
-          {/* Meta tab */}
-          {(agent.tags?.length ?? 0) > 0 && (
-            <TabsContent value="meta" className="mt-0">
-              <div className="px-5 py-4 space-y-3">
-                {agent.tags && agent.tags.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">标签</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {agent.tags.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-[10px] font-mono">{t}</Badge>
-                      ))}
-                    </div>
+          {/* Meta tab - 始终显示，展示 Agent 的技术元信息 */}
+          <TabsContent value="meta" className="mt-0">
+            <div className="px-5 py-4 space-y-3">
+              {agent.connector_type && (
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">类型</p>
+                  <Badge variant="secondary" className="text-[10px] font-mono">{getTypeLabel(agent)}</Badge>
+                </div>
+              )}
+              {agent.tags && agent.tags.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">标签</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {agent.tags.map((t) => (
+                      <Badge key={t} variant="secondary" className="text-[10px] font-mono">{t}</Badge>
+                    ))}
                   </div>
-                )}
-                {agent.provider && (
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Provider</p>
-                    <span className="text-xs font-mono">{agent.provider}</span>
-                  </div>
-                )}
-                {timestamp && (
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">更新时间</p>
-                    <span className="text-xs font-mono text-muted-foreground">{formatDate(timestamp)}</span>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          )}
+                </div>
+              )}
+              {agent.provider && (
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Provider</p>
+                  <span className="text-xs font-mono">{agent.provider}</span>
+                </div>
+              )}
+              {agent.version && (
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">版本</p>
+                  <span className="text-xs font-mono text-muted-foreground">v{agent.version}</span>
+                </div>
+              )}
+              {timestamp && (
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">更新时间</p>
+                  <span className="text-xs font-mono text-muted-foreground">{formatDate(timestamp)}</span>
+                </div>
+              )}
+              {!agent.tags?.length && !agent.provider && !agent.version && (
+                <p className="text-xs text-muted-foreground text-center py-4">暂无元数据</p>
+              )}
+            </div>
+          </TabsContent>
           {/* Experience tab */}
           <TabsContent value="experience" className="mt-0">
             <div className="flex flex-col h-64">
@@ -578,7 +602,10 @@ function AgentCardDialog({
                       <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                     </div>
                   ) : notes.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-6">还没有经验笔记，写第一条吧</p>
+                    <div className="text-center py-6 space-y-2">
+                      <p className="text-xs text-muted-foreground">还没有经验笔记</p>
+                      <p className="text-[10px] text-muted-foreground/60">用过这个 Agent 之后，把踩过的坑、好用的技巧写下来，下次就不用重新摸索了</p>
+                    </div>
                   ) : (
                     notes.map((n) => (
                       <div key={n.id} className="border-l-2 border-border pl-3 py-0.5">
