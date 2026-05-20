@@ -42,16 +42,16 @@ async function getAgents() {
   )
   const { data, error } = await supabase
     .from('agent_registry')
-    .select('id, name, description, skills, capabilities, connector_type, tags, enabled, updated_at')
-    .eq('connector_type', 'preset')
+    .select('id, name, description, skills, capabilities, connector_type, tags, enabled, updated_at, langsmith_handle')
     .eq('enabled', true)
-    .order('connector_type')
+    .not('langsmith_handle', 'is', null)
+    .order('id')
   if (error) return []
   return data ?? []
 }
 
-function isCore(agent: { connector_type: string | null }) {
-  return agent.connector_type === 'preset'
+function isCore(agent: { langsmith_handle: string | null }) {
+  return !!agent.langsmith_handle
 }
 
 type ActivityItem = {
