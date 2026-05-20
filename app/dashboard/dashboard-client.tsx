@@ -607,7 +607,7 @@ export function DashboardClient({
                 <span className="text-xs text-muted-foreground ml-2">加入全服群，和 Agent 团队直接对话</span>
               </div>
             </div>
-            <a href="https://t.me/ONITAgent_bot" target="_blank" rel="noopener noreferrer" onClick={() => posthog?.capture('dashboard_telegram_cta_click')} className="shrink-0">
+            <a href="https://t.me/onitmeowbot" target="_blank" rel="noopener noreferrer" onClick={() => posthog?.capture('dashboard_telegram_cta_click')} className="shrink-0">
               <Button size="sm" className="h-7 text-xs">加入 →</Button>
             </a>
           </div>

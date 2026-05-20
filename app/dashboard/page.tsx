@@ -5,134 +5,14 @@ import { cookies } from 'next/headers'
 import { Suspense } from 'react'
 import { DashboardClient } from './dashboard-client'
 
-// ─── MCSP 默认 metadata 生成器 ────────────────────────────────────────────────
+// ─── 只生成 share_token（MCSP 内容由 @Lumen 写入，不自动初始化）──────────────
 function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, createdAt: string) {
-  const today = new Date().toISOString().slice(0, 10)
-  const contractStart = createdAt.slice(0, 10)
-  // M1 target: 合同开始后 4 周
-  const m1Target = new Date(new Date(contractStart).getTime() + 28 * 24 * 60 * 60 * 1000)
-    .toISOString().slice(0, 10)
   const shareToken = `${tenantSlug}-live-${new Date().getFullYear()}q${Math.ceil((new Date().getMonth() + 1) / 3)}`
+  void tenantName; void createdAt; // 保留参数签名兼容性
 
   return {
     share_token: shareToken,
-    current_milestone: 'M1',
-    milestones: [
-      {
-        id: 'M0',
-        order: 0,
-        status: 'done',
-        name: '找到合适的 Agent',
-        completed_at: contractStart,
-        started_at: contractStart,
-        target_date: null,
-        tasks_total: 3,
-        tasks_done: 3,
-        owner: '@Polly',
-        tasks: [
-          { name: '候选 Agent 调研清单输出完毕', done: true, owner: '@Polly' },
-          { name: '选定目标 Agent，双方确认', done: true, owner: tenantName },
-          { name: '双方签认，M1 正式启动', done: true, owner: '双方' },
-        ],
-      },
-      {
-        id: 'M1',
-        order: 1,
-        status: 'in_progress',
-        name: '交付试用设计方案',
-        started_at: contractStart,
-        target_date: m1Target,
-        completed_at: null,
-        tasks_total: 4,
-        tasks_done: 0,
-        owner: '@Lumen',
-        tasks: [
-          { name: '共同成功计划初稿完成，等待客户确认', done: false, owner: '@Lumen' },
-          { name: 'pipe/workflow 设计方案完成', done: false, owner: '@Sega' },
-          { name: '成功标准确认，或提出修改', done: false, owner: tenantName },
-          { name: 'MCSP + OMT 双方签认，M2 正式启动', done: false, owner: '双方' },
-        ],
-      },
-      {
-        id: 'M2',
-        order: 2,
-        status: 'pending',
-        name: '试运行完成',
-        started_at: null,
-        target_date: null,
-        completed_at: null,
-        tasks_total: 4,
-        tasks_done: 0,
-        owner: '@Sega',
-        tasks: [
-          { name: 'Agent 接入客户系统，完成冒烟测试', done: false, owner: '@Sega' },
-          { name: '试运行 2 周，LangSmith 全链路追踪', done: false, owner: '@Sega' },
-          { name: '客户验收试运行结果', done: false, owner: tenantName },
-          { name: 'M2 双方签认，M3 正式启动', done: false, owner: '双方' },
-        ],
-      },
-      {
-        id: 'M3',
-        order: 3,
-        status: 'pending',
-        name: '审计验证通过',
-        started_at: null,
-        target_date: null,
-        completed_at: null,
-        tasks_total: 3,
-        tasks_done: 0,
-        owner: '@Eva',
-        tasks: [
-          { name: '@Eva 执行完整审计，输出结论', done: false, owner: '@Eva' },
-          { name: '成功标准全部达标确认', done: false, owner: '@Eva' },
-          { name: '双方签认验收报告，归档', done: false, owner: '双方' },
-        ],
-      },
-    ],
-    mcsp: {
-      goal: `帮助 ${tenantName} 团队完成 AI Native 多 Agent 工作流的试运行验证，实现从人工操作到 Agent 自动化的第一个闭环`,
-      context: '',
-      as_is: '',
-      to_be: '',
-      success_criteria: [
-        { metric: 'Agent 自动化覆盖率', baseline: '0%', target: '≥70%', method: 'M3 审计', checkpoint: 'M3' },
-        { metric: '里程碑按时完成率', baseline: '—', target: 'M0-M3 全部在目标日期内', method: 'M3 审计', checkpoint: 'M3' },
-        { metric: '审计通过', baseline: '—', target: '@Eva 审计结论为通过', method: 'M3 审计', checkpoint: 'M3' },
-      ],
-      risks: [
-        { risk: 'API 权限审批延迟', level: 'mid', mitigation: '提前 2 周发送权限申请清单', owner: '' },
-        { risk: 'Agent 输出质量不达预期', level: 'low', mitigation: 'LangSmith 全链路追踪 + 每周抽查', owner: '' },
-      ],
-      cadence: [
-        { type: '周会', frequency: '每周固定时间', duration: '30 min', owner: '@Lumen' },
-        { type: '月度 QBR', frequency: '每月一次', duration: '60 min', owner: '@Lumen' },
-        { type: '里程碑验收', frequency: '每个 M 节点', duration: '按需', owner: '双方' },
-      ],
-      credentials: [],
-      signed_m1: false,
-      signed_m3: false,
-      evidence_count: 0,
-      modules_filled: 3,
-    },
-    audit: {
-      health: 'yellow',
-      last_audit: null,
-      conclusion: null,
-      next_action: '等待 @Lumen 完成 MCSP 初稿，与客户确认成功标准后推进 M1 签认',
-      eva_note: null,
-    },
-    client: {
-      name: tenantName,
-      display_name: tenantName,
-      contract_start: contractStart,
-      plan_period: `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`,
-      lumen: 'Lumen',
-      sega: 'Sega',
-      client_lead: '',
-    },
-    update_log: [
-      { date: today, author: '@Lumen', note: 'MCSP 自动初始化，M0 已完成，M1 正式启动' },
-    ],
+    // MCSP 内容由 @Lumen 写入，新建后保持空白
   }
 }
 
@@ -269,12 +149,13 @@ export default async function DashboardPage() {
   const composioMcp = (user.user_metadata as Record<string, unknown> | null)?.composio_mcp as Record<string, unknown> | null
   const composioConnected = !!(composioMcp?.access_token)
 
-  // ─── Composio 已连接工具数（用平台 API Key 查）────────────────────────────────
+  // ─── Composio 已连接工具数（用用户自己的 token 查，按用户隔离）──────────────────────────
   let composioToolCount = 0
-  if (composioConnected && process.env.COMPOSIO_API_KEY) {
+  if (composioConnected && composioMcp?.access_token) {
     try {
+      const userToken = composioMcp.access_token as string
       const res = await fetch('https://backend.composio.dev/api/v1/connectedAccounts?status=ACTIVE&limit=100', {
-        headers: { 'x-api-key': process.env.COMPOSIO_API_KEY },
+        headers: { 'Authorization': `Bearer ${userToken}` },
         next: { revalidate: 60 },
       })
       if (res.ok) {
