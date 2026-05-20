@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase-client'
 import { AgentIcon } from '@/components/agent-icon'
 import {
   Card,
@@ -298,11 +299,19 @@ function AgentCardDialog({
   const active = isActive(agent)
   const timestamp = agent.updated_at ?? agent.created_at
 
-  // ── Experience notes state ──
-  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string }>>([])
+    // ── Experience notes state ──
+  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; author?: string }>>([])
   const [noteInput, setNoteInput] = useState('')
   const [notesLoading, setNotesLoading] = useState(false)
   const [noteSaving, setNoteSaving] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }: { data: { user: { email?: string } | null } }) => {
+      setUserEmail(data.user?.email ?? null)
+    })
+  }, [])
 
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true)
@@ -326,7 +335,7 @@ function AgentCardDialog({
       const res = await fetch('/api/agent-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim() }),
+        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim(), author: userEmail ?? 'anonymous' }),
       })
       if (res.ok) {
         setNoteInput('')
@@ -569,7 +578,12 @@ function AgentCardDialog({
                     notes.map((n) => (
                       <div key={n.id} className="border-l-2 border-border pl-3 py-0.5">
                         <p className="text-xs leading-relaxed whitespace-pre-wrap">{n.content}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1 font-mono">{formatDate(n.created_at)}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {n.author && n.author !== 'anonymous' && (
+                            <span className="text-[10px] text-muted-foreground font-mono">{n.author}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground font-mono">{formatDate(n.created_at)}</span>
+                        </div>
                       </div>
                     ))
                   )}
