@@ -262,6 +262,33 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(10)
 
+  // ─── Composio 连接状态（从 user_metadata 读取，刷新后不丢失）────────────────────────────────
+  const composioMcp = (user.user_metadata as Record<string, unknown> | null)?.composio_mcp as Record<string, unknown> | null
+  const composioConnected = !!(composioMcp?.access_token)
+
+  // ─── Composio 已连接工具数（用平台 API Key 查）────────────────────────────────
+  let composioToolCount = 0
+  if (composioConnected && process.env.COMPOSIO_API_KEY) {
+    try {
+      const res = await fetch('https://backend.composio.dev/api/v1/connectedAccounts?status=ACTIVE&limit=100', {
+        headers: { 'x-api-key': process.env.COMPOSIO_API_KEY },
+        next: { revalidate: 60 },
+      })
+      if (res.ok) {
+        const data = await res.json() as { items?: unknown[] }
+        composioToolCount = data.items?.length ?? 0
+      }
+    } catch {
+      // 查询失败不影响页面加载
+    }
+  }
+
+  // ─── 平台可用 Agent 总数（从 agent_registry 读）────────────────────────────────────────────
+  const { count: agentCount } = await adminClient
+    .from('agent_registry')
+    .select('id', { count: 'exact', head: true })
+    .eq('enabled', true)
+
   return (
     <Suspense>
       <DashboardClient
@@ -274,6 +301,9 @@ export default async function DashboardPage() {
         githubBindings={githubBindings ?? []}
         connectors={connectors ?? []}
         auditLogs={auditLogs ?? []}
+        composioConnected={composioConnected}
+        composioToolCount={composioToolCount}
+        agentCount={agentCount ?? 0}
       />
     </Suspense>
   )

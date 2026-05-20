@@ -75,6 +75,9 @@ interface Props {
   githubBindings: GitHubBinding[]
   connectors: Connector[]
   auditLogs: AuditLog[]
+  composioConnected: boolean
+  composioToolCount: number
+  agentCount: number
 }
 
 const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
@@ -188,6 +191,9 @@ export function DashboardClient({
   githubBindings: _githubBindings,
   connectors: _connectors,
   auditLogs,
+  composioConnected: initialComposioConnected,
+  composioToolCount,
+  agentCount,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -398,9 +404,9 @@ export function DashboardClient({
 
   const connectedAgents = mcpTools
 
-  // Composio 连接器状态
+  // Composio 连接器状态（初始值从服务端 user_metadata 读取，刷新后不丢失）
   const [composioConnecting, setComposioConnecting] = useState(false)
-  const [composioConnected, setComposioConnected] = useState(false)
+  const [composioConnected, setComposioConnected] = useState(initialComposioConnected)
   const searchParams = useSearchParams()
 
   const handleComposioConnect = async () => {
@@ -615,7 +621,7 @@ export function DashboardClient({
             </div>
             {composioConnected ? (
               <span className="text-xs text-[oklch(0.65_0.18_145)] font-medium flex items-center gap-1">
-                <Check className="w-3 h-3" /> 已连接
+                <Check className="w-3 h-3" /> 已连接{composioToolCount > 0 ? ` · ${composioToolCount} 个工具` : ''}
               </span>
             ) : (
               <Button
@@ -791,10 +797,10 @@ export function DashboardClient({
         </div>
 
         {/* AGENT */}
-        <CollapsibleSection title="AGENT" count={String(connectedAgents.length)}>
+        <CollapsibleSection title="AGENT" count={agentCount > 0 ? String(agentCount) : undefined}>
           {connectedAgents.length === 0 ? (
             <div className="px-4 py-4 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
+              <span className="text-xs text-muted-foreground font-mono">{agentCount > 0 ? `平台共 ${agentCount} 个 Agent 可用，在 Agent Wiki 浏览并开启。` : '暂无可用 Agent。'}</span>
               <Link href="/marketplace">
                 <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
               </Link>
