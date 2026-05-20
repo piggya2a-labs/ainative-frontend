@@ -13,6 +13,16 @@ import {
   Lock, Zap, Activity, MessageCircle, Key, Download, Loader2
 } from 'lucide-react'
 
+// ─── ONIT LIVE BOARD 设计理念（founder_intent, 2026-05-21）─────────────────────
+// ONIT LIVE BOARD 本身，就是一个 Agentic 的持久化工作队列和状态机。
+// 它作为 Agent & Human 的 SSOT 唯一真相，以结果和成功为导向，给每个任务明确的状态。
+// triage → todo → ready → running → blocked → done。
+// 在这个基础上，参考 @Hermes Kanban。
+// 我们给 Building 的每个任务，配有一个长期运行的循环，每 60 秒扫一次，
+// 根据不同的任务状态，自动检查对应的 ONIT Agent、进入运行队列。
+// 看板不只是展示，而是活着的调度引擎。
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
 function Section({ icon: Icon, title, subtitle, children }: {
   icon: React.ElementType
