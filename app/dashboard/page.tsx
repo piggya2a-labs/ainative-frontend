@@ -132,12 +132,8 @@ export default async function DashboardPage() {
   let tenant = tenantRaw
   if (tenant && !(tenant.metadata as Record<string, unknown> | null)?.share_token) {
     const defaultMeta = buildDefaultMcspMetadata(tenant.name, tenant.slug, tenant.created_at)
-    // 用 service role 写入（anon key 可能受 RLS 限制）
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    const { data: updated } = await adminClient
+    // 用已认证的 supabase client 写入（满足 RLS，用户已登录）
+    const { data: updated } = await supabase
       .from('tenants')
       .update({ metadata: defaultMeta })
       .eq('id', tenant.id)
