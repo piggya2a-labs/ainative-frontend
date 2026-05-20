@@ -552,7 +552,7 @@ export function DashboardClient({
           )}
         </CollapsibleSection>
 
-        {/* 我的项目（所有 tenant，可增删改） */}
+        {/* 我的项目（所有 tenant，可增删改，每行可展开数字卡片） */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">我的项目</span>
@@ -565,77 +565,91 @@ export function DashboardClient({
               const tMeta = t.metadata as {
                 share_token?: string
                 current_milestone?: string
-                milestones?: Array<{ id: string; status: string; name: string }>
+                milestones?: Array<{ id: string; order: number; status: string; tasks_total: number; tasks_done: number; name: string }>
+                audit?: { health: string; conclusion: string | null }
+                client?: { contract_start: string }
               } | null
               const tLiveUrl = getLiveUrl(t)
               const tMilestones = Array.isArray(tMeta?.milestones) ? tMeta!.milestones : []
+              const tDone = tMilestones.filter(m => m.status === 'done').length
+              const tTotal = tMilestones.length || 4
               const tCurrentM = tMeta?.current_milestone ? tMilestones.find(m => m.id === tMeta.current_milestone) : null
+              const tProgress = tMilestones.length > 0 ? Math.round((tDone / tTotal) * 100) : null
+              const tStartDate = tMeta?.client?.contract_start || t.created_at
+              const tRunDays = tStartDate ? Math.floor((Date.now() - new Date(tStartDate).getTime()) / (1000 * 60 * 60 * 24)) : null
+              const tHealth = tMeta?.audit?.health
               const tStatus = tCurrentM
                 ? `${tCurrentM.id} ${tCurrentM.name} · 进行中`
                 : tMilestones.length > 0
-                  ? `${tMilestones.filter(m => m.status === 'done').length}/${tMilestones.length} 完成`
+                  ? `${tDone}/${tTotal} 完成`
                   : 'ONIT 全局试运行'
 
               return (
-                <div key={t.id} className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[10px] font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0">P{idx + 1}</span>
-                    <div className="min-w-0">
-                      <span className="text-sm font-medium block truncate">{t.name}</span>
-                      <span className="text-xs text-muted-foreground block truncate">{tStatus}</span>
+                <Collapsible key={t.id}>
+                  {/* 主行 */}
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="text-[10px] font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0">P{idx + 1}</span>
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium block truncate">{t.name}</span>
+                        <span className="text-xs text-muted-foreground block truncate">{tStatus}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {tLiveUrl ? (
+                        <Link href={tLiveUrl} target="_blank">
+                          <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={() => posthog?.capture('dashboard_project_live_click', { tenant: t.name })}>
+                            Live 看板 <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-6 text-xs gap-1 opacity-50" disabled>待初始化</Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => { setRenamingTenant(t); setRenameValue(t.name) }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      {confirmDeleteId === t.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button variant="destructive" size="sm" className="h-6 text-[10px] px-2" onClick={() => handleDeleteTenant(t.id)} disabled={deletingTenantId === t.id}>
+                            {deletingTenantId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '确认删除'}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setConfirmDeleteId(null)}>取消</Button>
+                        </div>
+                      ) : (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDeleteId(t.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {/* 展开箭头 */}
+                      <CollapsibleTrigger className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:bg-muted/60 transition-colors">
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200" />
+                      </CollapsibleTrigger>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {tLiveUrl ? (
-                      <Link href={tLiveUrl} target="_blank">
-                        <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={() => posthog?.capture('dashboard_project_live_click', { tenant: t.name })}>
-                          Live 看板 <ExternalLink className="w-3 h-3" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button variant="outline" size="sm" className="h-6 text-xs gap-1 opacity-50" disabled>待初始化</Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => { setRenamingTenant(t); setRenameValue(t.name) }}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    {confirmDeleteId === t.id ? (
-                      <div className="flex items-center gap-1">
-                        <Button variant="destructive" size="sm" className="h-6 text-[10px] px-2" onClick={() => handleDeleteTenant(t.id)} disabled={deletingTenantId === t.id}>
-                          {deletingTenantId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '确认删除'}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setConfirmDeleteId(null)}>取消</Button>
-                      </div>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDeleteId(t.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  {/* 展开的数字卡片 */}
+                  <CollapsibleContent>
+                    <div className="px-4 pb-3 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-muted/20 border-t border-border">
+                      {[
+                        { label: '里程碑', value: tMilestones.length > 0 ? `${tDone}/${tTotal}` : '—', sub: 'M0 → M3' },
+                        { label: '当前进度', value: tProgress !== null ? `${tProgress}%` : '—', sub: tCurrentM ? `${tCurrentM.id} · ${tCurrentM.name}` : tMeta?.current_milestone ?? '—' },
+                        { label: '运行天数', value: tRunDays !== null ? String(tRunDays) : '—', sub: tStartDate ? formatDate(tStartDate) : '—' },
+                        { label: '健康度', value: tHealth === 'green' ? '健康' : tHealth === 'yellow' ? '关注' : tHealth === 'red' ? '风险' : '—', sub: tMeta?.audit?.conclusion ? '已审计' : '待 @Eva 审计', healthColor: tHealth },
+                      ].map(({ label, value, sub, healthColor }) => (
+                        <div key={label} className="border border-border rounded-lg px-3 py-2.5 bg-background">
+                          <p className="text-[10px] text-muted-foreground">{label}</p>
+                          <p className="text-base font-bold mt-0.5" style={healthColor ? { color: healthColor === 'green' ? 'var(--onit-green)' : healthColor === 'yellow' ? 'var(--onit-amber)' : healthColor === 'red' ? 'var(--destructive)' : undefined } : undefined}>
+                            {value}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )
             })}
           </div>
         </div>
-
-        {/* 汇总数字 */}
-        {meta && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { label: '里程碑', value: milestones.length > 0 ? `${doneMilestones}/${totalMilestones}` : '—', sub: 'M0 → M3' },
-              { label: '当前进度', value: overallProgress !== null ? `${overallProgress}%` : '—', sub: currentM ? `${currentM.id} · ${currentM.name}` : meta.current_milestone ?? '—' },
-              { label: '运行天数', value: runDays !== null ? String(runDays) : '—', sub: startDate ? formatDate(startDate) : '—' },
-              { label: '健康度', value: health === 'green' ? '健康' : health === 'yellow' ? '关注' : health === 'red' ? '风险' : '—', sub: meta.audit?.conclusion ? '已审计' : '待 @Eva 审计', healthColor: health },
-            ].map(({ label, value, sub, healthColor }) => (
-              <div key={label} className="border border-border rounded-lg px-3 py-2.5">
-                <p className="text-[10px] text-muted-foreground">{label}</p>
-                <p className="text-lg font-bold mt-0.5" style={healthColor ? { color: healthColor === 'green' ? 'var(--onit-green)' : healthColor === 'yellow' ? 'var(--onit-amber)' : healthColor === 'red' ? 'var(--destructive)' : undefined } : undefined}>
-                  {value}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* 审计视图 */}
         <div className="border border-border rounded-lg overflow-hidden">
