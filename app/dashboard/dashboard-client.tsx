@@ -18,6 +18,7 @@ import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
+import { AgentIcon } from '@/components/agent-icon'
 
 interface ApiKey {
   id: string
@@ -45,6 +46,9 @@ interface McpTool {
   description: string
   skills: Array<{ id: string; name: string; description: string }>
   connected_at: string
+  icon_url?: string | null
+  mcp_url?: string | null
+  url?: string | null
 }
 
 type Connector = Pick<ConnectorRow, 'id' | 'agent_id' | 'status' | 'metadata' | 'created_at'>
@@ -809,9 +813,18 @@ export function DashboardClient({
             <div className="divide-y divide-border">
               {connectedAgents.map((agent) => (
                 <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium block truncate">{agent.name}</span>
-                    {agent.description && <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <AgentIcon
+                      name={agent.name}
+                      iconUrl={agent.icon_url}
+                      mcpUrl={agent.mcp_url}
+                      url={agent.url}
+                      size={24}
+                    />
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium block truncate">{agent.name}</span>
+                      {agent.description && <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>

@@ -221,7 +221,7 @@ export default async function DashboardPage() {
   const { data: mcpAgentCards } = mcpAgentIds.length > 0
     ? await supabase
         .from('agent_registry')
-        .select('id, name, description, skills')
+        .select('id, name, description, skills, icon_url, mcp_url, url')
         .in('id', mcpAgentIds)
     : { data: [] }
 
@@ -235,6 +235,9 @@ export default async function DashboardPage() {
       description: card?.description ?? '',
       skills: (card?.skills ?? []) as Array<{ id: string; name: string; description: string }>,
       connected_at: c.created_at,
+      icon_url: card?.icon_url ?? null,
+      mcp_url: card?.mcp_url ?? null,
+      url: card?.url ?? null,
     }
   })
 

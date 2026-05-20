@@ -1,6 +1,6 @@
 'use client'
-
 import { useState } from 'react'
+import { AgentIcon } from '@/components/agent-icon'
 import {
   Card,
   CardHeader,
@@ -194,6 +194,14 @@ export function AgentCard({
         <CardHeader>
           {/* Title + status */}
           <div className="flex items-start gap-2">
+            <AgentIcon
+              name={agent.name}
+              iconUrl={agent.icon_url}
+              mcpUrl={agent.mcp_url}
+              url={agent.url}
+              size={20}
+              className="mt-0.5 shrink-0"
+            />
             <DialogTrigger
               render={<button className="font-heading text-base leading-snug font-medium cursor-pointer hover:underline underline-offset-2 text-left" />}
             >
