@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
-  Lock, Zap, Activity, MessageCircle
+  Lock, Zap, Activity, MessageCircle, Key
 } from 'lucide-react'
 
 // ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
@@ -54,28 +54,56 @@ function ComingSoon({ source }: { source?: string }) {
   )
 }
 
+// ─── 待填写标签 ───────────────────────────────────────────────────────────────
+function Pending() {
+  return <span className="text-sm text-muted-foreground/50 italic">待填写</span>
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MilestoneTask { name: string; done: boolean; owner: string }
 interface MilestoneData {
+  id: string
+  order: number
   status: 'done' | 'in_progress' | 'pending'
   name: string
-  completed_at?: string
-  started_at?: string
-  target_date?: string
+  completed_at?: string | null
+  started_at?: string | null
+  target_date?: string | null
   tasks_total: number
   tasks_done: number
   owner: string
   tasks?: MilestoneTask[]
 }
+interface RiskItem {
+  risk: string
+  level: 'high' | 'mid' | 'low'
+  mitigation: string
+  owner: string
+}
+interface CadenceItem {
+  type: string
+  frequency: string
+  duration: string
+  owner: string
+}
+interface CredentialItem {
+  name: string
+  type: string
+  note?: string
+}
 interface TenantMetadata {
   share_token: string
   current_milestone: string
-  milestones: { M0: MilestoneData; M1: MilestoneData; M2: MilestoneData; M3: MilestoneData }
+  milestones: MilestoneData[]
   mcsp: {
     goal: string
-    as_is?: string[]
-    to_be?: string[]
+    context?: string
+    as_is?: string | string[]
+    to_be?: string | string[]
     success_criteria?: { metric: string; baseline: string; target: string; method: string; checkpoint: string }[]
+    risks?: RiskItem[]
+    cadence?: CadenceItem[]
+    credentials?: CredentialItem[]
     signed_m1: boolean
     signed_m3: boolean
     evidence_count: number
@@ -128,11 +156,29 @@ function healthColor(h: string) {
   if (h === 'yellow') return 'var(--onit-amber)'
   return 'var(--destructive)'
 }
+function riskLevelLabel(level: string) {
+  if (level === 'high') return '高'
+  if (level === 'mid') return '中'
+  return '低'
+}
+function riskLevelVariant(level: string): 'destructive' | 'secondary' | 'outline' {
+  if (level === 'high') return 'destructive'
+  if (level === 'mid') return 'secondary'
+  return 'outline'
+}
+// as_is / to_be 可能是字符串或数组，统一转数组
+function toLines(val: string | string[] | undefined): string[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val.filter(Boolean)
+  return val.split('\n').filter(Boolean)
+}
 
 // ─── MCSP Tab（复用 how-we-work MutualSuccessPlan 结构）─────────────────────
-function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyCount: number; runDays: number }) {
+function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
   const { milestones, mcsp, audit, client } = meta
-  const doneMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3].filter(m => m.status === 'done').length
+  const doneMilestones = milestones.filter(m => m.status === 'done').length
+  const asIsLines = toLines(mcsp.as_is)
+  const toBeLines = toLines(mcsp.to_be)
 
   return (
     <div className="space-y-8">
@@ -174,7 +220,6 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
       <Section icon={Target} title="1. 目标与背景" subtitle="我们双方对「这次合作是什么」的共同认知">
         <Card>
           <CardContent className="pt-4 space-y-0">
-            {/* 复用 FieldRow 结构，填真实数据 */}
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户名称</span>
               <span className="text-sm">{client.display_name}</span>
@@ -189,15 +234,21 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
             </div>
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户负责人</span>
-              <span className="text-sm">{client.client_lead}</span>
+              <span className="text-sm">{client.client_lead || <Pending />}</span>
             </div>
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">合同开始日期</span>
               <span className="text-sm font-mono">{client.contract_start}</span>
             </div>
+            {mcsp.context && (
+              <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+                <span className="text-xs text-muted-foreground pt-0.5 font-medium">背景说明</span>
+                <span className="text-sm leading-relaxed">{mcsp.context}</span>
+              </div>
+            )}
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">合作目标</span>
-              <span className="text-sm leading-relaxed">{mcsp.goal}</span>
+              <span className="text-sm leading-relaxed">{mcsp.goal || <Pending />}</span>
             </div>
           </CardContent>
         </Card>
@@ -212,14 +263,12 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
               <CardDescription className="text-xs">我们现在的处境</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {mcsp.as_is && mcsp.as_is.length > 0 ? mcsp.as_is.map((item, i) => (
+              {asIsLines.length > 0 ? asIsLines.map((item, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
                   <span className="text-sm">{item}</span>
                 </div>
-              )) : (
-                <span className="text-sm text-muted-foreground/50 italic">@Lumen 填写中</span>
-              )}
+              )) : <Pending />}
             </CardContent>
           </Card>
           <Card className="border-border">
@@ -228,14 +277,12 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
               <CardDescription className="text-xs">3 个月后我们希望庆祝什么</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {mcsp.to_be && mcsp.to_be.length > 0 ? mcsp.to_be.map((item, i) => (
+              {toBeLines.length > 0 ? toBeLines.map((item, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
                   <span className="text-sm">{item}</span>
                 </div>
-              )) : (
-                <span className="text-sm text-muted-foreground/50 italic">@Lumen 填写中</span>
-              )}
+              )) : <Pending />}
             </CardContent>
           </Card>
         </div>
@@ -269,7 +316,7 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
                   ))
                 ) : (
                   <TableRow className="opacity-40">
-                    <TableCell className="text-sm italic text-muted-foreground" colSpan={5}>@Lumen 填写中</TableCell>
+                    <TableCell className="text-sm italic text-muted-foreground" colSpan={5}>待填写</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -295,7 +342,7 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
                 {[
                   ['客户成功经理 @Lumen', `@${client.lumen}`, '整体进度跟踪、周会主持、风险上报——单一责任人', client.telegram_handle ? `@${client.telegram_handle}` : '—'],
                   ['执行工程师 @Sega', `@${client.sega}`, 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
-                  ['客户负责人', client.client_lead, '推动项目、协调资源、最终验收签字', '—'],
+                  ['客户负责人', client.client_lead || '待填写', '推动项目、协调资源、最终验收签字', '—'],
                 ].map(([role, name, scope, contact], i) => (
                   <TableRow key={i}>
                     <TableCell className="text-sm font-medium">{role}</TableCell>
@@ -317,7 +364,7 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px] text-xs">阶段</TableHead>
+                  <TableHead className="w-[80px] text-xs">阶段</TableHead>
                   <TableHead className="text-xs">名称</TableHead>
                   <TableHead className="text-xs">目标日期</TableHead>
                   <TableHead className="text-xs">Owner</TableHead>
@@ -326,38 +373,40 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => {
-                  const m = milestones[phase]
-                  const isCurrent = phase === meta.current_milestone
-                  const signed = phase === 'M1' ? mcsp.signed_m1 : phase === 'M3' ? mcsp.signed_m3 : m.status === 'done'
-                  return (
-                    <TableRow key={phase} className={isCurrent ? 'bg-muted/30' : ''}>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs">{phase}</Badge>
-                        {isCurrent && <Badge variant="secondary" className="text-xs ml-1">当前</Badge>}
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">{m.name}</TableCell>
-                      <TableCell className="text-sm font-mono text-muted-foreground">
-                        {m.completed_at ?? m.target_date ?? '—'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{m.owner}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
-                          className="text-xs"
-                        >
-                          {milestoneStatusLabel(m.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {signed
-                          ? <span className="text-xs" style={{ color: 'var(--onit-green)' }}>✓ 已签认</span>
-                          : <span className="text-xs text-muted-foreground">待签认</span>
-                        }
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
+                {milestones
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((m) => {
+                    const isCurrent = m.id === meta.current_milestone
+                    const signed = m.id === 'M1' ? mcsp.signed_m1 : m.id === 'M3' ? mcsp.signed_m3 : m.status === 'done'
+                    return (
+                      <TableRow key={m.id} className={isCurrent ? 'bg-muted/30' : ''}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
+                          {isCurrent && <Badge variant="secondary" className="text-xs ml-1">当前</Badge>}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">{m.name}</TableCell>
+                        <TableCell className="text-sm font-mono text-muted-foreground">
+                          {m.completed_at ?? m.target_date ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{m.owner}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                            className="text-xs"
+                          >
+                            {milestoneStatusLabel(m.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {signed
+                            ? <span className="text-xs" style={{ color: 'var(--onit-green)' }}>✓ 已签认</span>
+                            : <span className="text-xs text-muted-foreground">待签认</span>
+                          }
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
               </TableBody>
             </Table>
           </CardContent>
@@ -368,39 +417,35 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
       <Section icon={AlertTriangle} title="6. 风险登记（Risk Register）" subtitle="提前写下可能让我们卡住的事">
         <Card>
           <CardContent className="pt-4 space-y-4">
-            <Callout text={`证据链完整度：${mcsp.evidence_count} 条。未缓解高风险数：${mcsp.success_criteria?.length ?? 0} 项成功标准待验收。`} />
+            <Callout text={`证据链完整度：${mcsp.evidence_count} 条。成功标准待验收：${mcsp.success_criteria?.length ?? 0} 项。`} />
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">风险描述</TableHead>
-                  <TableHead className="text-xs">概率</TableHead>
-                  <TableHead className="text-xs">影响</TableHead>
+                  <TableHead className="text-xs">等级</TableHead>
                   <TableHead className="text-xs">缓解措施</TableHead>
                   <TableHead className="text-xs">Owner</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell className="text-sm">API 权限审批延迟</TableCell>
-                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
-                  <TableCell><Badge variant="destructive" className="text-xs">高</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">提前 2 周发送权限申请清单</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{client.client_lead}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="text-sm">Agent 输出质量不达预期</TableCell>
-                  <TableCell><Badge variant="secondary" className="text-xs">低</Badge></TableCell>
-                  <TableCell><Badge variant="destructive" className="text-xs">高</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">LangSmith 全链路追踪 + 每周抽查</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">@{client.sega}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="text-sm">MCP 接入状态</TableCell>
-                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
-                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground"><ComingSoon source="LangSmith" /></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">@{client.sega}</TableCell>
-                </TableRow>
+                {mcsp.risks && mcsp.risks.length > 0 ? (
+                  mcsp.risks.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-sm">{r.risk}</TableCell>
+                      <TableCell>
+                        <Badge variant={riskLevelVariant(r.level)} className="text-xs">
+                          {riskLevelLabel(r.level)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.mitigation || '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.owner || '—'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow className="opacity-40">
+                    <TableCell className="text-sm italic text-muted-foreground" colSpan={4}>待填写</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -416,19 +461,19 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
               <CardDescription className="text-xs">定期见面是我们保持对齐的方式</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {[
-                ['周会', '每周固定时间', '进度和卡点更新，15-30 分钟', '30 min'],
-                ['月度 QBR', '每月一次', '回顾成功标准指标，调整计划', '60 min'],
-                ['里程碑验收', '每个 M 节点', '交付物确认，双方签字', '按需'],
-              ].map(([name, time, agenda, duration], i) => (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{name}</div>
-                    <div className="text-xs text-muted-foreground">{time} · {agenda}</div>
+              {mcsp.cadence && mcsp.cadence.length > 0 ? (
+                mcsp.cadence.map((c, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{c.type}</div>
+                      <div className="text-xs text-muted-foreground">{c.frequency} · {c.owner}</div>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">{c.duration}</Badge>
                   </div>
-                  <Badge variant="outline" className="text-xs shrink-0">{duration}</Badge>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="py-2 text-sm text-muted-foreground/50 italic">待填写</div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -452,6 +497,37 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
             </CardContent>
           </Card>
         </div>
+      </Section>
+
+      {/* Block 8: 凭证清单 */}
+      <Section icon={Key} title="8. 凭证清单（Credentials）" subtitle="集成所需的账号、API Key 和权限清单">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            <Callout text="凭证由 @Lumen 在 Telegram 对话中更新，不在此处直接填写明文。仅记录名称和状态。" />
+            {mcsp.credentials && mcsp.credentials.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">名称</TableHead>
+                    <TableHead className="text-xs">类型</TableHead>
+                    <TableHead className="text-xs">备注</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mcsp.credentials.map((c, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-sm font-medium">{c.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{c.type}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{c.note || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-2 text-sm text-muted-foreground/50 italic">待填写</div>
+            )}
+          </CardContent>
+        </Card>
       </Section>
 
       {/* @Eva 审计结论 */}
@@ -488,15 +564,15 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
+function OmtTab({ meta, runDays, overallProgress }: {
   meta: TenantMetadata
-  apiKeyCount: number
   runDays: number
   overallProgress: number
 }) {
   const { milestones, mcsp, audit, client } = meta
-  const doneMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3].filter(m => m.status === 'done').length
+  const doneMilestones = milestones.filter(m => m.status === 'done').length
   const inProgressMilestone = meta.current_milestone
+  const currentM = milestones.find(m => m.id === inProgressMilestone)
 
   return (
     <div className="space-y-8">
@@ -514,7 +590,7 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
         <div className="grid grid-cols-3 gap-3 pt-2">
           {[
             { label: '更新频率', desc: '每次 cadence 会议前更新，或有卡点变化时随时更新' },
-            { label: '主要读者', desc: `${client.client_lead} 日常跟进——需要知道「今天该做什么」` },
+            { label: '主要读者', desc: `${client.client_lead || '客户负责人'} 日常跟进——需要知道「今天该做什么」` },
             { label: 'Agent 用途', desc: 'Agent 读取 MCSP 里程碑结构自动生成初始进度表，并在每次任务完成后自动更新' },
           ].map(({ label, desc }) => (
             <div key={label} className="rounded-lg border border-border/50 p-3 space-y-1">
@@ -527,7 +603,7 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
 
       <Separator />
 
-      {/* 总览卡片（#1-6 数字卡片）*/}
+      {/* 总览卡片（#1-8 数字卡片）*/}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* #1 账号存活天数 */}
         <Card>
@@ -607,20 +683,20 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
             </div>
           </CardContent>
         </Card>
-        {/* 里程碑完成数 */}
+        {/* #7 里程碑完成数 */}
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">里程碑完成</p>
-                <p className="text-2xl font-bold mt-1">{doneMilestones}<span className="text-sm text-muted-foreground font-normal">/4</span></p>
+                <p className="text-2xl font-bold mt-1">{doneMilestones}<span className="text-sm text-muted-foreground font-normal">/{milestones.length}</span></p>
                 <p className="text-xs text-muted-foreground mt-1">M0 → M3</p>
               </div>
               <Flag className="w-4 h-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
-        {/* 整体进度 */}
+        {/* #8 整体进度 */}
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
@@ -635,33 +711,36 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
         </Card>
       </div>
 
-      {/* 进度条区（#7-11）*/}
+      {/* 进度条区（#9-13）*/}
       <Section icon={Layers} title="任务完成进度" subtitle="OMT 任务完成率 + MCSP 填写率 + Agent 占比">
         <Card>
           <CardContent className="pt-4 space-y-4">
-            {/* #7-9 OMT 任务完成率 M0/M1/M2 */}
-            {(['M0', 'M1', 'M2'] as const).map((phase) => {
-              const m = milestones[phase]
-              const pct = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
-              return (
-                <div key={phase} className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>OMT 任务完成率 {phase}</span>
-                    <span>{m.tasks_done}/{m.tasks_total}</span>
+            {/* OMT 任务完成率（按 milestones 数组，排除 M3）*/}
+            {milestones
+              .slice()
+              .sort((a, b) => a.order - b.order)
+              .filter(m => m.id !== 'M3')
+              .map((m) => {
+                const pct = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
+                return (
+                  <div key={m.id} className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>OMT 任务完成率 {m.id}</span>
+                      <span>{m.tasks_done}/{m.tasks_total}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: m.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)',
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: m.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)',
-                      }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-            {/* #10 MCSP 七模块填写率 */}
+                )
+              })}
+            {/* MCSP 七模块填写率 */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>MCSP 七模块填写率</span>
@@ -670,11 +749,11 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
-                  style={{ width: `${Math.round((mcsp.modules_filled / 7) * 100)}%`, backgroundColor: 'var(--onit-blue)' }}
+                  style={{ width: `${Math.round((mcsp.modules_filled / 7) * 100)}%`, backgroundColor: 'var(--onit-blue, #3b82f6)' }}
                 />
               </div>
             </div>
-            {/* #11 Agent 占比 */}
+            {/* Agent 占比 */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Agent 占比（Agent vs 人工）</span>
@@ -691,84 +770,86 @@ function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
         </Card>
       </Section>
 
-      {/* 实施阶段进度（#12-16 状态 + 任务列表）*/}
+      {/* 实施阶段进度（#14-17 状态 + 任务列表）*/}
       <Section icon={Layers} title="实施阶段进度" subtitle="每个阶段下面列出具体可执行的任务——完成后勾选，进度条自动更新">
         <div className="space-y-3">
-          {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => {
-            const m = milestones[phase]
-            const isCurrent = phase === meta.current_milestone
-            const progress = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
-            return (
-              <Card key={phase} className={isCurrent ? 'ring-1 ring-border' : ''}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="font-mono text-xs">{phase}</Badge>
-                      <CardTitle className="text-sm font-semibold">{m.name}</CardTitle>
-                      {isCurrent && <Badge variant="secondary" className="text-xs">当前</Badge>}
+          {milestones
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((m) => {
+              const isCurrent = m.id === meta.current_milestone
+              const progress = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
+              return (
+                <Card key={m.id} className={isCurrent ? 'ring-1 ring-border' : ''}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
+                        <CardTitle className="text-sm font-semibold">{m.name}</CardTitle>
+                        {isCurrent && <Badge variant="secondary" className="text-xs">当前</Badge>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {m.completed_at ?? m.target_date ?? '—'}
+                        </span>
+                        <Badge
+                          variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                          className="text-xs"
+                        >
+                          {milestoneStatusLabel(m.status)}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {m.completed_at ?? m.target_date ?? '—'}
-                      </span>
-                      <Badge
-                        variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
-                        className="text-xs"
-                      >
-                        {milestoneStatusLabel(m.status)}
-                      </Badge>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>进度</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${progress}%`,
+                            backgroundColor: m.status === 'done'
+                              ? 'var(--onit-green)'
+                              : m.status === 'in_progress'
+                              ? 'var(--foreground)'
+                              : 'var(--muted-foreground)',
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>进度</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${progress}%`,
-                          backgroundColor: m.status === 'done'
-                            ? 'var(--onit-green)'
-                            : m.status === 'in_progress'
-                            ? 'var(--foreground)'
-                            : 'var(--muted-foreground)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                </CardHeader>
-                {m.tasks && m.tasks.length > 0 && (
-                  <CardContent className="pt-0">
-                    <div className="space-y-1.5">
-                      {m.tasks.map((task, i) => (
-                        <div key={i} className="flex items-center gap-2.5 py-1">
-                          <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
-                            task.done ? 'bg-foreground border-foreground' : 'border-border'
-                          }`}>
-                            {task.done && (
-                              <svg className="w-2.5 h-2.5 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
+                  </CardHeader>
+                  {m.tasks && m.tasks.length > 0 && (
+                    <CardContent className="pt-0">
+                      <div className="space-y-1.5">
+                        {m.tasks.map((task, i) => (
+                          <div key={i} className="flex items-center gap-2.5 py-1">
+                            <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                              task.done ? 'bg-foreground border-foreground' : 'border-border'
+                            }`}>
+                              {task.done && (
+                                <svg className="w-2.5 h-2.5 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-sm flex-1 ${task.done ? 'line-through text-muted-foreground' : ''}`}>
+                              {task.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground shrink-0">{task.owner}</span>
                           </div>
-                          <span className={`text-sm flex-1 ${task.done ? 'line-through text-muted-foreground' : ''}`}>
-                            {task.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground shrink-0">{task.owner}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            )
-          })}
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              )
+            })}
         </div>
       </Section>
 
-      {/* 当前卡点 & 下一步行动（#29 下一步行动）*/}
+      {/* 当前卡点 & 下一步行动 */}
       <Section icon={AlertTriangle} title="当前卡点 & 下一步行动" subtitle="现在有什么在拖慢我们？每个卡点必须有下一步行动和 Owner">
         <Card>
           <CardContent className="pt-4">
@@ -860,7 +941,7 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
   const posthog = usePostHog()
 
   useEffect(() => {
-    posthog?.capture('page_view', {
+    posthog?.capture('live_board_view', {
       page: 'live_report',
       tenant_id: tenantId,
       tenant_name: tenantName,
@@ -904,11 +985,11 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
         </TabsList>
 
         <TabsContent value="mcsp">
-          <McspTab meta={meta} apiKeyCount={apiKeyCount} runDays={runDays} />
+          <McspTab meta={meta} runDays={runDays} />
         </TabsContent>
 
         <TabsContent value="omt">
-          <OmtTab meta={meta} apiKeyCount={apiKeyCount} runDays={runDays} overallProgress={overallProgress} />
+          <OmtTab meta={meta} runDays={runDays} overallProgress={overallProgress} />
         </TabsContent>
       </Tabs>
 
@@ -923,7 +1004,7 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => posthog?.capture('live_report_telegram_click', { tenant_id: tenantId })}
-          className="flex items-center gap-1.5 text-xs font-medium hover:underline shrink-0"
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
         >
           和 @Lumen 对话 →
         </a>

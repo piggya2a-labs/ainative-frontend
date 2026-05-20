@@ -5,60 +5,33 @@ import { LiveClient } from './live-client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface MilestoneData {
+  id: string
+  order: number
+  status: 'done' | 'in_progress' | 'pending'
+  name: string
+  completed_at?: string | null
+  started_at?: string | null
+  target_date?: string | null
+  tasks_total: number
+  tasks_done: number
+  owner: string
+  tasks?: { name: string; done: boolean; owner: string }[]
+}
+
 interface TenantMetadata {
   share_token: string
   current_milestone: string
-  milestones: {
-    M0: {
-      status: 'done' | 'in_progress' | 'pending'
-      name: string
-      completed_at?: string
-      started_at?: string
-      target_date?: string
-      tasks_total: number
-      tasks_done: number
-      owner: string
-      tasks?: { name: string; done: boolean; owner: string }[]
-    }
-    M1: {
-      status: 'done' | 'in_progress' | 'pending'
-      name: string
-      completed_at?: string
-      started_at?: string
-      target_date?: string
-      tasks_total: number
-      tasks_done: number
-      owner: string
-      tasks?: { name: string; done: boolean; owner: string }[]
-    }
-    M2: {
-      status: 'done' | 'in_progress' | 'pending'
-      name: string
-      completed_at?: string
-      started_at?: string
-      target_date?: string
-      tasks_total: number
-      tasks_done: number
-      owner: string
-      tasks?: { name: string; done: boolean; owner: string }[]
-    }
-    M3: {
-      status: 'done' | 'in_progress' | 'pending'
-      name: string
-      completed_at?: string
-      started_at?: string
-      target_date?: string
-      tasks_total: number
-      tasks_done: number
-      owner: string
-      tasks?: { name: string; done: boolean; owner: string }[]
-    }
-  }
+  milestones: MilestoneData[]
   mcsp: {
     goal: string
-    as_is?: string[]
-    to_be?: string[]
+    context?: string
+    as_is?: string | string[]
+    to_be?: string | string[]
     success_criteria?: { metric: string; baseline: string; target: string; method: string; checkpoint: string }[]
+    risks?: { risk: string; level: 'high' | 'mid' | 'low'; mitigation: string; owner: string }[]
+    cadence?: { type: string; frequency: string; duration: string; owner: string }[]
+    credentials?: { name: string; type: string; note?: string }[]
     signed_m1: boolean
     signed_m3: boolean
     evidence_count: number
@@ -159,12 +132,12 @@ export default async function LiveReportPage({
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenant.id)
 
-  // 计算派生数据
+  // 计算派生数据（milestones 现在是数组）
   const { milestones, audit, client, current_milestone } = meta
-  const allMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3]
+  const allMilestones = Array.isArray(milestones) ? milestones : []
   const doneMilestones = allMilestones.filter(m => m.status === 'done').length
-  const overallProgress = Math.round((doneMilestones / 4) * 100)
-  const currentM = milestones[current_milestone as keyof typeof milestones]
+  const overallProgress = Math.round((doneMilestones / Math.max(allMilestones.length, 1)) * 100)
+  const currentM = allMilestones.find(m => m.id === current_milestone)
   const currentProgress = currentM
     ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
     : 0

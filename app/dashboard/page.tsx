@@ -16,11 +16,15 @@ function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, create
   return {
     share_token: shareToken,
     current_milestone: 'M1',
-    milestones: {
-      M0: {
+    milestones: [
+      {
+        id: 'M0',
+        order: 0,
         status: 'done',
         name: '找到合适的 Agent',
         completed_at: contractStart,
+        started_at: contractStart,
+        target_date: null,
         tasks_total: 3,
         tasks_done: 3,
         owner: '@Polly',
@@ -30,11 +34,14 @@ function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, create
           { name: '双方签认，M1 正式启动', done: true, owner: '双方' },
         ],
       },
-      M1: {
+      {
+        id: 'M1',
+        order: 1,
         status: 'in_progress',
         name: '交付试用设计方案',
         started_at: contractStart,
         target_date: m1Target,
+        completed_at: null,
         tasks_total: 4,
         tasks_done: 0,
         owner: '@Lumen',
@@ -45,28 +52,62 @@ function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, create
           { name: 'MCSP + OMT 双方签认，M2 正式启动', done: false, owner: '双方' },
         ],
       },
-      M2: {
+      {
+        id: 'M2',
+        order: 2,
         status: 'pending',
         name: '试运行完成',
+        started_at: null,
+        target_date: null,
+        completed_at: null,
         tasks_total: 4,
         tasks_done: 0,
         owner: '@Sega',
+        tasks: [
+          { name: 'Agent 接入客户系统，完成冒烟测试', done: false, owner: '@Sega' },
+          { name: '试运行 2 周，LangSmith 全链路追踪', done: false, owner: '@Sega' },
+          { name: '客户验收试运行结果', done: false, owner: tenantName },
+          { name: 'M2 双方签认，M3 正式启动', done: false, owner: '双方' },
+        ],
       },
-      M3: {
+      {
+        id: 'M3',
+        order: 3,
         status: 'pending',
         name: '审计验证通过',
+        started_at: null,
+        target_date: null,
+        completed_at: null,
         tasks_total: 3,
         tasks_done: 0,
         owner: '@Eva',
+        tasks: [
+          { name: '@Eva 执行完整审计，输出结论', done: false, owner: '@Eva' },
+          { name: '成功标准全部达标确认', done: false, owner: '@Eva' },
+          { name: '双方签认验收报告，归档', done: false, owner: '双方' },
+        ],
       },
-    },
+    ],
     mcsp: {
       goal: `帮助 ${tenantName} 团队完成 AI Native 多 Agent 工作流的试运行验证，实现从人工操作到 Agent 自动化的第一个闭环`,
+      context: '',
+      as_is: '',
+      to_be: '',
       success_criteria: [
         { metric: 'Agent 自动化覆盖率', baseline: '0%', target: '≥70%', method: 'M3 审计', checkpoint: 'M3' },
         { metric: '里程碑按时完成率', baseline: '—', target: 'M0-M3 全部在目标日期内', method: 'M3 审计', checkpoint: 'M3' },
         { metric: '审计通过', baseline: '—', target: '@Eva 审计结论为通过', method: 'M3 审计', checkpoint: 'M3' },
       ],
+      risks: [
+        { risk: 'API 权限审批延迟', level: 'mid', mitigation: '提前 2 周发送权限申请清单', owner: '' },
+        { risk: 'Agent 输出质量不达预期', level: 'low', mitigation: 'LangSmith 全链路追踪 + 每周抽查', owner: '' },
+      ],
+      cadence: [
+        { type: '周会', frequency: '每周固定时间', duration: '30 min', owner: '@Lumen' },
+        { type: '月度 QBR', frequency: '每月一次', duration: '60 min', owner: '@Lumen' },
+        { type: '里程碑验收', frequency: '每个 M 节点', duration: '按需', owner: '双方' },
+      ],
+      credentials: [],
       signed_m1: false,
       signed_m3: false,
       evidence_count: 0,
