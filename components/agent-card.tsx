@@ -307,7 +307,7 @@ function AgentCardDialog({
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true)
     try {
-      const res = await fetch(`/api/agent-notes?agent_id=${encodeURIComponent(agent.name ?? agent.id)}`)
+      const res = await fetch(`/api/agent-notes?agent_id=${encodeURIComponent(agent.id)}`)
       if (res.ok) {
         const data = await res.json()
         setNotes(data.notes ?? [])
@@ -326,7 +326,7 @@ function AgentCardDialog({
       const res = await fetch('/api/agent-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agent.name ?? agent.id, content: noteInput.trim() }),
+        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim() }),
       })
       if (res.ok) {
         setNoteInput('')
