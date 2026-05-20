@@ -149,18 +149,22 @@ export default async function DashboardPage() {
   const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
   const composioConnected = !!composioToken
 
-  // ─── Composio 已连接工具列表（用 admin key + entityId 查，按用户隔离）──────────
+  // ─── COMPOSIO KEY 说明（防回退注释，勿删）────────────────────────────────────────
+  // tenants.composio_token 存的是 x-consumer-api-key（ck_ 开头），不是 OAuth access_token
+  // 用用户自己的 consumer key 查询天然按用户隔离，不需要 admin key 也不需要 entityId
+  // 错误做法：用 x-api-key 传 access_token，或用 Bearer 传任何 key → 永远 401
+  // ─────────────────────────────────────────────────────────────────────────────────
+  // ─── Composio 已连接工具列表（用用户自己的 consumer key 查，天然按用户隔离）──────
   type ComposioAgent = { id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }
   let composioAgents: ComposioAgent[] = []
   let composioToolCount = 0
 
   if (composioConnected) {
     try {
-      const composioApiKey = process.env.COMPOSIO_API_KEY!
       const res = await fetch(
-        `https://backend.composio.dev/api/v1/connectedAccounts?entityId=${user.id}&limit=100`,
+        'https://backend.composio.dev/api/v1/connectedAccounts?limit=100',
         {
-          headers: { 'x-api-key': composioApiKey },
+          headers: { 'x-consumer-api-key': composioToken }, // 用用户自己的 consumer key，天然隔离
           next: { revalidate: 60 },
         }
       )

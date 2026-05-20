@@ -73,16 +73,28 @@ export async function POST(req: NextRequest) {
     }
 
     const tokenData = await tokenRes.json()
-    const accessToken = tokenData.access_token as string
-    const consumerKey = (tokenData['x-consumer-api-key'] ?? tokenData.consumer_key ?? '') as string
 
-    // 2. 用 Composio admin key 查用户已连接的工具（entityId = user.id）
-    const composioApiKey = process.env.COMPOSIO_API_KEY!
+    // ─── COMPOSIO KEY 说明（防回退注释，勿删）────────────────────────────────────────
+    // Composio MCP OAuth token exchange 会返回两个 key：
+    //   - access_token：OAuth 访问令牌，只能用来驱动 MCP 工具调用，不能查 REST API
+    //   - x-consumer-api-key（ck_ 开头）：用户级 consumer key，才是查询 connectedAccounts 的正确凭证
+    // 正确做法：存 x-consumer-api-key，用 x-consumer-api-key header 查 /connectedAccounts
+    // 错误做法：存 access_token，用 Bearer 或 x-api-key 传 access_token → 永远 401
+    // 参考：Composio Dashboard → Install → MCP 区块显示的就是 x-consumer-api-key
+    // ─────────────────────────────────────────────────────────────────────────────────
+    const consumerKey = (
+      tokenData['x-consumer-api-key'] ??
+      tokenData.consumer_key ??
+      tokenData.access_token ?? // fallback：如果 Composio 改了字段名，access_token 作为最后兜底
+      ''
+    ) as string
+
+    // 2. 用用户自己的 consumer key 查已连接工具（x-consumer-api-key 天然按用户隔离，无需 entityId）
     let connectedApps: string[] = []
     try {
       const res = await fetch(
-        `https://backend.composio.dev/api/v1/connectedAccounts?entityId=${user.id}&limit=100`,
-        { headers: { 'x-api-key': composioApiKey } }
+        'https://backend.composio.dev/api/v1/connectedAccounts?limit=100',
+        { headers: { 'x-consumer-api-key': consumerKey } }
       )
       if (res.ok) {
         const data = await res.json() as { items?: Array<{ appName?: string; status?: string }> }
@@ -92,7 +104,7 @@ export async function POST(req: NextRequest) {
       // 查询失败不影响主流程
     }
 
-    // 3. 写入 tenants 表（composio_token + composio_connected_at + connected_agents）
+    // 3. 写入 tenants 表（composio_token 存 consumer key，composio_connected_at，connected_agents）
     const { data: tenant } = await supabase
       .from('tenants')
       .select('id, connected_agents')
@@ -109,7 +121,7 @@ export async function POST(req: NextRequest) {
       await supabase
         .from('tenants')
         .update({
-          composio_token: accessToken,
+          composio_token: consumerKey, // 存 consumer key（ck_ 开头），不是 access_token
           composio_connected_at: new Date().toISOString(),
           connected_agents: merged,
         })
