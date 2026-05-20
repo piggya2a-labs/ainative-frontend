@@ -12,10 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus } from 'lucide-react'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { usePostHog } from 'posthog-js/react'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ interface AuditLog {
 
 interface Props {
   user: User
+  tenants: Tenant[]
   tenant: Tenant | null
   initialApiKeys: ApiKey[]
   agents: Agent[]
@@ -216,7 +218,8 @@ function CollapsibleSection({
 
 export function DashboardClient({
   user,
-  tenant,
+  tenants,
+  tenant: initialTenant,
   initialApiKeys,
   agents,
   mcpTools,
@@ -227,6 +230,51 @@ export function DashboardClient({
   const router = useRouter()
   const supabase = createClient()
   const posthog = usePostHog()
+
+  // ── 多 tenant 选择 ──────────────────────────────────────────────────────────
+  const [activeTenantId, setActiveTenantId] = useState<string | null>(initialTenant?.id ?? null)
+  const tenant = tenants.find(t => t.id === activeTenantId) ?? initialTenant
+
+  // 切换 tenant 时重新加载 API Keys
+  const handleTenantSwitch = async (id: string | null) => {
+    if (!id) return
+    setActiveTenantId(id)
+    setLoadingKeys(true)
+    try {
+      const res = await fetch(`/api/keys?tenant_id=${id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setApiKeys(data.keys ?? [])
+      }
+    } finally {
+      setLoadingKeys(false)
+    }
+  }
+
+  // 新建看板（INSERT 新 tenant 行）
+  const [creatingTenant, setCreatingTenant] = useState(false)
+  const [showNewTenantModal, setShowNewTenantModal] = useState(false)
+  const [newTenantName, setNewTenantName] = useState('')
+
+  const handleCreateTenant = async () => {
+    if (!newTenantName.trim()) return
+    setCreatingTenant(true)
+    try {
+      const res = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTenantName.trim() }),
+      })
+      if (res.ok) {
+        posthog?.capture('tenant_create', { name: newTenantName.trim() })
+        setNewTenantName('')
+        setShowNewTenantModal(false)
+        router.refresh()
+      }
+    } finally {
+      setCreatingTenant(false)
+    }
+  }
 
   const [apiKeys, setApiKeys] = useState<ApiKey[]>(initialApiKeys)
   const [loadingKeys, setLoadingKeys] = useState(false)
@@ -444,12 +492,38 @@ export function DashboardClient({
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
         {/* ── Workspace header ── */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-semibold">{orgName}</h1>
-            <p className="text-xs text-muted-foreground font-mono">{orgSlug}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {tenants.length > 1 ? (
+              <Select value={activeTenantId ?? ''} onValueChange={handleTenantSwitch}>
+                <SelectTrigger className="h-8 text-sm font-semibold border-0 shadow-none px-0 gap-1 w-auto max-w-[240px] focus:ring-0">
+                  <SelectValue placeholder="选择看板" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-sm">
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <h1 className="text-base font-semibold truncate">{orgName}</h1>
+            )}
+            <p className="text-xs text-muted-foreground font-mono hidden sm:block truncate">{orgSlug}</p>
           </div>
-          <Badge variant="secondary" className="text-xs shrink-0">Beta</Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() => setShowNewTenantModal(true)}
+            >
+              <Plus className="w-3 h-3" />
+              新建看板
+            </Button>
+            <Badge variant="secondary" className="text-xs">Beta</Badge>
+          </div>
         </div>
 
         {/* ══════════════════════════════════════
@@ -924,6 +998,45 @@ export function DashboardClient({
               <p className="text-xs text-muted-foreground mt-1">正在刷新页面…</p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal: 新建看板 ── */}
+      <Dialog
+        open={showNewTenantModal}
+        onOpenChange={(open) => {
+          if (!open) { setShowNewTenantModal(false); setNewTenantName('') }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">新建看板</DialogTitle>
+            <DialogDescription>
+              为新客户或新项目创建一个独立的 Live 看板。创建后可由 @Lumen 写入 MCSP 数据。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">看板名称（客户名 / 项目名）</Label>
+              <Input
+                placeholder="如：Acme Corp、小红书项目、客服 Agent 试运行"
+                value={newTenantName}
+                onChange={(e) => setNewTenantName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateTenant()}
+                className="text-xs"
+                autoFocus
+              />
+            </div>
+            <Button
+              className="w-full"
+              size="sm"
+              onClick={handleCreateTenant}
+              disabled={creatingTenant || !newTenantName.trim()}
+            >
+              {creatingTenant ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+              创建
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

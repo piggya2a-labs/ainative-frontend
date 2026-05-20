@@ -161,42 +161,41 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Tenant
-  const { data: tenantRaw } = await supabase
+  // ─── 取当前用户的所有 tenant ───────────────────────────────────────────────
+  const { data: tenantsRaw } = await supabase
     .from('tenants')
     .select('id, name, slug, status, created_at, metadata')
     .eq('user_id', user.id)
-    .single()
+    .order('created_at', { ascending: true })
 
-  // ─── 自动初始化 MCSP metadata ────────────────────────────────────────────────
-  // 如果 tenant 存在但 metadata 里没有 share_token，自动生成并写入
-  let tenant = tenantRaw
-  if (tenant && !(tenant.metadata as Record<string, unknown> | null)?.share_token) {
-    const defaultMeta = buildDefaultMcspMetadata(tenant.name, tenant.slug, tenant.created_at)
-    // 用 service role 写入（绕过 RLS）
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    const { data: updated, error: updateError } = await adminClient
-      .from('tenants')
-      .update({ metadata: defaultMeta })
-      .eq('id', tenant.id)
-      .select('id, name, slug, status, created_at, metadata')
-      .single()
-    if (updateError) {
-      console.error('[MCSP init] update error:', JSON.stringify(updateError))
-    }
-    // 用更新后的 tenant 继续渲染（直接替换，不用 Object.assign）
-    if (updated) {
-      tenant = updated
-    } else {
-      console.error('[MCSP init] updated is null, using defaultMeta for render')
-      tenant = { ...tenant, metadata: defaultMeta }
-    }
-  }
+  // ─── 自动初始化 MCSP metadata（对每个未初始化的 tenant 执行）──────────────
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const tenants = await Promise.all(
+    (tenantsRaw ?? []).map(async (t) => {
+      if (!(t.metadata as Record<string, unknown> | null)?.share_token) {
+        const defaultMeta = buildDefaultMcspMetadata(t.name, t.slug, t.created_at)
+        const { data: updated, error: updateError } = await adminClient
+          .from('tenants')
+          .update({ metadata: defaultMeta })
+          .eq('id', t.id)
+          .select('id, name, slug, status, created_at, metadata')
+          .single()
+        if (updateError) {
+          console.error('[MCSP init] update error:', JSON.stringify(updateError))
+        }
+        return updated ?? { ...t, metadata: defaultMeta }
+      }
+      return t
+    })
+  )
 
-  // API Keys
+  // 默认选中第一个 tenant（server 端只用于初始数据加载）
+  const tenant = tenants[0] ?? null
+
+  // API Keys（基于第一个 tenant，client 端切换时通过 URL 参数重新加载）
   const { data: apiKeys } = tenant
     ? await supabase
         .from('tenant_api_keys')
@@ -265,6 +264,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       user={user}
+      tenants={tenants}
       tenant={tenant}
       initialApiKeys={apiKeys ?? []}
       agents={[]}

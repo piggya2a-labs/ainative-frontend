@@ -23,21 +23,35 @@ async function getUser() {
   return user
 }
 
-async function getTenantId(userId: string) {
+async function getTenantId(userId: string, preferredTenantId?: string | null) {
+  if (preferredTenantId) {
+    // 验证这个 tenant 确实属于该用户
+    const { data } = await adminClient
+      .from('tenants')
+      .select('id')
+      .eq('id', preferredTenantId)
+      .eq('user_id', userId)
+      .single()
+    return data?.id
+  }
+  // 默认取第一个（最早创建的）
   const { data } = await adminClient
     .from('tenants')
     .select('id')
     .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
     .single()
   return data?.id
 }
 
 // GET /api/keys — list all API keys for current user's tenant
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const tenantId = await getTenantId(user.id)
+  const tenantIdParam = req.nextUrl.searchParams.get('tenant_id')
+  const tenantId = await getTenantId(user.id, tenantIdParam)
   if (!tenantId) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
   const { data, error } = await adminClient
