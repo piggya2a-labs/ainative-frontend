@@ -120,7 +120,7 @@ export default async function DashboardPage() {
   }
 
   // Tenant
-  const { data: tenant } = await supabase
+  const { data: tenantRaw } = await supabase
     .from('tenants')
     .select('id, name, slug, status, created_at, metadata')
     .eq('user_id', user.id)
@@ -128,6 +128,7 @@ export default async function DashboardPage() {
 
   // ─── 自动初始化 MCSP metadata ────────────────────────────────────────────────
   // 如果 tenant 存在但 metadata 里没有 share_token，自动生成并写入
+  let tenant = tenantRaw
   if (tenant && !(tenant.metadata as Record<string, unknown> | null)?.share_token) {
     const defaultMeta = buildDefaultMcspMetadata(tenant.name, tenant.slug, tenant.created_at)
     // 用 service role 写入（anon key 可能受 RLS 限制）
@@ -141,9 +142,9 @@ export default async function DashboardPage() {
       .eq('id', tenant.id)
       .select('id, name, slug, status, created_at, metadata')
       .single()
-    // 用更新后的 tenant 继续渲染
+    // 用更新后的 tenant 继续渲染（直接替换，不用 Object.assign）
     if (updated) {
-      Object.assign(tenant, updated)
+      tenant = updated
     }
   }
 
