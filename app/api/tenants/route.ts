@@ -69,3 +69,60 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ tenant: data })
 }
+
+// PATCH /api/tenants?id=xxx — 改名
+export async function PATCH(req: NextRequest) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  const { name } = await req.json()
+  if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+
+  // 验证归属
+  const { data: existing } = await adminClient
+    .from('tenants')
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { data, error } = await adminClient
+    .from('tenants')
+    .update({ name: name.trim() })
+    .eq('id', id)
+    .select('id, name, slug, status, created_at, metadata')
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ tenant: data })
+}
+
+// DELETE /api/tenants?id=xxx — 删除看板
+export async function DELETE(req: NextRequest) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  // 验证归属
+  const { data: existing } = await adminClient
+    .from('tenants')
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { error } = await adminClient
+    .from('tenants')
+    .delete()
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
