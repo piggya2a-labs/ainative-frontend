@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
-  Lock, Zap, Activity, MessageCircle, Key
+  Lock, Zap, Activity, MessageCircle, Key, Download, Loader2
 } from 'lucide-react'
 
 // ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
@@ -993,8 +993,44 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
         </TabsContent>
       </Tabs>
 
+      {/* 验收状态 + SKILL.md 下载
+          ⚠️ 防回退：验收状态由 meta.audit.conclusion 驱动，有内容 = 已验收。
+          SKILL.md 下载按鈕现为占位（disabled），待 /api/tenants/skill-export 接口就绪后启用。*/}
+      <div className="mt-8 rounded-lg border border-border/50 p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {meta.audit.conclusion ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: 'var(--onit-green)' }} />
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--onit-green)' }}>已验收</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{meta.audit.conclusion}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Loader2 className="w-4 h-4 shrink-0 text-muted-foreground animate-spin" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Building…</p>
+                <p className="text-xs text-muted-foreground mt-0.5">项目进行中，验收完成后可下载 SKILL.md</p>
+              </div>
+            </>
+          )}
+        </div>
+        {/* ⚠️ 占位按鈕：skill.md 下载，待接逻辑后启用。
+            内容来源：agent_registry.wiki + skills，由 Agent 通过 skill-creator 生成。
+            启用条件：meta.audit.conclusion 有内容 且 /api/tenants/skill-export 接口就绪。*/}
+        <button
+          disabled
+          title="验收完成后可下载 SKILL.md"
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border text-muted-foreground opacity-50 cursor-not-allowed shrink-0"
+        >
+          <Download className="w-3.5 h-3.5" />
+          SKILL.md
+        </button>
+      </div>
+
       {/* Footer CTA */}
-      <div className="mt-12 rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
+      <div className="mt-4 rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">有问题或想推进下一步？</p>
           <p className="text-xs text-muted-foreground mt-0.5">在 Telegram 找 @Lumen，或直接联系你的客户成功经理</p>

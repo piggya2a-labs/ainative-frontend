@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus, Pencil } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus, Pencil, Download, CheckCircle2 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
 import { useSearchParams } from 'next/navigation'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -221,6 +221,9 @@ export function DashboardClient({
   const [creatingTenant, setCreatingTenant] = useState(false)
   const [showNewTenantModal, setShowNewTenantModal] = useState(false)
   const [newTenantName, setNewTenantName] = useState('')
+  // 新建成功后的 Telegram 引导弹窗
+  const [showTelegramGuide, setShowTelegramGuide] = useState(false)
+  const [newlyCreatedTenantName, setNewlyCreatedTenantName] = useState('')
 
   const handleCreateTenant = async () => {
     if (!newTenantName.trim()) return
@@ -234,8 +237,12 @@ export function DashboardClient({
       if (res.ok) {
         const data = await res.json()
         posthog?.capture('tenant_create', { name: newTenantName.trim() })
+        const createdName = newTenantName.trim()
         setNewTenantName(''); setShowNewTenantModal(false)
         if (data.tenant) { setTenants(prev => [...prev, data.tenant]); setActiveTenantId(data.tenant.id) }
+        // 新建成功后弹出 Telegram 引导
+        setNewlyCreatedTenantName(createdName)
+        setShowTelegramGuide(true)
         router.refresh()
       }
     } finally { setCreatingTenant(false) }
@@ -755,7 +762,43 @@ export function DashboardClient({
                   </div>
                   {/* 展开的数字卡片 */}
                   <CollapsibleContent>
-                    <div className="px-4 pb-3 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-muted/20 border-t border-border">
+                    <div className="px-4 pb-3 pt-1 bg-muted/20 border-t border-border space-y-2">
+                    {/* 验收状态 + skill.md 下载 */}
+                    {(() => {
+                      const isAccepted = !!(tMeta?.audit?.conclusion)
+                      return (
+                        <div className="flex items-center justify-between gap-3 py-1.5">
+                          <div className="flex items-center gap-2">
+                            {isAccepted ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--onit-green)' }} />
+                                <span className="text-xs font-medium" style={{ color: 'var(--onit-green)' }}>已验收</span>
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{tMeta?.audit?.conclusion}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 shrink-0 text-muted-foreground animate-spin" />
+                                <span className="text-xs text-muted-foreground">Building…</span>
+                              </>
+                            )}
+                          </div>
+                          {/* ⚠️ 占位按钮：skill.md 下载，待接逻辑后启用。
+                              内容来源：agent_registry.wiki + skills，由 Agent 通过 skill-creator 生成。
+                              启用条件：isAccepted === true 且后端 /api/tenants/skill-export 接口就绪。*/}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-[10px] gap-1 shrink-0"
+                            disabled
+                            title="验收完成后可下载 SKILL.md"
+                          >
+                            <Download className="w-3 h-3" />
+                            SKILL.md
+                          </Button>
+                        </div>
+                      )
+                    })()}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { label: '里程碑', value: tMilestones.length > 0 ? `${tDone}/${tTotal}` : '—', sub: 'M0 → M3' },
                         { label: '当前进度', value: tProgress !== null ? `${tProgress}%` : '—', sub: tCurrentM ? `${tCurrentM.id} · ${tCurrentM.name}` : tMeta?.current_milestone ?? '—' },
@@ -770,6 +813,7 @@ export function DashboardClient({
                           <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
                         </div>
                       ))}
+                    </div>
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
@@ -951,6 +995,42 @@ export function DashboardClient({
       {/* ⚠️ 防回退：Telegram Dialog 已删除（A 方案废弃）。
           绑定流程是 B 方案：handleTelegramBind → deep link → Telegram Bot。
           不要在这里重新加 Dialog 或 Bot Token 输入框。*/}
+
+      {/* Modal: 新建成功后 Telegram 引导
+          ⚠️ 防回退：这是新建看板后引导用户去 Telegram 初始化项目的弹窗。
+          不要删除或改成自动初始化——人类需要在 Telegram 里跟 Agent 用自然语言说清楚项目需求。*/}
+      <Dialog open={showTelegramGuide} onOpenChange={setShowTelegramGuide}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--onit-green)' }} />
+              看板「{newlyCreatedTenantName}」已创建
+            </DialogTitle>
+            <DialogDescription>
+              下一步：去 Telegram 找 @onitmeowbot，告诉 Agent 这个项目的目标和背景，Agent 会帮你初始化 MCSP 和里程碑。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground mb-1">可以这样说：</p>
+              <p>「帮我初始化看板「{newlyCreatedTenantName}」，目标是 [你的目标]，背景是 [项目背景]」</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                size="sm"
+                onClick={() => {
+                  window.open('https://t.me/onitmeowbot', '_blank')
+                  setShowTelegramGuide(false)
+                }}
+              >
+                去 Telegram 初始化 →
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTelegramGuide(false)}>稍后再说</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )
