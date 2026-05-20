@@ -131,6 +131,23 @@ export default async function LiveReportPage({
   // API Key 是否已生成（单 key 设计，0 或 1）
   const apiKeyCount = (tenant as Record<string, unknown>).api_key ? 1 : 0
 
+  // 防御：client / audit 为空说明该 tenant 还未被 Agent 初始化。
+  // 新建的 tenant 只有 share_token，其他字段要等 @Lumen 写入后才有。
+  // 不要删除这个判断，否则新建看板会直接崩溃。
+  if (!meta.client || !meta.audit) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center space-y-4">
+          <div className="text-xs font-mono text-muted-foreground">ONIT / {tenant.name}</div>
+          <div className="text-2xl font-bold">等待初始化</div>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            看板已创建，正在等待 Agent 写入项目信息。请去 Telegram 找 @onitmeowbot，告诉 Agent 这个项目的目标和背景。
+          </p>
+        </div>
+      </main>
+    )
+  }
+
   // 计算派生数据（milestones 现在是数组）
   const { milestones, audit, client, current_milestone } = meta
   const allMilestones = Array.isArray(milestones) ? milestones : []
