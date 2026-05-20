@@ -400,6 +400,7 @@ export function DashboardClient({
 
   // Composio 连接器状态
   const [composioConnecting, setComposioConnecting] = useState(false)
+  const [composioConnected, setComposioConnected] = useState(false)
   const searchParams = useSearchParams()
 
   const handleComposioConnect = async () => {
@@ -408,25 +409,25 @@ export function DashboardClient({
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) return
 
-      // MCP OAuth 2.1 PKCE 流程
-      const res = await fetch('/api/composio/mcp-oauth', {
+      // 用 session.authorize 生成 Connect Link（GitHub 作为第一个引导工具）
+      const res = await fetch('/api/composio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'authorize', appName: 'github' }),
       })
       const data = await res.json()
 
       if (data.authUrl) {
         // 把 PKCE 数据存入 sessionStorage，回调时用
         sessionStorage.setItem('composio_pkce', JSON.stringify({
-          state: data.state,
-          codeVerifier: data.codeVerifier,
-          clientId: data.clientId,
+          state: data.state ?? '',
+          codeVerifier: data.codeVerifier ?? '',
+          clientId: data.clientId ?? '',
           redirectUri: data.redirectUri,
         }))
-        posthog?.capture('composio_mcp_connect_start')
+        posthog?.capture('composio_connect_start')
         window.location.href = data.authUrl
       } else {
-        // MCP OAuth 不可用时，fallback 到直接跳 Composio 登录页
         toast.error(data.error ?? '获取授权链接失败，请重试')
       }
     } catch {
@@ -434,10 +435,9 @@ export function DashboardClient({
     } finally { setComposioConnecting(false) }
   }
 
-  // 检测 Composio MCP OAuth 回调参数
+  // 检测 Composio Connect Link 回调参数
   useEffect(() => {
-    const mcpCode = searchParams.get('composio_mcp_code')
-    const mcpState = searchParams.get('composio_mcp_state')
+    const composioConnectedParam = searchParams.get('composio_connected')
     const composioError = searchParams.get('composio_error')
 
     if (composioError) {
@@ -448,48 +448,16 @@ export function DashboardClient({
       return
     }
 
-    if (mcpCode && mcpState) {
-      // 从 sessionStorage 取 PKCE 数据，完成 token 交换
-      const pkceRaw = sessionStorage.getItem('composio_pkce')
-      if (!pkceRaw) {
-        toast.error('授权状态丢失，请重试')
-        return
-      }
-      const pkce = JSON.parse(pkceRaw) as { state: string; codeVerifier: string; clientId: string; redirectUri: string }
-      if (pkce.state !== mcpState) {
-        toast.error('授权状态不匹配，请重试')
-        return
-      }
-      sessionStorage.removeItem('composio_pkce')
-
-      // 清除 URL 参数
+    if (composioConnectedParam) {
+      setComposioConnected(true)
+      posthog?.capture('composio_connect_success', { app: composioConnectedParam })
+      toast.success(`已成功连接 ${composioConnectedParam}！Agent 现在可以使用这个工具了。`)
       const url = new URL(window.location.href)
-      url.searchParams.delete('composio_mcp_code')
-      url.searchParams.delete('composio_mcp_state')
+      url.searchParams.delete('composio_connected')
       window.history.replaceState({}, '', url.toString())
-
-      // 完成 token 交换
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session?.access_token) return
-        const res = await fetch('/api/composio/mcp-callback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({
-            code: mcpCode,
-            codeVerifier: pkce.codeVerifier,
-            clientId: pkce.clientId,
-            redirectUri: pkce.redirectUri,
-          }),
-        })
-        const result = await res.json()
-        if (result.success) {
-          posthog?.capture('composio_mcp_connect_success')
-          toast.success('Composio 已连接！所有工具现在可用。')
-        } else {
-          toast.error(result.error ?? 'Token 交换失败，请重试')
-        }
-      })
+      return
     }
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -593,15 +561,21 @@ export function DashboardClient({
                 <span className="text-xs text-muted-foreground ml-2">授权工具访问，Agent 自动继承</span>
               </div>
             </div>
-            <Button
-              size="sm"
-              className="h-7 text-xs shrink-0"
-              variant="default"
-              disabled={composioConnecting}
-              onClick={handleComposioConnect}
-            >
-              {composioConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : '连接 →'}
-            </Button>
+            {composioConnected ? (
+              <span className="text-xs text-[oklch(0.65_0.18_145)] font-medium flex items-center gap-1">
+                <Check className="w-3 h-3" /> 已连接
+              </span>
+            ) : (
+              <Button
+                size="sm"
+                className="h-7 text-xs shrink-0"
+                variant="default"
+                disabled={composioConnecting}
+                onClick={handleComposioConnect}
+              >
+                {composioConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : '连接 →'}
+              </Button>
+            )}
           </div>
 
           <InlineCollapsible title="API KEYS" count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}>

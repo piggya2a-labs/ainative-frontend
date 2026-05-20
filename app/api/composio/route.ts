@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { Composio } from 'composio-core'
+
+const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY ?? 'ak_-aUDQkqioskA4DkOiF0u'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-const composio = new Composio({ apiKey: process.env.COMPOSIO_API_KEY ?? 'ak_-aUDQkqioskA4DkOiF0u' })
 
 async function getUser(req: NextRequest) {
   const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization')
@@ -18,69 +17,63 @@ async function getUser(req: NextRequest) {
   return user
 }
 
-// GET /api/composio — 列出当前用户已连接的服务
+// GET /api/composio — 列出当前用户已连接的工具
 export async function GET(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const list = await composio.connectedAccounts.list({ entityId: user.id })
-    const connections = (list.items ?? [])
-      .filter((item: Record<string, unknown>) => item.status === 'ACTIVE')
-      .map((item: Record<string, unknown>) => ({
-        id: item.id,
-        appName: item.appName,
-        status: item.status,
-        createdAt: item.createdAt,
+    const { Composio } = await import('@composio/core')
+    const composio = new Composio({ apiKey: COMPOSIO_API_KEY })
+    const session = await composio.create(user.id)
+    const toolkits = await session.toolkits()
+    const connected = (toolkits.items ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((t: any) => t.connection?.is_active)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((t: any) => ({
+        name: t.name,
+        connectedAccountId: t.connection?.connected_account?.id,
       }))
-    return NextResponse.json({ connections })
+    return NextResponse.json({ connections: connected })
   } catch (e) {
     const err = e as Error
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
-// POST /api/composio — 发起 Composio Connect Link 授权
-// body: { appName: string, redirectUrl?: string }
+// POST /api/composio
+// body: { action: 'authorize', appName: string } | { action: 'session' }
 export async function POST(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const appName = body.appName as string
-  if (!appName) return NextResponse.json({ error: 'appName required' }, { status: 400 })
-
-  const origin = req.headers.get('origin') ?? 'https://onit.ai'
-  const callbackUrl = body.redirectUrl ?? `${origin}/dashboard?composio_connected=${appName}`
+  const { action, appName } = body as { action: string; appName?: string }
 
   try {
-    const conn = await composio.connectedAccounts.initiate({
-      appName,
-      entityId: user.id,
-      redirectUri: callbackUrl,
-    })
-    return NextResponse.json({
-      redirectUrl: conn.redirectUrl,
-      connectedAccountId: conn.connectedAccountId,
-      connectionStatus: conn.connectionStatus,
-    })
-  } catch (e) {
-    const err = e as Error
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
+    const { Composio } = await import('@composio/core')
+    const composio = new Composio({ apiKey: COMPOSIO_API_KEY })
+    const session = await composio.create(user.id)
 
-// DELETE /api/composio?id=xxx — 断开连接
-export async function DELETE(req: NextRequest) {
-  const user = await getUser(req)
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (action === 'session') {
+      // 返回用户专属 MCP URL
+      return NextResponse.json({
+        mcpUrl: session.mcp.url,
+        mcpHeaders: session.mcp.headers,
+      })
+    }
 
-  const id = req.nextUrl.searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    if (action === 'authorize') {
+      if (!appName) return NextResponse.json({ error: 'appName required' }, { status: 400 })
+      const origin = req.headers.get('origin') ?? 'https://ainative-frontend.vercel.app'
+      const callbackUrl = `${origin}/dashboard?composio_connected=${appName}`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const connReq = await (session as any).authorize(appName, { callbackUrl })
+      return NextResponse.json({ authUrl: connReq.redirectUrl })
+    }
 
-  try {
-    await composio.connectedAccounts.delete({ connectedAccountId: id })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
   } catch (e) {
     const err = e as Error
     return NextResponse.json({ error: err.message }, { status: 500 })
