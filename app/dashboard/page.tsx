@@ -132,16 +132,26 @@ export default async function DashboardPage() {
   let tenant = tenantRaw
   if (tenant && !(tenant.metadata as Record<string, unknown> | null)?.share_token) {
     const defaultMeta = buildDefaultMcspMetadata(tenant.name, tenant.slug, tenant.created_at)
-    // 用已认证的 supabase client 写入（满足 RLS，用户已登录）
-    const { data: updated } = await supabase
+    // 用 service role 写入（绕过 RLS）
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: updated, error: updateError } = await adminClient
       .from('tenants')
       .update({ metadata: defaultMeta })
       .eq('id', tenant.id)
       .select('id, name, slug, status, created_at, metadata')
       .single()
+    if (updateError) {
+      console.error('[MCSP init] update error:', JSON.stringify(updateError))
+    }
     // 用更新后的 tenant 继续渲染（直接替换，不用 Object.assign）
     if (updated) {
       tenant = updated
+    } else {
+      console.error('[MCSP init] updated is null, using defaultMeta for render')
+      tenant = { ...tenant, metadata: defaultMeta }
     }
   }
 
