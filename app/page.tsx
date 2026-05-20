@@ -18,12 +18,12 @@ async function getSupabaseCounts() {
       supabase
         .from('agent_registry')
         .select('*', { count: 'exact', head: true })
-        .eq('type', 'agent')
+        .eq('type', 'system')
         .eq('enabled', true),
       supabase
         .from('agent_registry')
         .select('*', { count: 'exact', head: true })
-        .eq('type', 'external')
+        .eq('type', 'infrastructure')
         .eq('enabled', true),
     ])
     return { agentCount: agentCount ?? 0, toolCount: toolCount ?? 0 }
