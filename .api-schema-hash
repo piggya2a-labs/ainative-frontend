@@ -1,5 +1,5 @@
 {
-  "hash": "f87086cd738b5c86c118c6f70773cfcd",
+  "hash": "cf91ab24bf80087bd5ab113c77e2a9de",
   "schema": {
     "/api/health": [
       "checks",
@@ -8,10 +8,7 @@
     ],
     "/api/agents": [
       "agents"
-    ],
-    "/api/tools": [
-      "tools"
     ]
   },
-  "updated": "2026-05-19T06:00:51.124519+00:00"
+  "updated": "2026-05-20T06:00:30.887286+00:00"
 }
