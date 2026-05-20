@@ -625,7 +625,7 @@ export function DashboardClient({
           const meta = tenant?.metadata as {
             share_token?: string
             current_milestone?: string
-            milestones?: Record<string, { status: string; tasks_total: number; tasks_done: number; name: string }>
+            milestones?: Array<{ id: string; order: number; status: string; tasks_total: number; tasks_done: number; name: string }>
             audit?: { health: string; last_audit: string | null; conclusion: string | null; next_action: string | null }
             client?: { contract_start: string; plan_period: string }
           } | null
@@ -635,13 +635,13 @@ export function DashboardClient({
             ? Math.floor((Date.now() - new Date(contractStart).getTime()) / (1000 * 60 * 60 * 24))
             : null
 
-          const milestones = meta?.milestones
-          const doneMilestones = milestones
-            ? Object.values(milestones).filter(m => m.status === 'done').length
+          const milestones = Array.isArray(meta?.milestones) ? meta.milestones : []
+          const doneMilestones = milestones.length > 0
+            ? milestones.filter(m => m.status === 'done').length
             : null
 
-          const currentM = meta?.current_milestone && milestones
-            ? milestones[meta.current_milestone]
+          const currentM = meta?.current_milestone
+            ? milestones.find(m => m.id === meta.current_milestone) ?? null
             : null
           const currentProgress = currentM
             ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
