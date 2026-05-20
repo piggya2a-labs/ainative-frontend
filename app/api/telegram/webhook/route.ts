@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// ⚠️ 防回退注释：
+// Telegram 绑定数据存在 tenants 表的字段：telegram_chat_id, telegram_username, telegram_bound_at
+// 不要引入 telegram_bindings 表——该表已删除。
+// 通过 user_id 找到对应的 tenant 行，更新这三个字段。
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
@@ -42,20 +47,33 @@ export async function POST(req: NextRequest) {
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    const { error } = await sb
-      .from('telegram_bindings')
-      .upsert(
-        {
-          user_id: userId,
-          chat_id: chatId,
-          username: (from.username as string) ?? null,
-          first_name: (from.first_name as string) ?? null,
-        },
-        { onConflict: 'user_id' }
-      )
+    // 找到该用户的第一个 tenant
+    const { data: tenant, error: findError } = await sb
+      .from('tenants')
+      .select('id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
 
-    if (error) {
-      console.error('telegram bind error:', error.message)
+    if (findError || !tenant) {
+      console.error('telegram bind: tenant not found for user_id', userId, findError?.message)
+      await sendMessage(chatId, '❌ 绑定失败，找不到对应账号，请稍后重试。')
+      return NextResponse.json({ ok: true })
+    }
+
+    // 更新 tenants 表的 telegram 字段
+    const { error: updateError } = await sb
+      .from('tenants')
+      .update({
+        telegram_chat_id: String(chatId),
+        telegram_username: (from.username as string) ?? null,
+        telegram_bound_at: new Date().toISOString(),
+      })
+      .eq('id', tenant.id)
+
+    if (updateError) {
+      console.error('telegram bind error:', updateError.message)
       await sendMessage(chatId, '❌ 绑定失败，请稍后重试。')
       return NextResponse.json({ ok: true })
     }

@@ -90,9 +90,10 @@ export default async function LiveReportPage({
   )
 
   // 查询 tenant（用 slug 匹配）
+  // ⚠️ 防回退：api_key 在 tenants 表，不要用 tenant_api_keys 表（已删）
   const { data: tenants, error } = await supabase
     .from('tenants')
-    .select('id, slug, name, status, metadata, created_at')
+    .select('id, slug, name, status, metadata, created_at, api_key')
     .eq('slug', name)
     .limit(1)
 
@@ -126,11 +127,9 @@ export default async function LiveReportPage({
     )
   }
 
-  // 查询 API Key 数量
-  const { count: apiKeyCount } = await supabase
-    .from('tenant_api_keys')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenant.id)
+  // ⚠️ 防回退：不要用 tenant_api_keys 表（已删），api_key 在 tenants 表单字段
+  // API Key 是否已生成（单 key 设计，0 或 1）
+  const apiKeyCount = (tenant as Record<string, unknown>).api_key ? 1 : 0
 
   // 计算派生数据（milestones 现在是数组）
   const { milestones, audit, client, current_milestone } = meta

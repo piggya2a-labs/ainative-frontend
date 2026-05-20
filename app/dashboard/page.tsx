@@ -43,9 +43,13 @@ export default async function DashboardPage() {
   }
 
   // ─── 取当前用户的所有 tenant（含新字段）───────────────────────────────────────────────
+  // ⚠️ 防回退：api_key 和 api_key_created_at 在 tenants 表，不要用 tenant_api_keys 表（已删）
+  // ⚠️ 防回退：telegram_chat_id/telegram_username/telegram_bound_at 在 tenants 表，不要用 telegram_bindings 表（已删）
+  // ⚠️ 字段说明：display_name 和 avatar_url 是预留字段，目前没有任何地方读取展示，不需要写入逻辑。
+  // ⚠️ 字段说明：connected_agents 由 Composio 查询结果异步写入，不用为渲染来源（渲染用实时 Composio 查询结果）。
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
@@ -62,7 +66,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
@@ -76,15 +80,13 @@ export default async function DashboardPage() {
   // 默认选中第一个 tenant（server 端只用于初始数据加载）
   const tenant = tenants[0] ?? null
 
-  // API Keys（基于第一个 tenant，client 端切换时通过 URL 参数重新加载）
-  const { data: apiKeys } = tenant
-    ? await supabase
-        .from('tenant_api_keys')
-        .select('id, name, key_prefix, created_at, last_used_at')
-        .eq('tenant_id', tenant.id)
-        .is('revoked_at', null)
-        .order('created_at', { ascending: false })
-    : { data: [] }
+  // API Keys（从 tenants 表读取单 key，不再用 tenant_api_keys 表——该表已删）
+  // ⚠️ 防回退：不要改回 tenant_api_keys 表，一个用户只有一个 api_key 字段
+  const apiKeyRecord = (tenant as Record<string, unknown> | null)?.api_key as string | null
+  const apiKeyCreatedAt = (tenant as Record<string, unknown> | null)?.api_key_created_at as string | null
+  const apiKeys = apiKeyRecord
+    ? [{ key_prefix: apiKeyRecord.slice(0, 12), created_at: apiKeyCreatedAt }]
+    : []
 
   // 用户在 Marketplace 已连接的外部 MCP（从 tenant_connectors 读取）
   const { data: mcpConnectors } = tenant

@@ -1,14 +1,16 @@
 export const dynamic = 'force-dynamic'
-
+// ⚠️ 防回退注释：
+// API Key 现在存在 tenants.api_key 字段（单 key 设计，类似 Composio）。
+// 不要引入 tenant_api_keys 表——该表已删除。
+// 不要改成多 key 设计，一个用户只有一个 API key。
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import { randomBytes, createHash } from 'crypto'
+import { randomBytes } from 'crypto'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
 // Admin client for actual DB writes
 const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
@@ -23,97 +25,94 @@ async function getUser() {
   return user
 }
 
-async function getTenantId(userId: string, preferredTenantId?: string | null) {
+async function getTenant(userId: string, preferredTenantId?: string | null) {
   if (preferredTenantId) {
-    // 验证这个 tenant 确实属于该用户
     const { data } = await adminClient
       .from('tenants')
-      .select('id')
+      .select('id, api_key, api_key_created_at')
       .eq('id', preferredTenantId)
       .eq('user_id', userId)
       .single()
-    return data?.id
+    return data
   }
-  // 默认取第一个（最早创建的）
   const { data } = await adminClient
     .from('tenants')
-    .select('id')
+    .select('id, api_key, api_key_created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(1)
     .single()
-  return data?.id
+  return data
 }
 
-// GET /api/keys — list all API keys for current user's tenant
+// GET /api/keys — 返回当前用户的 API key（单 key 设计）
 export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const tenantIdParam = req.nextUrl.searchParams.get('tenant_id')
-  const tenantId = await getTenantId(user.id, tenantIdParam)
-  if (!tenantId) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+  const tenant = await getTenant(user.id, tenantIdParam)
+  if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  const { data, error } = await adminClient
-    .from('tenant_api_keys')
-    .select('id, name, key_prefix, created_at, last_used_at, revoked_at')
-    .eq('tenant_id', tenantId)
-    .is('revoked_at', null)
-    .order('created_at', { ascending: false })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ keys: data })
+  // 返回单个 key（或 null 表示未生成）
+  return NextResponse.json({
+    key: tenant.api_key
+      ? {
+          key_prefix: tenant.api_key.slice(0, 12),
+          created_at: tenant.api_key_created_at,
+          // 不返回完整 key，安全考虑
+        }
+      : null,
+  })
 }
 
-// POST /api/keys — create a new API key
+// POST /api/keys — 生成（或重新生成）API key，写入 tenants.api_key
 export async function POST(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const tenantId = await getTenantId(user.id)
-  if (!tenantId) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+  const tenant = await getTenant(user.id)
+  if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  const { name } = await req.json()
-  if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
-
-  // Generate key: onit_<32 random hex chars>
+  // Generate key: onit_<48 random hex chars>
   const rawKey = `onit_${randomBytes(24).toString('hex')}`
-  const keyHash = createHash('sha256').update(rawKey).digest('hex')
-  const keyPrefix = rawKey.slice(0, 12) // "onit_" + 7 chars
+  const now = new Date().toISOString()
 
-  const { data, error } = await adminClient
-    .from('tenant_api_keys')
-    .insert({
-      tenant_id: tenantId,
-      name: name.trim(),
-      key_hash: keyHash,
-      key_prefix: keyPrefix,
+  const { error } = await adminClient
+    .from('tenants')
+    .update({
+      api_key: rawKey,
+      api_key_created_at: now,
     })
-    .select('id, name, key_prefix, created_at')
-    .single()
+    .eq('id', tenant.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Return full key ONCE — never stored in plaintext
-  return NextResponse.json({ key: rawKey, record: data })
+  // 返回完整 key 一次——之后只展示 prefix
+  return NextResponse.json({
+    key: rawKey,
+    record: {
+      key_prefix: rawKey.slice(0, 12),
+      created_at: now,
+    },
+  })
 }
 
-// DELETE /api/keys?id=<key_id> — revoke an API key
+// DELETE /api/keys — 清空 API key（revoke）
 export async function DELETE(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const tenantId = await getTenantId(user.id)
-  if (!tenantId) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
-
-  const id = req.nextUrl.searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'Key ID required' }, { status: 400 })
+  const tenant = await getTenant(user.id)
+  if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
   const { error } = await adminClient
-    .from('tenant_api_keys')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
+    .from('tenants')
+    .update({
+      api_key: null,
+      api_key_created_at: null,
+    })
+    .eq('id', tenant.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })

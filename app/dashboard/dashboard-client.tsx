@@ -20,12 +20,11 @@ import { Select, SelectContent, SelectTrigger } from '@/components/ui/select'
 import type { AgentListItem, ConnectorRow } from '@/lib/database.types'
 import { AgentIcon } from '@/components/agent-icon'
 
+// ⚠️ 防回退：ApiKey 是单 key 设计，没有 id/name/last_used_at。
+// 不要改回多 key 设计或引入 tenant_api_keys 表（已删）。
 interface ApiKey {
-  id: string
-  name: string
   key_prefix: string
-  created_at: string
-  last_used_at?: string | null
+  created_at: string | null
 }
 
 interface Tenant {
@@ -215,7 +214,7 @@ export function DashboardClient({
     setLoadingKeys(true)
     try {
       const res = await fetch(`/api/keys?tenant_id=${id}`)
-      if (res.ok) { const data = await res.json(); setApiKeys(data.keys ?? []) }
+      if (res.ok) { const data = await res.json(); setApiKeys(data.key ? [data.key] : []) }
     } finally { setLoadingKeys(false) }
   }
 
@@ -303,7 +302,7 @@ export function DashboardClient({
     try {
       const tenantParam = activeTenantId ? `?tenant_id=${activeTenantId}` : ''
       const res = await fetch(`/api/keys${tenantParam}`)
-      if (res.ok) { const data = await res.json(); setApiKeys(data.keys ?? []) }
+      if (res.ok) { const data = await res.json(); setApiKeys(data.key ? [data.key] : []) }
     } finally { setLoadingKeys(false) }
   }
 
@@ -319,24 +318,22 @@ export function DashboardClient({
   }
 
   const handleCreateKey = async () => {
-    if (!newKeyName.trim()) return
-    posthog?.capture('api_key_create', { name: newKeyName.trim() })
+    posthog?.capture('api_key_create')
     setCreatingKey(true)
     const tenantParam = activeTenantId ? `?tenant_id=${activeTenantId}` : ''
     const res = await fetch(`/api/keys${tenantParam}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newKeyName.trim() }),
     })
     const data = await res.json()
     if (res.ok && data.key) { setCreatedKey(data.key); setNewKeyName(''); await refreshKeys() }
     setCreatingKey(false)
   }
 
-  const handleRevokeKey = async (id: string) => {
-    posthog?.capture('api_key_revoke', { id })
-    await fetch(`/api/keys?id=${id}`, { method: 'DELETE' })
-    setApiKeys(prev => prev.filter(k => k.id !== id))
+  const handleRevokeKey = async () => {
+    posthog?.capture('api_key_revoke')
+    await fetch('/api/keys', { method: 'DELETE' })
+    setApiKeys([])
   }
 
   const handleCopy = () => {
@@ -654,24 +651,24 @@ export function DashboardClient({
               <>
                 <div className="divide-y divide-border">
                   {apiKeys.map((key) => (
-                    <div key={key.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                    <div key={key.key_prefix} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
                       <div className="min-w-0 flex items-center gap-3">
-                        <span className="text-xs font-medium truncate">{key.name}</span>
+                        <span className="text-xs font-medium truncate text-muted-foreground">API Key</span>
                         <div className="flex items-center gap-1">
                           <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                            {revealedKeys.has(key.id) ? key.key_prefix : `${key.key_prefix.slice(0, 8)}${'•'.repeat(8)}`}
+                            {revealedKeys.has(key.key_prefix) ? key.key_prefix : `${key.key_prefix.slice(0, 8)}${'\u2022'.repeat(8)}`}
                           </code>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => toggleReveal(key.id)}>
-                            {revealedKeys.has(key.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => toggleReveal(key.key_prefix)}>
+                            {revealedKeys.has(key.key_prefix) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => copyKeyPrefix(key.id, key.key_prefix)}>
-                            {copiedKeyId === key.id ? <Check className="h-3 w-3 text-[oklch(0.65_0.18_145)]" /> : <Copy className="h-3 w-3" />}
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground" onClick={() => copyKeyPrefix(key.key_prefix, key.key_prefix)}>
+                            {copiedKeyId === key.key_prefix ? <Check className="h-3 w-3 text-[oklch(0.65_0.18_145)]" /> : <Copy className="h-3 w-3" />}
                           </Button>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(key.created_at)}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRevokeKey(key.id)}>
+                        <span className="text-[10px] text-muted-foreground hidden sm:block">{key.created_at ? formatDate(key.created_at) : ''}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => handleRevokeKey()}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -909,8 +906,8 @@ export function DashboardClient({
       <Dialog open={showCreateModal} onOpenChange={(open) => { if (!open) { setShowCreateModal(false); setCreatedKey(null); setNewKeyName('') } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm">{createdKey ? '密钥已创建' : '创建 API Key'}</DialogTitle>
-            <DialogDescription>{createdKey ? '请立即复制并妥善保存，此密钥只显示一次。' : '为这个密钥起一个名字，方便日后识别。'}</DialogDescription>
+            <DialogTitle className="text-sm">{createdKey ? '密钥已创建' : '生成 API Key'}</DialogTitle>
+            <DialogDescription>{createdKey ? '请立即复制并妥善保存，此密钥只显示一次。' : '点击生成你的 API Key，每个账号只有一个。'}</DialogDescription>
           </DialogHeader>
           {createdKey ? (
             <>
@@ -926,12 +923,8 @@ export function DashboardClient({
             </>
           ) : (
             <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Key 名称</Label>
-                <Input placeholder="e.g. claude-desktop" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCreateKey()} className="text-xs" autoFocus />
-              </div>
-              <Button className="w-full" size="sm" onClick={handleCreateKey} disabled={creatingKey || !newKeyName.trim()}>
-                {creatingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}创建
+              <Button className="w-full" size="sm" onClick={handleCreateKey} disabled={creatingKey}>
+                {creatingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}生成 API Key
               </Button>
             </div>
           )}

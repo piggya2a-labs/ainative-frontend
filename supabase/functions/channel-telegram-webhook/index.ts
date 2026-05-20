@@ -1,4 +1,8 @@
 // @ts-nocheck
+// ⚠️ 防回退注释：
+// Telegram 绑定数据存在 tenants 表的字段：telegram_chat_id, telegram_username, telegram_bound_at
+// 不要引入 telegram_bindings 表——该表已删除。
+// 通过 user_id 找到对应的 tenant 行，更新这三个字段。
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
@@ -46,20 +50,33 @@ Deno.serve(async (req: Request) => {
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    const { error } = await sb
-      .from('telegram_bindings')
-      .upsert(
-        {
-          user_id: userId,
-          chat_id: chatId,
-          username: from.username ?? null,
-          first_name: from.first_name ?? null,
-        },
-        { onConflict: 'user_id' }
-      )
+    // 找到该用户的第一个 tenant
+    const { data: tenant, error: findError } = await sb
+      .from('tenants')
+      .select('id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
 
-    if (error) {
-      console.error('bind error:', error.message)
+    if (findError || !tenant) {
+      console.error('telegram bind: tenant not found for user_id', userId, findError?.message)
+      await sendMessage(chatId, '❌ 绑定失败，找不到对应账号，请稍后重试。')
+      return new Response('ok', { status: 200 })
+    }
+
+    // 更新 tenants 表的 telegram 字段
+    const { error: updateError } = await sb
+      .from('tenants')
+      .update({
+        telegram_chat_id: String(chatId),
+        telegram_username: from.username ?? null,
+        telegram_bound_at: new Date().toISOString(),
+      })
+      .eq('id', tenant.id)
+
+    if (updateError) {
+      console.error('bind error:', updateError.message)
       await sendMessage(chatId, '❌ 绑定失败，请稍后重试。')
       return new Response('ok', { status: 200 })
     }
@@ -69,7 +86,6 @@ Deno.serve(async (req: Request) => {
       chatId,
       `✅ 绑定成功！\n\n你好 ${firstName}，你的 ONIT 账号已与 Telegram 绑定。\n\nAgent 团队将通过这里与你保持联系 🚀`
     )
-
     return new Response('ok', { status: 200 })
   }
 
