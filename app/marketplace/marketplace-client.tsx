@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { SubmitMcpDialog } from '@/components/submit-mcp-dialog'
 import { AgentCard, type AgentRecord } from '@/components/agent-card'
 import { Plus, Search, X } from 'lucide-react'
+import { toast } from '@/components/ui/sonner'
 import type { MarketplaceAgentItem, AgentSkill } from '@/lib/database.types'
 import { createClient as createBrowserClient } from '@/lib/supabase-client'
 
@@ -99,9 +100,17 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
       })
       const data = await res.json()
       if (data?.authorization_url) { window.location.href = data.authorization_url; return }
-      await fetchConnected()
-      posthog?.capture('marketplace_agent_connect_success', { agent_id: agent.id })
-    } catch {}
+      if (!res.ok) {
+        toast.error(`连接失败：${data?.error ?? '请稍后重试'}`)
+      } else {
+        await fetchConnected()
+        toast.success(`已连接 ${agent.name}`)
+        posthog?.capture('marketplace_agent_connect_success', { agent_id: agent.id })
+      }
+    } catch (e) {
+      toast.error('连接失败，请检查网络后重试')
+      console.error(e)
+    }
     finally { setConnecting(null) }
   }
 

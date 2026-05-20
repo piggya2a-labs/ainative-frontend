@@ -8,6 +8,7 @@ import { getSiteConfig } from '@/lib/queries';
 import { AuthProvider } from '@/lib/auth-context';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Toaster } from '@/components/ui/sonner';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </PostHogProvider>
+        <Toaster position="top-right" richColors />
         <Analytics />
         <SpeedInsights />
       </body>
