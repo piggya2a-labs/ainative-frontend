@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AgentIcon } from '@/components/agent-icon'
 import {
   Card,
@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Zap,
   BookOpen,
@@ -36,6 +37,9 @@ import {
   Globe,
   Tag,
   Clock,
+  Flame,
+  PenLine,
+  Send,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -294,7 +298,46 @@ function AgentCardDialog({
   const active = isActive(agent)
   const timestamp = agent.updated_at ?? agent.created_at
 
-  const hasTabs = skills.length > 0 || roleModels.length > 0
+  // ── Experience notes state ──
+  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string }>>([])
+  const [noteInput, setNoteInput] = useState('')
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [noteSaving, setNoteSaving] = useState(false)
+
+  const fetchNotes = useCallback(async () => {
+    setNotesLoading(true)
+    try {
+      const res = await fetch(`/api/agent-notes?agent_id=${encodeURIComponent(agent.name ?? agent.id)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setNotes(data.notes ?? [])
+      }
+    } finally {
+      setNotesLoading(false)
+    }
+  }, [agent.name, agent.id])
+
+  useEffect(() => { fetchNotes() }, [fetchNotes])
+
+  const handleSaveNote = async () => {
+    if (!noteInput.trim()) return
+    setNoteSaving(true)
+    try {
+      const res = await fetch('/api/agent-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agent.name ?? agent.id, content: noteInput.trim() }),
+      })
+      if (res.ok) {
+        setNoteInput('')
+        await fetchNotes()
+      }
+    } finally {
+      setNoteSaving(false)
+    }
+  }
+
+  const hasTabs = true // always show tabs (experience tab is always present)
 
   return (
     <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
@@ -352,8 +395,8 @@ function AgentCardDialog({
       <Separator />
 
       {/* ── Body ── */}
-      {hasTabs ? (
-        <Tabs defaultValue={skills.length > 0 ? 'tools' : 'models'} className="flex flex-col">
+      {hasTabs && (
+        <Tabs defaultValue={skills.length > 0 ? 'tools' : roleModels.length > 0 ? 'models' : 'experience'} className="flex flex-col">
           <TabsList variant="line" className="px-5 rounded-none border-b border-border h-9 w-full justify-start gap-0">
             {skills.length > 0 && (
               <TabsTrigger value="tools" className="text-xs gap-1.5">
@@ -370,10 +413,17 @@ function AgentCardDialog({
             )}
             {roleModels.length > 0 && (
               <TabsTrigger value="models" className="text-xs gap-1.5">
-                <BookOpen className="w-3 h-3" />
-                参考
+                <Flame className="w-3 h-3" />
+                SOUL
               </TabsTrigger>
             )}
+            <TabsTrigger value="experience" className="text-xs gap-1.5">
+              <PenLine className="w-3 h-3" />
+              经验
+              {notes.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-0.5">{notes.length}</Badge>
+              )}
+            </TabsTrigger>
             {(agent.tags?.length ?? 0) > 0 && (
               <TabsTrigger value="meta" className="text-xs gap-1.5">
                 <Tag className="w-3 h-3" />
@@ -504,12 +554,49 @@ function AgentCardDialog({
               </div>
             </TabsContent>
           )}
+          {/* Experience tab */}
+          <TabsContent value="experience" className="mt-0">
+            <div className="flex flex-col h-64">
+              <ScrollArea className="flex-1">
+                <div className="px-5 py-3 space-y-3">
+                  {notesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : notes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">还没有经验笔记，写第一条吧</p>
+                  ) : (
+                    notes.map((n) => (
+                      <div key={n.id} className="border-l-2 border-border pl-3 py-0.5">
+                        <p className="text-xs leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 font-mono">{formatDate(n.created_at)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+              <div className="border-t border-border px-4 py-3 flex gap-2 items-end">
+                <Textarea
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  placeholder="写下你的使用经验…"
+                  className="text-xs resize-none min-h-[56px] flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSaveNote()
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-1"
+                  disabled={noteSaving || !noteInput.trim()}
+                  onClick={handleSaveNote}
+                >
+                  {noteSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
-      ) : (
-        /* No tabs — just show a simple message */
-        <div className="px-5 py-6 text-center text-xs text-muted-foreground">
-          暂无工具清单
-        </div>
       )}
 
       <Separator />
