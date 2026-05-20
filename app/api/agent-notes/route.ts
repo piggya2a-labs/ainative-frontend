@@ -6,8 +6,22 @@ const adminClient = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// 从请求 header 里读 JWT，服务端验证用户身份
+async function getAuthorFromRequest(req: NextRequest): Promise<string> {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader?.startsWith('Bearer ')) return 'anonymous'
+
+  const token = authHeader.slice(7)
+  const userClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+  const { data: { user } } = await userClient.auth.getUser()
+  return user?.email ?? 'anonymous'
+}
+
 // GET /api/agent-notes?agent_id=xxx
-// 从 agent_registry.wiki 读取经验笔记
 export async function GET(req: NextRequest) {
   const agentId = req.nextUrl.searchParams.get('agent_id')
   if (!agentId) return NextResponse.json({ error: 'agent_id required' }, { status: 400 })
@@ -20,23 +34,22 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // wiki 是 jsonb 数组，每条 { content, created_at, author }
   const notes = (data?.wiki ?? []) as Array<{ content: string; created_at: string; author?: string }>
-  // 按时间倒序
   notes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return NextResponse.json({ notes })
 }
 
 // POST /api/agent-notes  { agent_id, content }
-// 追加一条经验笔记到 agent_registry.wiki
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body?.agent_id || !body?.content) {
     return NextResponse.json({ error: 'agent_id and content required' }, { status: 400 })
   }
 
-  // 先读当前 wiki
+  // 服务端从 JWT 读取用户邮箱，不信任前端传的 author
+  const author = await getAuthorFromRequest(req)
+
   const { data: current, error: readErr } = await adminClient
     .from('agent_registry')
     .select('wiki')
@@ -48,7 +61,7 @@ export async function POST(req: NextRequest) {
   const newEntry = {
     content: body.content,
     created_at: new Date().toISOString(),
-    author: body.author ?? 'user',
+    author,
   }
 
   const updatedWiki = [...((current?.wiki ?? []) as object[]), newEntry]

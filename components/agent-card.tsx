@@ -332,10 +332,15 @@ function AgentCardDialog({
     if (!noteInput.trim()) return
     setNoteSaving(true)
     try {
+      // 从 supabase session 拿 access_token，传给 API 做服务端身份验证
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
       const res = await fetch('/api/agent-notes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim(), author: userEmail ?? 'anonymous' }),
+        headers,
+        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim() }),
       })
       if (res.ok) {
         setNoteInput('')
