@@ -1,7 +1,97 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { DashboardClient } from './dashboard-client'
+
+// ─── MCSP 默认 metadata 生成器 ────────────────────────────────────────────────
+function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, createdAt: string) {
+  const today = new Date().toISOString().slice(0, 10)
+  const contractStart = createdAt.slice(0, 10)
+  // M1 target: 合同开始后 4 周
+  const m1Target = new Date(new Date(contractStart).getTime() + 28 * 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10)
+  const shareToken = `${tenantSlug}-live-${new Date().getFullYear()}q${Math.ceil((new Date().getMonth() + 1) / 3)}`
+
+  return {
+    share_token: shareToken,
+    current_milestone: 'M1',
+    milestones: {
+      M0: {
+        status: 'done',
+        name: '找到合适的 Agent',
+        completed_at: contractStart,
+        tasks_total: 3,
+        tasks_done: 3,
+        owner: '@Polly',
+        tasks: [
+          { name: '候选 Agent 调研清单输出完毕', done: true, owner: '@Polly' },
+          { name: '选定目标 Agent，双方确认', done: true, owner: tenantName },
+          { name: '双方签认，M1 正式启动', done: true, owner: '双方' },
+        ],
+      },
+      M1: {
+        status: 'in_progress',
+        name: '交付试用设计方案',
+        started_at: contractStart,
+        target_date: m1Target,
+        tasks_total: 4,
+        tasks_done: 0,
+        owner: '@Lumen',
+        tasks: [
+          { name: '共同成功计划初稿完成，等待客户确认', done: false, owner: '@Lumen' },
+          { name: 'pipe/workflow 设计方案完成', done: false, owner: '@Sega' },
+          { name: '成功标准确认，或提出修改', done: false, owner: tenantName },
+          { name: 'MCSP + OMT 双方签认，M2 正式启动', done: false, owner: '双方' },
+        ],
+      },
+      M2: {
+        status: 'pending',
+        name: '试运行完成',
+        tasks_total: 4,
+        tasks_done: 0,
+        owner: '@Sega',
+      },
+      M3: {
+        status: 'pending',
+        name: '审计验证通过',
+        tasks_total: 3,
+        tasks_done: 0,
+        owner: '@Eva',
+      },
+    },
+    mcsp: {
+      goal: `帮助 ${tenantName} 团队完成 AI Native 多 Agent 工作流的试运行验证，实现从人工操作到 Agent 自动化的第一个闭环`,
+      success_criteria: [
+        { metric: 'Agent 自动化覆盖率', baseline: '0%', target: '≥70%', method: 'M3 审计', checkpoint: 'M3' },
+        { metric: '里程碑按时完成率', baseline: '—', target: 'M0-M3 全部在目标日期内', method: 'M3 审计', checkpoint: 'M3' },
+        { metric: '审计通过', baseline: '—', target: '@Eva 审计结论为通过', method: 'M3 审计', checkpoint: 'M3' },
+      ],
+      signed_m1: false,
+      signed_m3: false,
+      evidence_count: 0,
+      modules_filled: 3,
+    },
+    audit: {
+      health: 'yellow',
+      last_audit: null,
+      conclusion: null,
+      next_action: '等待 @Lumen 完成 MCSP 初稿，与客户确认成功标准后推进 M1 签认',
+      eva_note: null,
+    },
+    client: {
+      name: tenantName,
+      display_name: tenantName,
+      contract_start: contractStart,
+      plan_period: `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`,
+      lumen: '@Lumen',
+      sega: '@Sega',
+    },
+    update_log: [
+      { date: today, author: '@Lumen', note: 'MCSP 自动初始化，M0 已完成，M1 正式启动' },
+    ],
+  }
+}
 
 export default async function DashboardPage() {
   const cookieStore = await cookies()
@@ -35,6 +125,27 @@ export default async function DashboardPage() {
     .select('id, name, slug, status, created_at, metadata')
     .eq('user_id', user.id)
     .single()
+
+  // ─── 自动初始化 MCSP metadata ────────────────────────────────────────────────
+  // 如果 tenant 存在但 metadata 里没有 share_token，自动生成并写入
+  if (tenant && !(tenant.metadata as Record<string, unknown> | null)?.share_token) {
+    const defaultMeta = buildDefaultMcspMetadata(tenant.name, tenant.slug, tenant.created_at)
+    // 用 service role 写入（anon key 可能受 RLS 限制）
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: updated } = await adminClient
+      .from('tenants')
+      .update({ metadata: defaultMeta })
+      .eq('id', tenant.id)
+      .select('id, name, slug, status, created_at, metadata')
+      .single()
+    // 用更新后的 tenant 继续渲染
+    if (updated) {
+      Object.assign(tenant, updated)
+    }
+  }
 
   // API Keys
   const { data: apiKeys } = tenant
