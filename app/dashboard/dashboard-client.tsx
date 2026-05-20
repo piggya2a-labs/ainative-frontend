@@ -484,8 +484,14 @@ export function DashboardClient({
         const result = await res.json()
         if (result.success) {
           setComposioConnected(true)
-          posthog?.capture('composio_mcp_connect_success')
-          toast.success('Composio 已连接！所有工具现在可用。')
+          posthog?.capture('composio_mcp_connect_success', { autoConnected: result.autoConnected })
+          if (result.autoConnected?.length > 0) {
+            toast.success(`Composio 已连接！自动接入 Agent：${result.autoConnected.join('、')} 🎉`)
+            // 刷新页面让 AGENT 列表更新
+            setTimeout(() => window.location.reload(), 1500)
+          } else {
+            toast.success('Composio 已连接！所有工具现在可用。')
+          }
         } else {
           toast.error(result.error ?? 'Token 交换失败，请重试')
         }
