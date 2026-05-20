@@ -149,7 +149,9 @@ export default async function DashboardPage() {
   const composioMcp = (user.user_metadata as Record<string, unknown> | null)?.composio_mcp as Record<string, unknown> | null
   const composioConnected = !!(composioMcp?.access_token)
 
-  // ─── Composio 已连接工具数（用用户自己的 token 查，按用户隔离）──────────────────────────
+  // ─── Composio 已连接工具列表（用用户自己的 token 查，按用户隔离）──────────────────────────
+  type ComposioAgent = { id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }
+  let composioAgents: ComposioAgent[] = []
   let composioToolCount = 0
   if (composioConnected && composioMcp?.access_token) {
     try {
@@ -159,20 +161,33 @@ export default async function DashboardPage() {
         next: { revalidate: 60 },
       })
       if (res.ok) {
-        const data = await res.json() as { items?: unknown[] }
+        const data = await res.json() as { items?: Array<{ id: string; appName?: string; appUniqueId?: string; logo?: string }> }
         composioToolCount = data.items?.length ?? 0
+        composioAgents = (data.items ?? []).map((item) => {
+          const appName = item.appName ?? item.appUniqueId ?? item.id
+          const domain = appName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
+          return {
+            id: `composio-${item.id}`,
+            name: appName.charAt(0).toUpperCase() + appName.slice(1),
+            icon_url: item.logo ?? null,
+            mcp_url: null,
+            url: `https://${domain}`,
+            description: `via Composio`,
+          }
+        })
       }
     } catch {
       // 查询失败不影响页面加载
     }
   }
 
-  // ─── 平台可用 Agent 列表（头像墙用）──────────────────────────────────────────────────────────────
-  const { data: allAgents, count: agentCount } = await adminClient
-    .from('agent_registry')
-    .select('id, name, icon_url, mcp_url, url', { count: 'exact' })
-    .eq('enabled', true)
-    .order('created_at', { ascending: false })
+  // ─── 用户在 Agent Wiki 手动开启的 agent（仅用户自己的）──────────────────────────────────────
+  // 暂时用空数组，后续可从 user_enabled_agents 表读取
+  const userEnabledAgents: ComposioAgent[] = []
+
+  // ─── 合并：Composio 工具 + 用户手动开启的 agent ──────────────────────────────────────────────
+  const allAgents: ComposioAgent[] = [...composioAgents, ...userEnabledAgents]
+  const agentCount = allAgents.length
 
   return (
     <Suspense>

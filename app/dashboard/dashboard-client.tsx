@@ -82,7 +82,7 @@ interface Props {
   composioConnected: boolean
   composioToolCount: number
   agentCount: number
-  allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null }>
+  allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null }>
 }
 
 const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
@@ -804,55 +804,51 @@ export function DashboardClient({
 
         {/* AGENT */}
         <CollapsibleSection title="AGENT" count={agentCount > 0 ? String(agentCount) : undefined}>
-          {connectedAgents.length === 0 ? (
+          {allAgents.length === 0 ? (
             <div className="px-4 py-4">
-              {/* Icon 头像墙 */}
-              {allAgents.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {allAgents.map((agent) => (
-                    <Link key={agent.id} href="/marketplace" title={agent.name}>
-                      <AgentIcon
-                        name={agent.name}
-                        iconUrl={agent.icon_url}
-                        mcpUrl={agent.mcp_url}
-                        url={agent.url}
-                        size={28}
-                        className="opacity-70 hover:opacity-100 hover:scale-110 transition-all cursor-pointer ring-1 ring-border"
-                      />
-                    </Link>
-                  ))}
+              {!composioConnected ? (
+                // 未连 Composio：引导连接
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-mono">连接 Composio 后，你的工具将自动出现在这里。</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs gap-1 shrink-0"
+                    onClick={handleComposioConnect}
+                    disabled={composioConnecting}
+                  >
+                    {composioConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+                    连接 Composio
+                  </Button>
                 </div>
+              ) : (
+                // 已连 Composio 但暂无工具
+                <span className="text-xs text-muted-foreground font-mono">暂无已连接工具，前往 Composio 添加应用后刷新。</span>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-mono">平台共 {agentCount} 个 Agent 可用，点击头像浏览并开启。</span>
-                <Link href="/marketplace">
-                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
-                </Link>
-              </div>
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {connectedAgents.map((agent) => (
-                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-2.5 min-w-0">
+            <div className="px-4 py-4">
+              {/* Composio 工具 icon 头像墙 */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {allAgents.map((agent) => (
+                  <a key={agent.id} href="https://app.composio.dev" target="_blank" rel="noopener noreferrer" title={agent.name}>
                     <AgentIcon
                       name={agent.name}
                       iconUrl={agent.icon_url}
                       mcpUrl={agent.mcp_url}
                       url={agent.url}
-                      size={24}
+                      size={28}
+                      className="opacity-80 hover:opacity-100 hover:scale-110 transition-all cursor-pointer ring-1 ring-border"
                     />
-                    <div className="min-w-0">
-                      <span className="text-sm font-medium block truncate">{agent.name}</span>
-                      {agent.description && <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
-                    {agent.skills?.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1">{agent.skills.length} 工具</Badge>}
-                  </div>
-                </div>
-              ))}
+                  </a>
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-mono">已连接 {agentCount} 个工具，点击头像管理。</span>
+                <a href="https://app.composio.dev" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Composio</Button>
+                </a>
+              </div>
             </div>
           )}
         </CollapsibleSection>
