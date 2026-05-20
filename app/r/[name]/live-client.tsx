@@ -1,26 +1,61 @@
 'use client'
 
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-  Flag, CheckCircle2, Clock, Calendar, AlertTriangle,
-  Target, ArrowRight, Shield, ExternalLink, Info,
-  TrendingUp, BarChart2, Lock, Zap, Users, Activity,
-  GitBranch, FileText, MessageCircle
+  Target, Users, CheckCircle2, AlertTriangle, GitBranch,
+  Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
+  Lock, Zap, Activity, MessageCircle
 } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface MilestoneTask {
-  name: string
-  done: boolean
-  owner: string
+// ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
+function Section({ icon: Icon, title, subtitle, children }: {
+  icon: React.ElementType
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2">
+        <Icon className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  )
 }
 
+// ─── 完全复用 how-we-work 的 Callout ─────────────────────────────────────────
+function Callout({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg bg-muted/50 border border-border/50 px-4 py-3">
+      <Info className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
+      <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
+    </div>
+  )
+}
+
+// ─── 待开放标签 ───────────────────────────────────────────────────────────────
+function ComingSoon({ source }: { source?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 font-mono">
+      <Lock className="w-3 h-3" />
+      待开放{source ? `（${source}）` : ''}
+    </span>
+  )
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface MilestoneTask { name: string; done: boolean; owner: string }
 interface MilestoneData {
   status: 'done' | 'in_progress' | 'pending'
   name: string
@@ -32,16 +67,10 @@ interface MilestoneData {
   owner: string
   tasks?: MilestoneTask[]
 }
-
 interface TenantMetadata {
   share_token: string
   current_milestone: string
-  milestones: {
-    M0: MilestoneData
-    M1: MilestoneData
-    M2: MilestoneData
-    M3: MilestoneData
-  }
+  milestones: { M0: MilestoneData; M1: MilestoneData; M2: MilestoneData; M3: MilestoneData }
   mcsp: {
     goal: string
     as_is?: string[]
@@ -72,8 +101,7 @@ interface TenantMetadata {
   }
   update_log: { date: string; author: string; note: string }[]
 }
-
-interface LiveClientProps {
+export interface LiveClientProps {
   meta: TenantMetadata
   tenantId: string
   tenantName: string
@@ -84,622 +112,617 @@ interface LiveClientProps {
   currentProgress: number
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function healthLabel(health: string) {
-  if (health === 'green') return '健康'
-  if (health === 'yellow') return '关注'
-  return '风险'
-}
-
-function milestoneStatusLabel(status: string) {
-  if (status === 'done') return '已完成'
-  if (status === 'in_progress') return '进行中'
+// ─── helpers ─────────────────────────────────────────────────────────────────
+function milestoneStatusLabel(s: string) {
+  if (s === 'done') return '已完成'
+  if (s === 'in_progress') return '进行中'
   return '待开始'
 }
-
-function milestoneStatusVariant(status: string): 'default' | 'secondary' | 'outline' {
-  if (status === 'done') return 'default'
-  if (status === 'in_progress') return 'secondary'
-  return 'outline'
+function healthLabel(h: string) {
+  if (h === 'green') return '健康'
+  if (h === 'yellow') return '关注'
+  return '风险'
+}
+function healthColor(h: string) {
+  if (h === 'green') return 'var(--onit-green)'
+  if (h === 'yellow') return 'var(--onit-amber)'
+  return 'var(--destructive)'
 }
 
-// 待开放标签
-function ComingSoon() {
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 font-mono">
-      <Lock className="w-3 h-3" />
-      待开放
-    </span>
-  )
-}
+// ─── MCSP Tab（复用 how-we-work MutualSuccessPlan 结构）─────────────────────
+function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyCount: number; runDays: number }) {
+  const { milestones, mcsp, audit, client } = meta
+  const doneMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3].filter(m => m.status === 'done').length
 
-// 数字卡片
-function MetricCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
-  comingSoon,
-}: {
-  label: string
-  value?: string | number
-  sub?: string
-  icon: React.ElementType
-  color?: 'green' | 'yellow' | 'red' | 'blue'
-  comingSoon?: boolean
-}) {
-  const colorMap = {
-    green: 'var(--onit-green)',
-    yellow: 'var(--onit-amber)',
-    red: 'var(--destructive)',
-    blue: 'var(--onit-blue)',
-  }
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">{label}</p>
-            {comingSoon ? (
-              <ComingSoon />
-            ) : (
-              <p
-                className="text-xl font-bold"
-                style={color ? { color: colorMap[color] } : undefined}
-              >
-                {value ?? '—'}
-              </p>
-            )}
-            {sub && <p className="text-xs text-muted-foreground truncate">{sub}</p>}
-          </div>
-          <Icon className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono text-xs">MCSP</Badge>
+          <Badge variant="secondary" className="text-xs">实时</Badge>
+          <Badge
+            variant="outline"
+            className="text-xs"
+            style={{ color: healthColor(audit.health), borderColor: healthColor(audit.health) }}
+          >
+            {healthLabel(audit.health)}
+          </Badge>
         </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// 进度条行
-function ProgressRow({
-  label,
-  done,
-  total,
-  color,
-  comingSoon,
-}: {
-  label: string
-  done?: number
-  total?: number
-  color?: string
-  comingSoon?: boolean
-}) {
-  const pct = comingSoon ? 0 : Math.round(((done ?? 0) / Math.max(total ?? 1, 1)) * 100)
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        {comingSoon ? <ComingSoon /> : <span className="font-mono text-muted-foreground">{done}/{total}</span>}
-      </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        {!comingSoon && (
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, backgroundColor: color ?? 'var(--foreground)' }}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
-// 状态行
-function StatusRow({
-  label,
-  status,
-  comingSoon,
-}: {
-  label: string
-  status?: boolean | string | null
-  comingSoon?: boolean
-}) {
-  let dot = <span className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
-  let text = <span className="text-xs text-muted-foreground">—</span>
-
-  if (comingSoon) {
-    dot = <span className="w-2 h-2 rounded-full bg-muted-foreground/20 shrink-0" />
-    text = <ComingSoon />
-  } else if (status === true || status === 'yes') {
-    dot = <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--onit-green)' }} />
-    text = <span className="text-xs" style={{ color: 'var(--onit-green)' }}>是</span>
-  } else if (status === false || status === 'no') {
-    dot = <span className="w-2 h-2 rounded-full bg-muted-foreground/40 shrink-0" />
-    text = <span className="text-xs text-muted-foreground">否</span>
-  } else if (typeof status === 'string') {
-    dot = <span className="w-2 h-2 rounded-full bg-muted-foreground/40 shrink-0" />
-    text = <span className="text-xs text-muted-foreground">{status}</span>
-  }
-
-  return (
-    <div className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5">{dot}{text}</div>
-    </div>
-  )
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-export function LiveClient({
-  meta,
-  tenantId,
-  tenantName,
-  tenantCreatedAt,
-  apiKeyCount,
-  runDays,
-  overallProgress,
-  currentProgress,
-}: LiveClientProps) {
-  const posthog = usePostHog()
-  const { milestones, mcsp, audit, client, update_log, current_milestone } = meta
-
-  useEffect(() => {
-    posthog?.capture('live_report_view', {
-      tenant_id: tenantId,
-      tenant_name: tenantName,
-      milestone: current_milestone,
-      health: audit.health,
-    })
-  }, [posthog, tenantId, tenantName, current_milestone, audit.health])
-
-  const currentM = milestones[current_milestone as keyof typeof milestones]
-  const doneMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3]
-    .filter(m => m.status === 'done').length
-
-  // 计算 MCSP 七模块填写率
-  const mcspFilled = mcsp.modules_filled ?? 0
-  const mcspTotal = 7
-
-  // 计算 Agent 占比（从 metadata 读，没有则 0）
-  const agentRatio = mcsp.agent_ratio ?? 0
-
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-10 space-y-10">
-
-      {/* Hero */}
-      <div className="space-y-3">
-        <h1 className="text-2xl font-bold tracking-tight">共同成功计划进度</h1>
-        <p className="text-sm text-muted-foreground">
-          {client.display_name} × ONIT — 实时里程碑追踪，由 @{client.lumen} 维护
+        <h2 className="text-2xl font-bold tracking-tight">Mutual Customer Success Plan</h2>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          这是我们双方共同签认的完整操作系统——不是 ONIT 单方面的服务承诺，而是我们一起追同一个目标的行动地图。
+          按 cadence 动态更新，此页面实时同步。
         </p>
-        <div className="flex flex-wrap gap-3 pt-1">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>合同开始 {client.contract_start}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            <span>已运行 {runDays} 天</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Flag className="w-3.5 h-3.5" />
-            <span>当前阶段 {current_milestone}</span>
-          </div>
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          {[
+            { label: '合同开始', desc: client.contract_start },
+            { label: '计划周期', desc: client.plan_period },
+            { label: '已运行', desc: `${runDays} 天` },
+          ].map(({ label, desc }) => (
+            <div key={label} className="rounded-lg border border-border/50 p-3 space-y-1">
+              <span className="text-xs font-medium">{label}</span>
+              <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       <Separator />
 
-      {/* ── 区块 1：数字卡片（#1-6） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">核心指标</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {/* #1 账号存活天数 — Supabase */}
-          <MetricCard
-            label="账号存活天数"
-            value={runDays}
-            sub={`自 ${tenantCreatedAt.slice(0, 10)}`}
-            icon={Calendar}
-          />
-          {/* #2 累计 Agent 调用次数 — LangSmith（待开放） */}
-          <MetricCard
-            label="累计 Agent 调用次数"
-            icon={Zap}
-            comingSoon
-            sub="LangSmith 数据"
-          />
-          {/* #3 已连接 Agent 数 — LangSmith（待开放） */}
-          <MetricCard
-            label="已连接 Agent 数"
-            icon={GitBranch}
-            comingSoon
-            sub="LangSmith 数据"
-          />
-          {/* #4 Agent 节省时间估算 — LangSmith（待开放） */}
-          <MetricCard
-            label="Agent 节省时间估算"
-            icon={Clock}
-            comingSoon
-            sub="LangSmith 数据"
-          />
-          {/* #5 与客户沟通次数 — 待定 */}
-          <MetricCard
-            label="与客户沟通次数"
-            icon={MessageCircle}
-            comingSoon
-            sub="数据来源待定"
-          />
-          {/* #6 试运行通过率 — LangSmith（待开放） */}
-          <MetricCard
-            label="试运行通过率"
-            icon={CheckCircle2}
-            comingSoon
-            sub="LangSmith 数据"
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* ── 区块 2：进度条（#7-11） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <BarChart2 className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">任务完成进度</h2>
-        </div>
+      {/* Block 1: 目标与背景 */}
+      <Section icon={Target} title="1. 目标与背景" subtitle="我们双方对「这次合作是什么」的共同认知">
         <Card>
-          <CardContent className="pt-4 space-y-4">
-            {/* #7 OMT 任务完成率 M0 */}
-            <ProgressRow
-              label="OMT 任务完成率 M0"
-              done={milestones.M0.tasks_done}
-              total={milestones.M0.tasks_total}
-              color={milestones.M0.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)'}
-            />
-            {/* #8 OMT 任务完成率 M1 */}
-            <ProgressRow
-              label="OMT 任务完成率 M1"
-              done={milestones.M1.tasks_done}
-              total={milestones.M1.tasks_total}
-              color={milestones.M1.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)'}
-            />
-            {/* #9 OMT 任务完成率 M2 */}
-            <ProgressRow
-              label="OMT 任务完成率 M2"
-              done={milestones.M2.tasks_done}
-              total={milestones.M2.tasks_total}
-              color={milestones.M2.status === 'done' ? 'var(--onit-green)' : 'var(--muted-foreground)'}
-            />
-            {/* #10 MCSP 七模块填写率 */}
-            <ProgressRow
-              label="MCSP 七模块填写率"
-              done={mcspFilled}
-              total={mcspTotal}
-              color="var(--onit-blue)"
-            />
-            {/* #11 Agent 占比 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Agent 占比（Agent vs 人工）</span>
-                <span className="font-mono text-muted-foreground">{agentRatio}%</span>
-              </div>
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${agentRatio}%`, backgroundColor: 'var(--onit-green)' }}
-                />
-              </div>
+          <CardContent className="pt-4 space-y-0">
+            {/* 复用 FieldRow 结构，填真实数据 */}
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户名称</span>
+              <span className="text-sm">{client.display_name}</span>
+            </div>
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户成功经理</span>
+              <span className="text-sm">@{client.lumen}</span>
+            </div>
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">执行工程师</span>
+              <span className="text-sm">@{client.sega}</span>
+            </div>
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户负责人</span>
+              <span className="text-sm">{client.client_lead}</span>
+            </div>
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">合同开始日期</span>
+              <span className="text-sm font-mono">{client.contract_start}</span>
+            </div>
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">合作目标</span>
+              <span className="text-sm leading-relaxed">{mcsp.goal}</span>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </Section>
 
-      <Separator />
+      {/* Block 2: 现状 vs 理想状态 */}
+      <Section icon={ArrowRight} title="2. 现状 → 理想状态" subtitle="起点和终点的对比，成功标准从这里推导">
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card className="border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">现状（As-Is）</CardTitle>
+              <CardDescription className="text-xs">我们现在的处境</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {mcsp.as_is && mcsp.as_is.length > 0 ? mcsp.as_is.map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
+                  <span className="text-sm">{item}</span>
+                </div>
+              )) : (
+                <span className="text-sm text-muted-foreground/50 italic">@Lumen 填写中</span>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">理想状态（To-Be）</CardTitle>
+              <CardDescription className="text-xs">3 个月后我们希望庆祝什么</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {mcsp.to_be && mcsp.to_be.length > 0 ? mcsp.to_be.map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
+                  <span className="text-sm">{item}</span>
+                </div>
+              )) : (
+                <span className="text-sm text-muted-foreground/50 italic">@Lumen 填写中</span>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
 
-      {/* ── 区块 3：整体里程碑进度条 ── */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-medium">整体里程碑进度</span>
-          <span>{overallProgress}%</span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${overallProgress}%`,
-              backgroundColor: overallProgress === 100 ? 'var(--onit-green)' : 'var(--foreground)',
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>M0 找到 Agent</span>
-          <span>M3 审计通过</span>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* ── 区块 4：状态列表（#12-20） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">状态检查</h2>
-        </div>
+      {/* Block 3: 成功标准 */}
+      <Section icon={CheckCircle2} title="3. 成功标准（Success Criteria）" subtitle="可量化、可验证的指标——这是我们验收和续约的唯一依据">
         <Card>
-          <CardContent className="pt-4">
-            {/* #12-15 里程碑状态 */}
-            {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => (
-              <StatusRow
-                key={phase}
-                label={`里程碑 ${phase} 状态`}
-                status={milestoneStatusLabel(milestones[phase].status)}
-              />
-            ))}
-            {/* #16 双方签认状态 M1 */}
-            <StatusRow
-              label="双方签认状态 M1"
-              status={mcsp.signed_m1}
-            />
-            {/* #17 MCP 是否接入 — LangSmith 待开放 */}
-            <StatusRow
-              label="MCP 是否接入"
-              comingSoon
-            />
-            {/* #18 API Key 是否创建 — Supabase */}
-            <StatusRow
-              label="API Key 是否创建"
-              status={apiKeyCount > 0}
-            />
-            {/* #19 证据链是否完整 */}
-            <StatusRow
-              label="证据链是否完整"
-              status={mcsp.evidence_count > 0 ? `${mcsp.evidence_count} 条` : false}
-            />
-            {/* #20 未缓解高风险数 */}
-            <StatusRow
-              label="未缓解高风险数"
-              status={
-                mcsp.success_criteria && mcsp.success_criteria.length > 0
-                  ? `${mcsp.success_criteria.length} 项成功标准`
-                  : '暂无'
-              }
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator />
-
-      {/* ── 区块 5：趋势图（#21-23） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">趋势</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* #21 最近 30 天 Agent 调用趋势 — LangSmith 待开放 */}
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground mb-2">最近 30 天 Agent 调用趋势</p>
-              <div className="h-16 flex items-center justify-center">
-                <ComingSoon />
-              </div>
-              <p className="text-xs text-muted-foreground/50 mt-1">LangSmith 按天统计</p>
-            </CardContent>
-          </Card>
-          {/* #22 里程碑时间线（计划 vs 实际）— Supabase */}
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground mb-2">里程碑时间线（计划 vs 实际）</p>
-              <div className="space-y-1.5">
-                {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => {
-                  const m = milestones[phase]
-                  const date = m.completed_at ?? m.target_date ?? '—'
-                  const isDone = m.status === 'done'
-                  return (
-                    <div key={phase} className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground font-mono">{phase}</span>
-                      <span
-                        className="font-mono"
-                        style={{ color: isDone ? 'var(--onit-green)' : undefined }}
-                      >
-                        {date}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-          {/* #23 客户响应延迟趋势 — 待定 */}
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground mb-2">客户响应延迟趋势</p>
-              <div className="h-16 flex items-center justify-center">
-                <ComingSoon />
-              </div>
-              <p className="text-xs text-muted-foreground/50 mt-1">数据来源待定</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* ── 区块 6：对比行（#24-26） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">对比分析</h2>
-        </div>
-        <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 space-y-4">
+            <Callout text="基线值从现状来，目标值从理想状态来。衡量方式必须是系统可自动读取的。验收时间绑定里程碑节点。" />
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">指标</TableHead>
-                  <TableHead className="text-xs text-right">当前值</TableHead>
-                  <TableHead className="text-xs text-right">目标值</TableHead>
+                  <TableHead className="w-[200px] text-xs">指标</TableHead>
+                  <TableHead className="text-xs">基线值</TableHead>
+                  <TableHead className="text-xs">目标值</TableHead>
+                  <TableHead className="text-xs">衡量方式</TableHead>
+                  <TableHead className="text-xs">验收时间</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* #24 Agent 完成任务 vs 人工完成任务 */}
+                {mcsp.success_criteria && mcsp.success_criteria.length > 0 ? (
+                  mcsp.success_criteria.map((sc, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-sm">{sc.metric}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{sc.baseline}</TableCell>
+                      <TableCell className="text-sm" style={{ color: 'var(--onit-green)' }}>{sc.target}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{sc.method}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs font-mono">{sc.checkpoint}</Badge></TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow className="opacity-40">
+                    <TableCell className="text-sm italic text-muted-foreground" colSpan={5}>@Lumen 填写中</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* Block 4: 角色与职责 */}
+      <Section icon={Users} title="4. 角色与职责（RACI）" subtitle="明确我们每个人对这个项目负什么责">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell className="text-xs">Agent 完成任务 vs 人工完成任务</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{agentRatio}%</TableCell>
-                  <TableCell className="text-xs text-right font-mono" style={{ color: 'var(--onit-green)' }}>≥70%</TableCell>
+                  <TableHead className="text-xs">角色</TableHead>
+                  <TableHead className="text-xs">姓名</TableHead>
+                  <TableHead className="text-xs">在这个项目里负责什么</TableHead>
+                  <TableHead className="text-xs">联系方式</TableHead>
                 </TableRow>
-                {/* #25 计划 M3 日期 vs 预测完成日期 */}
+              </TableHeader>
+              <TableBody>
+                {[
+                  ['客户成功经理 @Lumen', `@${client.lumen}`, '整体进度跟踪、周会主持、风险上报——单一责任人', client.telegram_handle ? `@${client.telegram_handle}` : '—'],
+                  ['执行工程师 @Sega', `@${client.sega}`, 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
+                  ['客户负责人', client.client_lead, '推动项目、协调资源、最终验收签字', '—'],
+                ].map(([role, name, scope, contact], i) => (
+                  <TableRow key={i}>
+                    <TableCell className="text-sm font-medium">{role}</TableCell>
+                    <TableCell className="text-sm">{name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{scope}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{contact}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* Block 5: 里程碑 */}
+      <Section icon={Flag} title="5. 里程碑（Milestones）" subtitle="ONIT WhileLoop 的四个节点——找到、设计、试运行、验证通过">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell className="text-xs">计划 M3 日期 vs 预测完成日期</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{milestones.M3.target_date ?? '—'}</TableCell>
-                  <TableCell className="text-xs text-right font-mono text-muted-foreground">按计划</TableCell>
+                  <TableHead className="w-[60px] text-xs">阶段</TableHead>
+                  <TableHead className="text-xs">名称</TableHead>
+                  <TableHead className="text-xs">目标日期</TableHead>
+                  <TableHead className="text-xs">Owner</TableHead>
+                  <TableHead className="text-xs">状态</TableHead>
+                  <TableHead className="text-xs">双方签认</TableHead>
                 </TableRow>
-                {/* #26 平均响应时间（ONIT vs 客户）— 待定 */}
+              </TableHeader>
+              <TableBody>
+                {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => {
+                  const m = milestones[phase]
+                  const isCurrent = phase === meta.current_milestone
+                  const signed = phase === 'M1' ? mcsp.signed_m1 : phase === 'M3' ? mcsp.signed_m3 : m.status === 'done'
+                  return (
+                    <TableRow key={phase} className={isCurrent ? 'bg-muted/30' : ''}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">{phase}</Badge>
+                        {isCurrent && <Badge variant="secondary" className="text-xs ml-1">当前</Badge>}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{m.name}</TableCell>
+                      <TableCell className="text-sm font-mono text-muted-foreground">
+                        {m.completed_at ?? m.target_date ?? '—'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{m.owner}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                          className="text-xs"
+                        >
+                          {milestoneStatusLabel(m.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {signed
+                          ? <span className="text-xs" style={{ color: 'var(--onit-green)' }}>✓ 已签认</span>
+                          : <span className="text-xs text-muted-foreground">待签认</span>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* Block 6: 风险登记 */}
+      <Section icon={AlertTriangle} title="6. 风险登记（Risk Register）" subtitle="提前写下可能让我们卡住的事">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            <Callout text={`证据链完整度：${mcsp.evidence_count} 条。未缓解高风险数：${mcsp.success_criteria?.length ?? 0} 项成功标准待验收。`} />
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell className="text-xs">平均响应时间（ONIT vs 客户）</TableCell>
-                  <TableCell className="text-xs text-right" colSpan={2}>
-                    <ComingSoon />
-                  </TableCell>
+                  <TableHead className="text-xs">风险描述</TableHead>
+                  <TableHead className="text-xs">概率</TableHead>
+                  <TableHead className="text-xs">影响</TableHead>
+                  <TableHead className="text-xs">缓解措施</TableHead>
+                  <TableHead className="text-xs">Owner</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="text-sm">API 权限审批延迟</TableCell>
+                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
+                  <TableCell><Badge variant="destructive" className="text-xs">高</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">提前 2 周发送权限申请清单</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{client.client_lead}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">Agent 输出质量不达预期</TableCell>
+                  <TableCell><Badge variant="secondary" className="text-xs">低</Badge></TableCell>
+                  <TableCell><Badge variant="destructive" className="text-xs">高</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">LangSmith 全链路追踪 + 每周抽查</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">@{client.sega}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">MCP 接入状态</TableCell>
+                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
+                  <TableCell><Badge variant="secondary" className="text-xs">中</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground"><ComingSoon source="LangSmith" /></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">@{client.sega}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+      </Section>
+
+      {/* Block 7: 交接与 Cadence */}
+      <Section icon={GitBranch} title="7. 交接 & 节奏（Handoff & Cadence）" subtitle="这份文档怎么活着">
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">同步节奏</CardTitle>
+              <CardDescription className="text-xs">定期见面是我们保持对齐的方式</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                ['周会', '每周固定时间', '进度和卡点更新，15-30 分钟', '30 min'],
+                ['月度 QBR', '每月一次', '回顾成功标准指标，调整计划', '60 min'],
+                ['里程碑验收', '每个 M 节点', '交付物确认，双方签字', '按需'],
+              ].map(([name, time, agenda, duration], i) => (
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{name}</div>
+                    <div className="text-xs text-muted-foreground">{time} · {agenda}</div>
+                  </div>
+                  <Badge variant="outline" className="text-xs shrink-0">{duration}</Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">什么时候我们视为完成</CardTitle>
+              <CardDescription className="text-xs">续约谈判的起点，也是这份计划的终点</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                `M0-M3 里程碑全部完成（当前 ${doneMilestones}/4）`,
+                '成功标准中所有指标达到目标值',
+                `${client.client_lead} 签字确认验收报告`,
+                '续约/扩容/结束决策已明确并记录',
+                'Agent 运行数据已归档，链接写入本文档',
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2 py-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <span className="text-sm text-muted-foreground">{item}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      {/* @Eva 审计结论 */}
+      <Section icon={AlertTriangle} title="@Eva 审计结论" subtitle="M3 阶段由 @Eva 执行，结论实时更新">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: healthColor(audit.health) }} />
+              <span className="text-sm font-medium" style={{ color: healthColor(audit.health) }}>
+                {healthLabel(audit.health)}
+              </span>
+              {audit.last_audit && (
+                <span className="text-xs text-muted-foreground ml-auto">上次审计 {audit.last_audit}</span>
+              )}
+            </div>
+            {audit.conclusion ? (
+              <div className="rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-xs text-muted-foreground leading-relaxed">{audit.conclusion}</p>
+              </div>
+            ) : (
+              <Callout text="审计将在 M3 阶段由 @Eva 执行，结论会实时更新到此处。" />
+            )}
+            {audit.next_action && (
+              <div className="flex items-start gap-2">
+                <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                <p className="text-xs text-muted-foreground">{audit.next_action}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Section>
+    </div>
+  )
+}
+
+// ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
+function OmtTab({ meta, apiKeyCount, runDays, overallProgress }: {
+  meta: TenantMetadata
+  apiKeyCount: number
+  runDays: number
+  overallProgress: number
+}) {
+  const { milestones, mcsp, audit, client } = meta
+  const doneMilestones = [milestones.M0, milestones.M1, milestones.M2, milestones.M3].filter(m => m.status === 'done').length
+  const inProgressMilestone = meta.current_milestone
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono text-xs">OMT</Badge>
+          <Badge variant="secondary" className="text-xs">实时</Badge>
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Onboarding Milestone Tracker</h2>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          这是我们每天看的施工进度牌——共同成功计划的「每日视图」。
+          聚焦四个问题：现在到哪了、还有多久、卡在哪里、下一步你或 Agent 做什么。
+        </p>
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          {[
+            { label: '更新频率', desc: '每次 cadence 会议前更新，或有卡点变化时随时更新' },
+            { label: '主要读者', desc: `${client.client_lead} 日常跟进——需要知道「今天该做什么」` },
+            { label: 'Agent 用途', desc: 'Agent 读取 MCSP 里程碑结构自动生成初始进度表，并在每次任务完成后自动更新' },
+          ].map(({ label, desc }) => (
+            <div key={label} className="rounded-lg border border-border/50 p-3 space-y-1">
+              <span className="text-xs font-medium">{label}</span>
+              <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Separator />
 
-      {/* ── 区块 7：文字结论（#27-29） ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">@Eva 审计结论</h2>
-        </div>
+      {/* 总览卡片（#1-6 数字卡片）*/}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* #1 账号存活天数 */}
         <Card>
-          <CardContent className="pt-4 space-y-4">
-            {/* #27 本轮审计结论 */}
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">本轮审计结论</p>
-              {audit.conclusion ? (
-                <div className="rounded-lg bg-muted/50 px-3 py-2">
-                  <p className="text-xs leading-relaxed">{audit.conclusion}</p>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2">
-                  <Info className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
-                  <p className="text-xs text-muted-foreground">审计将在 M3 阶段由 @Eva 执行，结论会实时更新到此处。</p>
-                </div>
-              )}
-            </div>
-            {/* #28 健康度评级 */}
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">健康度评级</p>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{
-                    backgroundColor: audit.health === 'green'
-                      ? 'var(--onit-green)'
-                      : audit.health === 'yellow'
-                      ? 'var(--onit-amber)'
-                      : 'var(--destructive)',
-                  }}
-                />
-                <span
-                  className="text-sm font-medium"
-                  style={{
-                    color: audit.health === 'green'
-                      ? 'var(--onit-green)'
-                      : audit.health === 'yellow'
-                      ? 'var(--onit-amber)'
-                      : 'var(--destructive)',
-                  }}
-                >
-                  {healthLabel(audit.health)}
-                </span>
-                {audit.last_audit && (
-                  <span className="text-xs text-muted-foreground ml-auto">上次审计 {audit.last_audit}</span>
-                )}
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">账号存活天数</p>
+                <p className="text-2xl font-bold mt-1">{runDays}</p>
+                <p className="text-xs text-muted-foreground mt-1">自 {client.contract_start}</p>
               </div>
+              <Calendar className="w-4 h-4 text-muted-foreground" />
             </div>
-            {/* #29 下一步行动 */}
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">下一步行动</p>
-              {audit.next_action ? (
-                <div className="flex items-start gap-2">
-                  <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
-                  <p className="text-xs text-muted-foreground">{audit.next_action}</p>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">—</p>
-              )}
+          </CardContent>
+        </Card>
+        {/* #2 累计 Agent 调用次数 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">累计 Agent 调用次数</p>
+                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
+                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+              </div>
+              <Zap className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* #3 已连接 Agent 数 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">已连接 Agent 数</p>
+                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
+                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+              </div>
+              <GitBranch className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* #4 Agent 节省时间估算 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Agent 节省时间估算</p>
+                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
+                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+              </div>
+              <Clock className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* #5 与客户沟通次数 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">与客户沟通次数</p>
+                <div className="mt-1"><ComingSoon /></div>
+                <p className="text-xs text-muted-foreground mt-1">数据来源待定</p>
+              </div>
+              <MessageCircle className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* #6 试运行通过率 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">试运行通过率</p>
+                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
+                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* 里程碑完成数 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">里程碑完成</p>
+                <p className="text-2xl font-bold mt-1">{doneMilestones}<span className="text-sm text-muted-foreground font-normal">/4</span></p>
+                <p className="text-xs text-muted-foreground mt-1">M0 → M3</p>
+              </div>
+              <Flag className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* 整体进度 */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">整体进度</p>
+                <p className="text-2xl font-bold mt-1">{overallProgress}%</p>
+                <p className="text-xs text-muted-foreground mt-1">当前阶段 {inProgressMilestone}</p>
+              </div>
+              <Activity className="w-4 h-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Separator />
+      {/* 进度条区（#7-11）*/}
+      <Section icon={Layers} title="任务完成进度" subtitle="OMT 任务完成率 + MCSP 填写率 + Agent 占比">
+        <Card>
+          <CardContent className="pt-4 space-y-4">
+            {/* #7-9 OMT 任务完成率 M0/M1/M2 */}
+            {(['M0', 'M1', 'M2'] as const).map((phase) => {
+              const m = milestones[phase]
+              const pct = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
+              return (
+                <div key={phase} className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>OMT 任务完成率 {phase}</span>
+                    <span>{m.tasks_done}/{m.tasks_total}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: m.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)',
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+            {/* #10 MCSP 七模块填写率 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>MCSP 七模块填写率</span>
+                <span>{mcsp.modules_filled}/7</span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.round((mcsp.modules_filled / 7) * 100)}%`, backgroundColor: 'var(--onit-blue)' }}
+                />
+              </div>
+            </div>
+            {/* #11 Agent 占比 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Agent 占比（Agent vs 人工）</span>
+                <span>{mcsp.agent_ratio ?? 0}%</span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${mcsp.agent_ratio ?? 0}%`, backgroundColor: 'var(--onit-green)' }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Section>
 
-      {/* ── 区块 8：PostHog 补充指标 ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">客户活跃度</h2>
-          <Badge variant="outline" className="text-xs font-mono">PostHog</Badge>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="登录 Dashboard 次数" icon={Activity} comingSoon sub="PostHog 数据" />
-          <MetricCard label="连接 Agent 次数" icon={GitBranch} comingSoon sub="PostHog 数据" />
-          <MetricCard label="点击 Telegram 次数" icon={MessageCircle} comingSoon sub="PostHog 数据" />
-          <MetricCard label="创建 API Key 次数" icon={Lock} comingSoon sub="PostHog 数据" />
-        </div>
-        <p className="text-xs text-muted-foreground/60">
-          PostHog 数据需服务端查询接入后开放，事件已在客户端埋点。
-        </p>
-      </div>
-
-      <Separator />
-
-      {/* ── 里程碑详情 ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Flag className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">里程碑详情</h2>
-        </div>
+      {/* 实施阶段进度（#12-16 状态 + 任务列表）*/}
+      <Section icon={Layers} title="实施阶段进度" subtitle="每个阶段下面列出具体可执行的任务——完成后勾选，进度条自动更新">
         <div className="space-y-3">
           {(['M0', 'M1', 'M2', 'M3'] as const).map((phase) => {
             const m = milestones[phase]
+            const isCurrent = phase === meta.current_milestone
             const progress = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
-            const isCurrent = phase === current_milestone
             return (
-              <Card key={phase} className={isCurrent ? 'border-foreground/20' : ''}>
-                <CardHeader className="pb-2">
+              <Card key={phase} className={isCurrent ? 'ring-1 ring-border' : ''}>
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Badge variant="outline" className="font-mono text-xs">{phase}</Badge>
-                      <CardTitle className="text-sm font-medium">{m.name}</CardTitle>
+                      <CardTitle className="text-sm font-semibold">{m.name}</CardTitle>
                       {isCurrent && <Badge variant="secondary" className="text-xs">当前</Badge>}
                     </div>
                     <div className="flex items-center gap-2">
-                      {(m.target_date || m.completed_at) && (
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {m.completed_at ?? m.target_date}
-                        </span>
-                      )}
-                      <Badge variant={milestoneStatusVariant(m.status)} className="text-xs">
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {m.completed_at ?? m.target_date ?? '—'}
+                      </span>
+                      <Badge
+                        variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                        className="text-xs"
+                      >
                         {milestoneStatusLabel(m.status)}
                       </Badge>
                     </div>
                   </div>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>任务进度</span>
-                      <span>{m.tasks_done}/{m.tasks_total}</span>
+                      <span>进度</span>
+                      <span>{progress}%</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
@@ -743,60 +766,154 @@ export function LiveClient({
             )
           })}
         </div>
-      </div>
+      </Section>
 
-      <Separator />
+      {/* 当前卡点 & 下一步行动（#29 下一步行动）*/}
+      <Section icon={AlertTriangle} title="当前卡点 & 下一步行动" subtitle="现在有什么在拖慢我们？每个卡点必须有下一步行动和 Owner">
+        <Card>
+          <CardContent className="pt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">卡点描述</TableHead>
+                  <TableHead className="text-xs">影响阶段</TableHead>
+                  <TableHead className="text-xs">下一步行动</TableHead>
+                  <TableHead className="text-xs">Owner</TableHead>
+                  <TableHead className="text-xs">状态</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {audit.next_action ? (
+                  <TableRow>
+                    <TableCell className="text-sm">{audit.next_action}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs font-mono">{meta.current_milestone}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{audit.next_action}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">@{client.lumen}</TableCell>
+                    <TableCell><Badge variant="secondary" className="text-xs">处理中</Badge></TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow className="border-dashed">
+                    <TableCell className="text-sm text-muted-foreground/40 italic" colSpan={5}>
+                      暂无卡点 — 我们现在进展顺利
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Section>
 
-      {/* ── 合作目标 ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">合作目标</h2>
-        </div>
-        <div className="rounded-lg bg-muted/50 border border-border/50 px-4 py-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">{mcsp.goal}</p>
-        </div>
-        {mcsp.success_criteria && mcsp.success_criteria.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">成功标准</p>
-            <div className="divide-y divide-border/50 rounded-lg border border-border/50 overflow-hidden">
-              {mcsp.success_criteria.map((sc, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-2.5 bg-background">
-                  <span className="text-sm flex-1">{sc.metric}</span>
-                  <span className="text-xs text-muted-foreground">{sc.baseline} → {sc.target}</span>
-                  <Badge variant="outline" className="text-xs font-mono shrink-0">{sc.checkpoint}</Badge>
+      {/* 客户活跃度（PostHog 补充指标）*/}
+      <Section icon={Activity} title="客户活跃度" subtitle="PostHog 事件统计，事件已在客户端埋点，服务端查询接入后开放">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: '登录 Dashboard 次数', icon: Activity, source: 'PostHog page_view' },
+            { label: '连接 Agent 次数', icon: GitBranch, source: 'PostHog marketplace_agent_connect_success' },
+            { label: '点击 Telegram 次数', icon: MessageCircle, source: 'PostHog dashboard_telegram_cta_click' },
+            { label: '创建 API Key 次数', icon: Lock, source: 'PostHog api_key_create' },
+          ].map(({ label, icon: Icon, source }) => (
+            <Card key={label}>
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <div className="mt-1"><ComingSoon /></div>
+                    <p className="text-xs text-muted-foreground/50 mt-1 truncate">{source}</p>
+                  </div>
+                  <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </Section>
+
+      {/* 更新日志 */}
+      <Section icon={FileText} title="更新日志（Update Log）" subtitle="每次有进展，@Lumen 或 Agent 追加一行——只加不改">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {meta.update_log && meta.update_log.length > 0 ? (
+                meta.update_log.slice().reverse().map((log, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0 pt-0.5">{log.date}</span>
+                    <div className="flex-1">
+                      <span className="text-sm">{log.note}</span>
+                      <span className="text-xs text-muted-foreground ml-2">— {log.author}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-sm text-muted-foreground/40 italic">暂无更新日志</div>
+              )}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      </Section>
+    </div>
+  )
+}
+
+// ─── Main Client Component ────────────────────────────────────────────────────
+export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
+  const posthog = usePostHog()
+
+  useEffect(() => {
+    posthog?.capture('page_view', {
+      page: 'live_report',
+      tenant_id: tenantId,
+      tenant_name: tenantName,
+      milestone: meta.current_milestone,
+      health: meta.audit.health,
+    })
+  }, [posthog, tenantId, tenantName, meta.current_milestone, meta.audit.health])
+
+  return (
+    <main className="flex-1 max-w-5xl mx-auto px-4 pt-12 pb-16 w-full">
+      {/* Page header */}
+      <div className="mb-8 space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs font-mono">ONIT</Badge>
+          <Badge variant="secondary" className="text-xs">实时看板</Badge>
+          <Badge
+            variant="outline"
+            className="text-xs"
+            style={{ color: healthColor(meta.audit.health), borderColor: healthColor(meta.audit.health) }}
+          >
+            {healthLabel(meta.audit.health)}
+          </Badge>
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">{meta.client.display_name} 共同成功计划</h1>
+        <p className="text-muted-foreground text-sm max-w-2xl">
+          {meta.client.display_name} × ONIT — 实时里程碑追踪，由 @{meta.client.lumen} 维护。
+          MCSP 是完整操作系统，OMT 是每天看的施工进度牌。
+        </p>
       </div>
 
-      <Separator />
+      <Tabs defaultValue="mcsp" onValueChange={(v) => posthog?.capture('live_report_tab_switch', { tab: v, tenant_id: tenantId })}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="mcsp" className="gap-2">
+            <Target className="w-3.5 h-3.5" />
+            共同成功计划
+          </TabsTrigger>
+          <TabsTrigger value="omt" className="gap-2">
+            <Layers className="w-3.5 h-3.5" />
+            实施进度表
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ── 更新日志 ── */}
-      {update_log && update_log.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">更新日志</h2>
-          </div>
-          <div className="space-y-2">
-            {update_log.slice().reverse().map((log, i) => (
-              <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
-                <span className="text-xs font-mono text-muted-foreground shrink-0 pt-0.5">{log.date}</span>
-                <div className="flex-1">
-                  <span className="text-sm">{log.note}</span>
-                  <span className="text-xs text-muted-foreground ml-2">— {log.author}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        <TabsContent value="mcsp">
+          <McspTab meta={meta} apiKeyCount={apiKeyCount} runDays={runDays} />
+        </TabsContent>
 
-      {/* ── Footer CTA ── */}
-      <div className="rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
+        <TabsContent value="omt">
+          <OmtTab meta={meta} apiKeyCount={apiKeyCount} runDays={runDays} overallProgress={overallProgress} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Footer CTA */}
+      <div className="mt-12 rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">有问题或想推进下一步？</p>
           <p className="text-xs text-muted-foreground mt-0.5">在 Telegram 找 @Lumen，或直接联系你的客户成功经理</p>
@@ -808,15 +925,13 @@ export function LiveClient({
           onClick={() => posthog?.capture('live_report_telegram_click', { tenant_id: tenantId })}
           className="flex items-center gap-1.5 text-xs font-medium hover:underline shrink-0"
         >
-          和 @Lumen 对话
-          <ExternalLink className="w-3 h-3" />
+          和 @Lumen 对话 →
         </a>
       </div>
 
-      <div className="text-center text-xs text-muted-foreground pb-4">
-        <span>由 ONIT 提供 · </span>
-        <span>此页面实时同步，无需刷新</span>
+      <div className="text-center text-xs text-muted-foreground mt-6 pb-4">
+        由 ONIT 提供 · 此页面实时同步，无需刷新
       </div>
-    </div>
+    </main>
   )
 }
