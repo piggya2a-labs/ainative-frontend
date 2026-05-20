@@ -16,7 +16,7 @@ async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
     const { data, error } = await supabase
       .from('agent_registry')
       .select('id, name, description, provider, skills, mcp_url, tags, updated_at, icon_url, documentation_url, connector_type, oauth_config')
-      .eq('connector_type', 'custom')
+      .is('langsmith_handle', null)
       .eq('enabled', true)
       .order('updated_at', { ascending: false })
     if (error) return []
