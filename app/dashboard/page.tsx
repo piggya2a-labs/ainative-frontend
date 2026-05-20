@@ -286,11 +286,12 @@ export default async function DashboardPage() {
     }
   }
 
-  // ─── 平台可用 Agent 总数（从 agent_registry 读）────────────────────────────────────────────
-  const { count: agentCount } = await adminClient
+  // ─── 平台可用 Agent 列表（头像墙用）──────────────────────────────────────────────────────────────
+  const { data: allAgents, count: agentCount } = await adminClient
     .from('agent_registry')
-    .select('id', { count: 'exact', head: true })
+    .select('id, name, icon_url, mcp_url, url', { count: 'exact' })
     .eq('enabled', true)
+    .order('created_at', { ascending: false })
 
   return (
     <Suspense>
@@ -307,6 +308,7 @@ export default async function DashboardPage() {
         composioConnected={composioConnected}
         composioToolCount={composioToolCount}
         agentCount={agentCount ?? 0}
+        allAgents={allAgents ?? []}
       />
     </Suspense>
   )

@@ -82,6 +82,7 @@ interface Props {
   composioConnected: boolean
   composioToolCount: number
   agentCount: number
+  allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null }>
 }
 
 const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
@@ -198,6 +199,7 @@ export function DashboardClient({
   composioConnected: initialComposioConnected,
   composioToolCount,
   agentCount,
+  allAgents,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -803,11 +805,30 @@ export function DashboardClient({
         {/* AGENT */}
         <CollapsibleSection title="AGENT" count={agentCount > 0 ? String(agentCount) : undefined}>
           {connectedAgents.length === 0 ? (
-            <div className="px-4 py-4 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-mono">{agentCount > 0 ? `平台共 ${agentCount} 个 Agent 可用，在 Agent Wiki 浏览并开启。` : '暂无可用 Agent。'}</span>
-              <Link href="/marketplace">
-                <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
-              </Link>
+            <div className="px-4 py-4">
+              {/* Icon 头像墙 */}
+              {allAgents.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {allAgents.map((agent) => (
+                    <Link key={agent.id} href="/marketplace" title={agent.name}>
+                      <AgentIcon
+                        name={agent.name}
+                        iconUrl={agent.icon_url}
+                        mcpUrl={agent.mcp_url}
+                        url={agent.url}
+                        size={28}
+                        className="opacity-70 hover:opacity-100 hover:scale-110 transition-all cursor-pointer ring-1 ring-border"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-mono">平台共 {agentCount} 个 Agent 可用，点击头像浏览并开启。</span>
+                <Link href="/marketplace">
+                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-border">
