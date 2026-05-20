@@ -544,37 +544,10 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* 已连接 Agent */}
-        <CollapsibleSection title="已连接 AGENT" count={String(connectedAgents.length)}>
-          {connectedAgents.length === 0 ? (
-            <div className="px-4 py-4 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
-              <Link href="/marketplace">
-                <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {connectedAgents.map((agent) => (
-                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium block truncate">{agent.name}</span>
-                    {agent.description && <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
-                    {agent.skills?.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1">{agent.skills.length} 工具</Badge>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CollapsibleSection>
-
-        {/* 我的项目（所有 tenant，可增删改，每行可展开数字卡片） */}
+        {/* PROJECT（所有 tenant，可增删改，每行可展开数字卡片） */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">我的项目</span>
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">PROJECT</span>
             <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1" onClick={() => setShowNewTenantModal(true)}>
               <Plus className="w-3 h-3" /> 新建
             </Button>
@@ -670,7 +643,34 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* 审计视图 */}
+        {/* AGENT */}
+        <CollapsibleSection title="AGENT" count={String(connectedAgents.length)}>
+          {connectedAgents.length === 0 ? (
+            <div className="px-4 py-4 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">暂无连接。创建 API Key 后通过 MCP 接入。</span>
+              <Link href="/marketplace">
+                <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Agent Wiki</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {connectedAgents.map((agent) => (
+                <div key={agent.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium block truncate">{agent.name}</span>
+                    {agent.description && <span className="text-xs text-muted-foreground block truncate mt-0.5">{agent.description}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
+                    {agent.skills?.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1">{agent.skills.length} 工具</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CollapsibleSection>
+
+        {/* 操作日志 */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">操作日志</span>
