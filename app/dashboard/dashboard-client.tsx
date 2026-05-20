@@ -396,6 +396,68 @@ export function DashboardClient({
 
   const connectedAgents = mcpTools
 
+  // Composio 连接器状态
+  const [composioConnections, setComposioConnections] = useState<Array<{ id: string; appName: string; status: string; createdAt: string }>>([]) 
+  const [loadingComposio, setLoadingComposio] = useState(false)
+  const [connectingApp, setConnectingApp] = useState<string | null>(null)
+  const [showConnectAppModal, setShowConnectAppModal] = useState(false)
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
+
+  const loadComposioConnections = async () => {
+    setLoadingComposio(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      const res = await fetch('/api/composio', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setComposioConnections(data.connections ?? [])
+      }
+    } finally { setLoadingComposio(false) }
+  }
+
+  const handleConnectApp = async (appName: string) => {
+    setConnectingApp(appName)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      const res = await fetch('/api/composio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ appName }),
+      })
+      const data = await res.json()
+      if (data.redirectUrl) {
+        posthog?.capture('composio_connect_start', { app: appName })
+        window.open(data.redirectUrl, '_blank', 'width=600,height=700')
+        setShowConnectAppModal(false)
+        // 5 秒后刷新连接列表
+        setTimeout(() => loadComposioConnections(), 5000)
+      }
+    } finally { setConnectingApp(null) }
+  }
+
+  const handleDisconnectApp = async (id: string) => {
+    setDisconnectingId(id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      await fetch(`/api/composio?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      posthog?.capture('composio_disconnect', { id })
+      setComposioConnections(prev => prev.filter(c => c.id !== id))
+    } finally { setDisconnectingId(null) }
+  }
+
+  useEffect(() => {
+    loadComposioConnections()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const meta = tenant?.metadata as {
     share_token?: string
     current_milestone?: string
@@ -670,6 +732,42 @@ export function DashboardClient({
           )}
         </CollapsibleSection>
 
+        {/* CONNECTED APPS — Composio 连接器 */}
+        <CollapsibleSection title="CONNECTED APPS" count={composioConnections.length > 0 ? String(composioConnections.length) : undefined}>
+          <div className="divide-y divide-border">
+            {loadingComposio ? (
+              <div className="px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />加载中…
+              </div>
+            ) : composioConnections.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-muted-foreground font-mono">暂无已连接的服务。点击下方「+ 连接」授权第三方工具给 Agent 使用。</div>
+            ) : (
+              composioConnections.map((conn) => (
+                <div key={conn.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0 uppercase">{conn.appName}</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(conn.createdAt)}</span>
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDisconnectApp(conn.id)}
+                      disabled={disconnectingId === conn.id}
+                    >
+                      {disconnectingId === conn.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-muted-foreground">通过 Composio 授权，已连接的工具自动被 Agent 继承</span>
+              <Button size="sm" className="h-6 text-xs" onClick={() => setShowConnectAppModal(true)}>+ 连接</Button>
+            </div>
+          </div>
+        </CollapsibleSection>
+
         {/* 操作日志 */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
@@ -775,6 +873,42 @@ export function DashboardClient({
               {savingRename ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}保存
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: 连接 App */}
+      <Dialog open={showConnectAppModal} onOpenChange={setShowConnectAppModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">连接第三方服务</DialogTitle>
+            <DialogDescription>选择要授权给 Agent 使用的服务。授权后，Agent 可以代表你操作这些工具。</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'github', label: 'GitHub' },
+              { id: 'gmail', label: 'Gmail' },
+              { id: 'slack', label: 'Slack' },
+              { id: 'notion', label: 'Notion' },
+              { id: 'googlecalendar', label: 'Calendar' },
+              { id: 'linear', label: 'Linear' },
+              { id: 'jira', label: 'Jira' },
+              { id: 'hubspot', label: 'HubSpot' },
+              { id: 'airtable', label: 'Airtable' },
+            ].map(({ id, label }) => (
+              <Button
+                key={id}
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs flex flex-col gap-0.5"
+                onClick={() => handleConnectApp(id)}
+                disabled={connectingApp === id}
+              >
+                {connectingApp === id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                {label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">点击后会弹出 Composio 授权页，完成后自动关闭</p>
         </DialogContent>
       </Dialog>
 
