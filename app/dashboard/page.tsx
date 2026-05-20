@@ -84,8 +84,9 @@ function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, create
       display_name: tenantName,
       contract_start: contractStart,
       plan_period: `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`,
-      lumen: '@Lumen',
-      sega: '@Sega',
+      lumen: 'Lumen',
+      sega: 'Sega',
+      client_lead: '',
     },
     update_log: [
       { date: today, author: '@Lumen', note: 'MCSP 自动初始化，M0 已完成，M1 正式启动' },

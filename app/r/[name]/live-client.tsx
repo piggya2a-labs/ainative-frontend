@@ -440,7 +440,7 @@ function McspTab({ meta, apiKeyCount, runDays }: { meta: TenantMetadata; apiKeyC
               {[
                 `M0-M3 里程碑全部完成（当前 ${doneMilestones}/4）`,
                 '成功标准中所有指标达到目标值',
-                `${client.client_lead} 签字确认验收报告`,
+                `${client.client_lead || '客户负责人'} 签字确认验收报告`,
                 '续约/扩容/结束决策已明确并记录',
                 'Agent 运行数据已归档，链接写入本文档',
               ].map((item, i) => (
