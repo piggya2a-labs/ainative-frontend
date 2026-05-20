@@ -59,7 +59,7 @@ interface AuditLog {
   action: string
   resource_type: string
   status: string
-  metadata?: Record<string, unknown>
+  metadata?: { actor?: string; cost_usd?: number; [key: string]: unknown }
   created_at: string
 }
 
