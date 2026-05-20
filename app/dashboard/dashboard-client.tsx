@@ -545,6 +545,32 @@ export function DashboardClient({
             </a>
           </div>
 
+          {/* Composio 工具授权 */}
+          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-background border-t border-border">
+            <div className="flex items-center gap-3 min-w-0">
+              <svg viewBox="0 0 32 32" className="w-5 h-5 shrink-0" aria-hidden fill="none">
+                <rect width="32" height="32" rx="8" fill="#6366f1"/>
+                <path d="M8 16a8 8 0 1 1 16 0A8 8 0 0 1 8 16z" fill="white" fillOpacity=".15"/>
+                <path d="M16 10v12M10 16h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              </svg>
+              <div className="min-w-0">
+                <span className="text-sm font-medium">Composio</span>
+                <span className="text-xs text-muted-foreground ml-2">授权工具访问，Agent 自动继承</span>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              variant="default"
+              onClick={() => {
+                posthog?.capture('dashboard_composio_connect_click')
+                window.open('https://app.composio.dev', '_blank')
+              }}
+            >
+              连接 →
+            </Button>
+          </div>
+
           <InlineCollapsible title="API KEYS" count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}>
             {loadingKeys ? (
               <div className="px-4 py-3 text-xs text-muted-foreground font-mono">加载中…</div>
@@ -732,42 +758,6 @@ export function DashboardClient({
           )}
         </CollapsibleSection>
 
-        {/* CONNECTED APPS — Composio 连接器 */}
-        <CollapsibleSection title="CONNECTED APPS" count={composioConnections.length > 0 ? String(composioConnections.length) : undefined}>
-          <div className="divide-y divide-border">
-            {loadingComposio ? (
-              <div className="px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />加载中…
-              </div>
-            ) : composioConnections.length === 0 ? (
-              <div className="px-4 py-3 text-xs text-muted-foreground font-mono">暂无已连接的服务。点击下方「+ 连接」授权第三方工具给 Agent 使用。</div>
-            ) : (
-              composioConnections.map((conn) => (
-                <div key={conn.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0 flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0 uppercase">{conn.appName}</span>
-                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.45_0.18_145)] border-[oklch(0.65_0.18_145)/40]">已连接</Badge>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-muted-foreground hidden sm:block">{formatDate(conn.createdAt)}</span>
-                    <Button
-                      variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDisconnectApp(conn.id)}
-                      disabled={disconnectingId === conn.id}
-                    >
-                      {disconnectingId === conn.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-            <div className="px-4 py-2.5 flex items-center justify-between gap-2">
-              <span className="text-[10px] text-muted-foreground">通过 Composio 授权，已连接的工具自动被 Agent 继承</span>
-              <Button size="sm" className="h-6 text-xs" onClick={() => setShowConnectAppModal(true)}>+ 连接</Button>
-            </div>
-          </div>
-        </CollapsibleSection>
-
         {/* 操作日志 */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
@@ -873,42 +863,6 @@ export function DashboardClient({
               {savingRename ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}保存
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: 连接 App */}
-      <Dialog open={showConnectAppModal} onOpenChange={setShowConnectAppModal}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-sm">连接第三方服务</DialogTitle>
-            <DialogDescription>选择要授权给 Agent 使用的服务。授权后，Agent 可以代表你操作这些工具。</DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: 'github', label: 'GitHub' },
-              { id: 'gmail', label: 'Gmail' },
-              { id: 'slack', label: 'Slack' },
-              { id: 'notion', label: 'Notion' },
-              { id: 'googlecalendar', label: 'Calendar' },
-              { id: 'linear', label: 'Linear' },
-              { id: 'jira', label: 'Jira' },
-              { id: 'hubspot', label: 'HubSpot' },
-              { id: 'airtable', label: 'Airtable' },
-            ].map(({ id, label }) => (
-              <Button
-                key={id}
-                variant="outline"
-                size="sm"
-                className="h-9 text-xs flex flex-col gap-0.5"
-                onClick={() => handleConnectApp(id)}
-                disabled={connectingApp === id}
-              >
-                {connectingApp === id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                {label}
-              </Button>
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">点击后会弹出 Composio 授权页，完成后自动关闭</p>
         </DialogContent>
       </Dialog>
 
