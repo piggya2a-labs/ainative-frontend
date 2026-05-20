@@ -81,6 +81,25 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
 }
 
+function formatAction(action: string) {
+  const map: Record<string, string> = {
+    'api_key.create': '创建了 API Key',
+    'api_key.revoke': '删除了 API Key',
+    'tenant.create': '开启了新项目',
+    'tenant.update': '更新了项目信息',
+    'tenant.delete': '删除了项目',
+    'milestone.update': '更新了里程碑状态',
+    'milestone.complete': '完成了里程碑',
+    'audit.submit': '提交了审计结论',
+    'agent.connect': '连接了 Agent',
+    'agent.disconnect': '断开了 Agent',
+    'user.login': '登录',
+    'mcsp.generate': '生成了 MCSP',
+    'mcsp.update': '更新了 MCSP',
+  }
+  return map[action] ?? action
+}
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -654,58 +673,37 @@ export function DashboardClient({
         {/* 审计视图 */}
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">审计员 @Eva · WhileLoop 状态</span>
-            <div className="flex items-center gap-2">
-              {liveUrl && (
-                <Link href={liveUrl} target="_blank" onClick={() => posthog?.capture('dashboard_live_report_click', { tenant: tenant?.name })}>
-                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1">Live 看板 <ExternalLink className="w-3 h-3" /></Button>
-                </Link>
-              )}
-            </div>
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">操作日志</span>
+            {liveUrl && (
+              <Link href={liveUrl} target="_blank" onClick={() => posthog?.capture('dashboard_live_report_click', { tenant: tenant?.name })}>
+                <Button variant="outline" size="sm" className="h-6 text-xs gap-1">Live 看板 <ExternalLink className="w-3 h-3" /></Button>
+              </Link>
+            )}
           </div>
-          <div className="divide-y divide-border">
-            {(milestones.length > 0 ? milestones : [
-              { id: 'M0', name: '研究', status: 'pending' },
-              { id: 'M1', name: '方案', status: 'pending' },
-              { id: 'M2', name: '试运行', status: 'pending' },
-              { id: 'M3', name: '验收', status: 'pending' },
-            ]).map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                <span className="text-sm font-medium">{m.id} {m.name}</span>
-                <div className="shrink-0">{milestoneBadge(m.status)}</div>
-              </div>
-            ))}
-            <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-muted/10">
-              <span className="text-xs text-muted-foreground">{meta?.audit?.next_action ?? 'M1 方案交付后，@Eva 将进行全局审计。'}</span>
-              <Badge variant="outline" className="text-[10px] h-4 px-1 text-[oklch(0.55_0.18_75)] border-[oklch(0.75_0.18_75)/40] shrink-0">
-                {meta?.audit?.conclusion ? '已审' : '待审'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* 最近系统活动 */}
-        {auditLogs.length > 0 && (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 bg-muted/20 border-b border-border">
-              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">最近系统活动</span>
-            </div>
+          {auditLogs.length > 0 ? (
             <div className="divide-y divide-border">
               {auditLogs.map((log) => (
                 <div key={log.id} className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0">
-                    <span className="text-xs font-mono truncate block">{log.action}</span>
-                    <span className="text-[10px] text-muted-foreground">{log.resource_type}</span>
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold bg-muted px-1.5 py-0.5 rounded shrink-0 text-muted-foreground">
+                      {log.metadata?.actor ?? (log.resource_type === 'agent' ? '@Agent' : '用户')}
+                    </span>
+                    <span className="text-xs truncate">{formatAction(log.action)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant={log.status === 'success' ? 'secondary' : 'destructive'} className="text-[10px] h-4 px-1">{log.status}</Badge>
+                    {log.metadata?.cost_usd != null && (
+                      <span className="text-[10px] font-mono text-muted-foreground">${Number(log.metadata.cost_usd).toFixed(4)}</span>
+                    )}
+                    <Badge variant={log.status === 'success' ? 'secondary' : 'destructive'} className="text-[10px] h-4 px-1">{log.status === 'success' ? '成功' : '失败'}</Badge>
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap hidden sm:block">{formatTime(log.created_at)}</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="px-4 py-3 text-xs text-muted-foreground font-mono">暂无操作记录。Agent 和用户的每次操作将自动记录在此。</div>
+          )}
+        </div>
 
       </main>
 
