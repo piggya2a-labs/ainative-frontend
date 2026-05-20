@@ -1016,8 +1016,11 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
             </>
           )}
         </div>
-        {/* ⚠️ 占位按鈕：skill.md 下载，待接逻辑后启用。
-            内容来源：agent_registry.wiki + skills，由 Agent 通过 skill-creator 生成。
+        {/* ⚠️ 占位按鈕：SKILL.md 下载，待接逻辑后启用。
+            ONIT WhileLoop 的设计目的是让一个事情、一个想法，甚至是乱七八糟的资料或者只言片语，
+            变成一个 AI Native 的 workflow / pipe / ReAct / Close Loop。
+            SKILL.md 作为一个完成的标志，意味着就此事、我们做到了、验收了、交付了，
+            后续不论你要在未来的 ONIT 里重复运行，还是要在你自己决定的任何地方运行，都可以。
             启用条件：meta.audit.conclusion 有内容 且 /api/tenants/skill-export 接口就绪。*/}
         <button
           disabled
