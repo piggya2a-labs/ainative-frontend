@@ -112,15 +112,24 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
         content: stdout.trim()
       }
       // 检测 stdout 里是否有 Manus task_id
-      // 匹配两种格式：
+      // 匹配三种格式：
       // 1. manus_task_id: xxx（显式标记）
       // 2. "task_id": "xxx"（Manus API 响应 JSON）
+      // 3. task_id: xxx（纯文本格式）
       const taskIdMatch =
         stdout.match(/"?manus_task_id"?\s*[:=]\s*"?([A-Za-z0-9_-]{10,30})"?/) ||
         stdout.match(/"task_id"\s*:\s*"([A-Za-z0-9_-]{10,30})"/)
       if (taskIdMatch) {
         artifact.manus_task_id = taskIdMatch[1]
       }
+
+      // 直接从 stdout 里提取截图 URL（不需要再调 Manus API）
+      // 匹配格式： screenshot_url: https://...
+      const screenshotMatch = stdout.match(/screenshot_url:\s*(https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif)\S*)/i)
+      if (screenshotMatch) {
+        artifacts.push({ type: 'screenshot', label: 'Manus 截图', content: screenshotMatch[1].trim() })
+      }
+
       artifacts.push(artifact)
     }
     const rawStderr = outputs.stderr
