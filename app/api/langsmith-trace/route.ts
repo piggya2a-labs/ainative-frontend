@@ -42,13 +42,23 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
 
   // E2B 沙箱执行结果
   if (toolName.includes('e2b') || toolName.includes('run_code')) {
-    const stdout = (outputs.stdout as string) || (outputs.output as string) || ''
-    if (stdout) {
+    const rawStdout = outputs.stdout ?? outputs.output ?? outputs.result ?? ''
+    const stdout = typeof rawStdout === 'string' ? rawStdout : JSON.stringify(rawStdout)
+    if (stdout && stdout.trim()) {
       artifacts.push({ type: 'stdout', label: 'stdout', content: stdout.trim() })
     }
-    const stderr = outputs.stderr as string
+    const rawStderr = outputs.stderr
+    const stderr = typeof rawStderr === 'string' ? rawStderr : ''
     if (stderr && stderr.trim()) {
       artifacts.push({ type: 'text', label: 'stderr', content: stderr.trim() })
+    }
+    // 处理 { ok: true, stdout: '...' } 格式
+    const okOutput = outputs as { ok?: boolean; stdout?: unknown; stderr?: unknown }
+    if (okOutput.ok === true && okOutput.stdout) {
+      const s = typeof okOutput.stdout === 'string' ? okOutput.stdout : JSON.stringify(okOutput.stdout)
+      if (s.trim() && s !== stdout) {
+        artifacts.push({ type: 'stdout', label: 'stdout', content: s.trim() })
+      }
     }
   }
 
