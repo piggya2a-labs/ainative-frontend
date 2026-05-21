@@ -518,25 +518,9 @@ export function DashboardClient({
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <header className="bg-background border-b px-4 h-12 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded bg-foreground flex items-center justify-center">
-              <span className="text-background text-xs font-bold">O</span>
-            </div>
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <span className="text-sm font-medium">{orgName}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:block">{user.email}</span>
-          <Link href="/docs" className="text-xs text-muted-foreground hover:text-foreground transition-colors">文档</Link>
-          <a href="mailto:support@onit.ai" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Support</a>
-          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={handleSignOut}>退出</Button>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+      {/* ─── 全站统一 Navbar 已在 page.tsx 加载，此处不重复渲染 header ─── */}
+      {/* pt-14 = Navbar 高度（h-14），避免内容被遮挡 */}
+      <main className="max-w-3xl mx-auto px-4 pt-20 pb-6 space-y-4">
 
         {/* Workspace header */}
         <div className="flex items-center justify-between gap-3">

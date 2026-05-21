@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { LiveClient } from './live-client'
+import { Navbar } from '@/components/navbar'
+import { getSiteConfig } from '@/lib/queries'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -158,34 +159,13 @@ export default async function LiveReportPage({
     ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
     : 0
   const runDays = daysSince(client.contract_start)
+  const siteConfig = await getSiteConfig()
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Top bar */}
-      <div className="border-b border-border/50 bg-muted/20">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted-foreground">ONIT</span>
-            <span className="text-xs text-muted-foreground">/</span>
-            <span className="text-xs font-medium">{client.display_name}</span>
-            <Badge variant="outline" className="text-xs font-mono ml-1">{client.plan_period}</Badge>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                backgroundColor: audit.health === 'green'
-                  ? 'var(--onit-green)'
-                  : audit.health === 'yellow'
-                  ? 'var(--onit-amber)'
-                  : 'var(--onit-red)',
-              }}
-            />
-            <span className="text-xs text-muted-foreground">{healthLabel(audit.health)}</span>
-          </div>
-        </div>
-      </div>
-
+    <>
+      {/* ─── 全站统一 Navbar ─── */}
+      <Navbar siteConfig={siteConfig} />
+      <main className="min-h-screen bg-background pt-14">
       {/* Client Component — PostHog + 29 数据点 */}
       <LiveClient
         meta={meta}
@@ -197,7 +177,8 @@ export default async function LiveReportPage({
         overallProgress={overallProgress}
         currentProgress={currentProgress}
       />
-    </main>
+      </main>
+    </>  
   )
 }
 

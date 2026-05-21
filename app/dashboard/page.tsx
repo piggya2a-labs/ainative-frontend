@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { Suspense } from 'react'
 import { DashboardClient } from './dashboard-client'
+import { Navbar } from '@/components/navbar'
+import { getSiteConfig } from '@/lib/queries'
 
 // ─── 只生成 share_token（MCSP 内容由 @Lumen 写入，不自动初始化）──────────────
 function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, createdAt: string) {
@@ -210,9 +212,13 @@ export default async function DashboardPage() {
   const allAgents: ComposioAgent[] = [...composioAgents]
   const agentCount = allAgents.length
 
+  const siteConfig = await getSiteConfig()
+
   return (
-    <Suspense>
-      <DashboardClient
+    <>
+      <Navbar siteConfig={siteConfig} />
+      <Suspense>
+        <DashboardClient
         user={user}
         tenants={tenants}
         tenant={tenant}
@@ -226,7 +232,8 @@ export default async function DashboardPage() {
         composioToolCount={composioToolCount}
         agentCount={agentCount ?? 0}
         allAgents={allAgents ?? []}
-      />
-    </Suspense>
+        />
+      </Suspense>
+    </>
   )
 }
