@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // ─── LangSmith Trace API Route ────────────────────────────────────────────────
-// 接收 tenant_slug，在 LangSmith piggya2a 项目里搜索包含该 slug 的 root runs，
+// 接收 tenant_slug，在 LangSmith 两个项目里搜索包含该 slug 的 root runs，
 // 提取工具调用（tool runs），返回执行轨迹、产出物、截图 URL。
 // 锚点：tenant_slug 出现在 run 的 inputs 消息文本里。
 // 不需要 Agent 打标，完全程序化追踪。
+//
+// LangSmith API 正确用法：
+//   查 root runs: POST /api/v1/runs/query { session: [sessionId], is_root: true }
+//   查子 runs:    POST /api/v1/runs/query { trace: runId, run_type: 'tool' }
 
 const LANGSMITH_API_KEY = process.env.LANGSMITH_API_KEY!
-const LANGSMITH_PROJECT = 'piggya2a'
 const BASE = 'https://api.smith.langchain.com'
+
+// piggya2a 和 piggya2a-user-01 两个项目的 session ID
+const SESSION_IDS = [
+  '5e444c7f-88aa-48d1-9783-623c59591801', // piggya2a
+  '146a2fe8-f1ad-40ae-8518-76fa76d4f93b', // piggya2a-user-01
+]
 
 interface LangSmithRun {
   id: string
@@ -63,6 +72,17 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
   return artifacts
 }
 
+async function queryRuns(body: Record<string, unknown>): Promise<LangSmithRun[]> {
+  const res = await fetch(`${BASE}/api/v1/runs/query`, {
+    method: 'POST',
+    headers: { 'x-api-key': LANGSMITH_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return (data.runs || data || []) as LangSmithRun[]
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tenantSlug = searchParams.get('slug')
@@ -76,29 +96,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Step 1: 用 POST /api/v1/runs/query 查询最近 100 个 root runs
-    const runsRes = await fetch(
-      `${BASE}/api/v1/runs/query`,
-      {
-        method: 'POST',
-        headers: {
-          'x-api-key': LANGSMITH_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_name: LANGSMITH_PROJECT,
-          run_type: 'chain',
-          is_root: true,
-          limit: 100,
-        }),
-      }
-    )
-    if (!runsRes.ok) {
-      const errText = await runsRes.text()
-      return NextResponse.json({ error: `LangSmith API error: ${runsRes.status} ${errText}` }, { status: 502 })
-    }
-    const runsData = await runsRes.json()
-    const rootRuns: LangSmithRun[] = runsData.runs || runsData || []
+    // Step 1: 查询两个项目最近 100 个 root runs
+    const rootRuns = await queryRuns({
+      session: SESSION_IDS,
+      run_type: 'chain',
+      is_root: true,
+      limit: 100,
+    })
 
     // Step 2: 过滤出 inputs 里包含 tenantSlug 的 runs
     const matchedRuns = rootRuns.filter(run => {
@@ -114,24 +118,11 @@ export async function GET(req: NextRequest) {
     const allToolRuns: (LangSmithRun & { root_run_id: string; root_run_name: string })[] = []
 
     for (const rootRun of matchedRuns.slice(0, 10)) {
-      const childRes = await fetch(
-        `${BASE}/api/v1/runs/query`,
-        {
-          method: 'POST',
-          headers: {
-            'x-api-key': LANGSMITH_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            trace: rootRun.id,
-            run_type: 'tool',
-            limit: 50,
-          }),
-        }
-      )
-      if (!childRes.ok) continue
-      const childData = await childRes.json()
-      const childRuns: LangSmithRun[] = childData.runs || childData || []
+      const childRuns = await queryRuns({
+        trace: rootRun.id,
+        run_type: 'tool',
+        limit: 50,
+      })
       for (const cr of childRuns) {
         allToolRuns.push({ ...cr, root_run_id: rootRun.id, root_run_name: rootRun.name })
       }
