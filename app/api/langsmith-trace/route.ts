@@ -114,7 +114,7 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
         }
       } catch { /* ignore */ }
     }
-    const rawStdout = parsedStdout || outputs.stdout ?? outputs.output ?? outputs.result ?? ''
+    const rawStdout = parsedStdout || (outputs.stdout ?? outputs.output ?? outputs.result ?? '')
     const stdout = typeof rawStdout === 'string' ? rawStdout : JSON.stringify(rawStdout)
     if (stdout && stdout.trim()) {
       const artifact: { type: 'stdout'; label: string; content: string; manus_task_id?: string } = {
