@@ -85,7 +85,7 @@ interface Props {
   allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null; status?: string | null }>
 }
 
-const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server?agent=l2-coordinator-agent'
+const ONIT_MCP_URL = 'https://bgzrcrftjkcfdszumywd.supabase.co/functions/v1/mcp-server'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
@@ -132,6 +132,19 @@ function ClaudeConfigBlock({ apiKey }: { apiKey?: string }) {
     <div className="relative">
       <pre className="text-xs font-mono bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap break-all">{config}</pre>
       <Button variant="outline" size="sm" className="absolute top-2 right-2 h-6 text-[10px] gap-1" onClick={copyConfig}>
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        {copied ? '已复制' : '复制'}
+      </Button>
+    </div>
+  )
+}
+
+function UrlCopyBlock({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="relative flex items-center">
+      <pre className="text-xs font-mono bg-muted p-2.5 rounded-md overflow-x-auto flex-1 pr-16">{url}</pre>
+      <Button variant="outline" size="sm" className="absolute right-2 h-6 text-[10px] gap-1" onClick={() => { navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}>
         {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
         {copied ? '已复制' : '复制'}
       </Button>
@@ -734,12 +747,24 @@ export function DashboardClient({
           </InlineCollapsible>
 
           <InlineCollapsible title="MCP 接入 · CLAUDE DESKTOP">
-            <div className="px-4 py-3">
-              <ClaudeConfigBlock apiKey={latestKeyPrefix} />
-              {!latestKeyPrefix && <p className="text-xs text-amber-600 mt-1.5">先创建一个 API Key，配置会自动填入。</p>}
-              <p className="text-xs text-muted-foreground mt-2">
-                粘贴到 <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
-              </p>
+            <div className="px-4 py-3 space-y-3">
+              {/* 丝滑方式：直接粘贴 URL */}
+              <div>
+                <p className="text-xs font-medium text-foreground mb-1">直接连接（推荐）</p>
+                <p className="text-xs text-muted-foreground mb-2">在 Claude → Settings → Connectors → Add custom connector 里粘贴以下地址，点连接后会弹出 ONIT 授权页面，登录即可。</p>
+                <UrlCopyBlock url={ONIT_MCP_URL} />
+              </div>
+              {/* 备用方式：JSON 配置 */}
+              <details>
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">手动配置 JSON（Claude Desktop）</summary>
+                <div className="mt-2">
+                  <ClaudeConfigBlock apiKey={latestKeyPrefix} />
+                  {!latestKeyPrefix && <p className="text-xs text-amber-600 mt-1.5">先创建一个 API Key，配置会自动填入。</p>}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    粘贴到 <code className="font-mono bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+                  </p>
+                </div>
+              </details>
             </div>
           </InlineCollapsible>
 
