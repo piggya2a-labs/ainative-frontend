@@ -24,7 +24,7 @@ interface AgentRow {
   id: string
   name: string
   description?: string | null
-  provider?: string | null
+  provider?: string | { name?: string } | null
   skills?: AgentSkill[] | null
   mcp_url?: string | null
   icon_url?: string | null
@@ -32,6 +32,13 @@ interface AgentRow {
   connector_type?: string | null
   tags?: string[] | null
   updated_at?: string | null
+}
+
+function providerLabel(provider: string | { name?: string } | null | undefined): string | null {
+  if (!provider) return null
+  if (typeof provider === 'string') return provider
+  if (typeof provider === 'object') return provider.name ?? null
+  return null
 }
 
 async function getAgent(id: string): Promise<AgentRow | null> {
@@ -174,8 +181,8 @@ export default async function AgentDetailPage({ params }: Props) {
                 {connectorBadge(agent.connector_type)}
               </Badge>
             </div>
-            {agent.provider && (
-              <p className="text-xs text-muted-foreground font-mono mb-2">{agent.provider}</p>
+            {providerLabel(agent.provider) && (
+              <p className="text-xs text-muted-foreground font-mono mb-2">{providerLabel(agent.provider)}</p>
             )}
             {agent.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{agent.description}</p>
