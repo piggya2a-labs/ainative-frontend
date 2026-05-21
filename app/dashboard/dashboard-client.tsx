@@ -709,7 +709,7 @@ export function DashboardClient({
             ) : apiKeys.length === 0 ? (
               <div className="px-4 py-3 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-mono">还没有 API Key。创建一个开始接入 ONIT。</span>
-                <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>+ 创建</Button>
+                <Button size="sm" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); setShowCreateModal(true) }}>+ 创建</Button>
               </div>
             ) : (
               <>
@@ -740,7 +740,7 @@ export function DashboardClient({
                   ))}
                 </div>
                 <div className="px-4 py-2.5 border-t border-border">
-                  <Button size="sm" className="h-6 text-xs" onClick={() => setShowCreateModal(true)}>+ 创建</Button>
+                  <Button size="sm" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); setShowCreateModal(true) }}>+ 创建</Button>
                 </div>
               </>
             )}
