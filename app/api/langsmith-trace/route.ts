@@ -9,9 +9,15 @@ import { NextRequest, NextResponse } from 'next/server'
 // LangSmith API 正确用法：
 //   查 root runs: POST /api/v1/runs/query { session: [sessionId], is_root: true }
 //   查子 runs:    POST /api/v1/runs/query { trace: runId, run_type: 'tool' }
+//
+// Manus API 集成：
+//   当 E2B stdout 里包含 manus_task_id 时，调用 Manus API 拉取截图 URL
+//   Manus task.listMessages 响应字段是 messages（不是 events）
 
 const LANGSMITH_API_KEY = process.env.LANGSMITH_API_KEY!
+const MANUS_API_KEY = process.env.MANUS_API_KEY || 'sk-hsrsjfH2b1WTZRiAIj3gwyhHFTyY8vkumJbZAC3bbEpisCPeS55iDZEcpAdWyxnimAF2F3Gp2HgUVik'
 const BASE = 'https://api.smith.langchain.com'
+const MANUS_BASE = 'https://api.manus.ai'
 
 // piggya2a 和 piggya2a-user-01 两个项目的 session ID
 const SESSION_IDS = [
@@ -32,9 +38,64 @@ interface LangSmithRun {
   parent_run_id?: string | null
 }
 
-// 工具调用里提取产出物
-function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'screenshot' | 'text'; label: string; content: string }[] {
-  const artifacts: { type: 'stdout' | 'file' | 'screenshot' | 'text'; label: string; content: string }[] = []
+// ─── Manus API：拉取任务截图 URL ──────────────────────────────────────────────
+// 注意：Manus task.listMessages 返回的顶层字段是 messages（不是 events）
+async function fetchManusScreenshot(taskId: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${MANUS_BASE}/v2/task.listMessages?task_id=${taskId}&order=desc&limit=30`,
+      { headers: { 'x-manus-api-key': MANUS_API_KEY }, signal: AbortSignal.timeout(8000) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const messages: Record<string, unknown>[] = data.messages || []
+
+    // 1. 先找 structured_output_result
+    for (const msg of messages) {
+      if (msg.type === 'structured_output_result') {
+        const result = msg.structured_output_result as Record<string, unknown> | undefined
+        if (result?.success && result.value) {
+          const val = result.value as Record<string, unknown>
+          const url = val.screenshot_url as string || val.url as string || ''
+          if (url) return url
+        }
+      }
+    }
+
+    // 2. 再找 assistant_message 里的图片 URL
+    for (const msg of messages) {
+      if (msg.type === 'assistant_message') {
+        const content = (msg.assistant_message as Record<string, unknown>)?.content
+        if (Array.isArray(content)) {
+          for (const c of content) {
+            if (typeof c === 'object' && c !== null) {
+              const item = c as Record<string, unknown>
+              if (item.type === 'image_url') {
+                const imgUrl = (item.image_url as Record<string, unknown>)?.url as string
+                if (imgUrl) return imgUrl
+              }
+              if (item.type === 'text') {
+                const text = item.text as string || ''
+                const match = text.match(/https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif)\S*/i)
+                if (match) return match[0]
+              }
+            }
+          }
+        } else if (typeof content === 'string') {
+          const match = content.match(/https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif)\S*/i)
+          if (match) return match[0]
+        }
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+// ─── 工具调用里提取产出物 ─────────────────────────────────────────────────────
+function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'screenshot' | 'text'; label: string; content: string; manus_task_id?: string }[] {
+  const artifacts: { type: 'stdout' | 'file' | 'screenshot' | 'text'; label: string; content: string; manus_task_id?: string }[] = []
   const outputs = run.outputs as Record<string, unknown> | undefined
   if (!outputs) return artifacts
 
@@ -45,7 +106,17 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
     const rawStdout = outputs.stdout ?? outputs.output ?? outputs.result ?? ''
     const stdout = typeof rawStdout === 'string' ? rawStdout : JSON.stringify(rawStdout)
     if (stdout && stdout.trim()) {
-      artifacts.push({ type: 'stdout', label: 'stdout', content: stdout.trim() })
+      const artifact: { type: 'stdout'; label: string; content: string; manus_task_id?: string } = {
+        type: 'stdout',
+        label: 'stdout',
+        content: stdout.trim()
+      }
+      // 检测 stdout 里是否有 manus_task_id
+      const taskIdMatch = stdout.match(/"?manus_task_id"?\s*[:=]\s*"?([A-Za-z0-9_-]{10,30})"?/)
+      if (taskIdMatch) {
+        artifact.manus_task_id = taskIdMatch[1]
+      }
+      artifacts.push(artifact)
     }
     const rawStderr = outputs.stderr
     const stderr = typeof rawStderr === 'string' ? rawStderr : ''
@@ -56,7 +127,7 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
     const okOutput = outputs as { ok?: boolean; stdout?: unknown; stderr?: unknown }
     if (okOutput.ok === true && okOutput.stdout) {
       const s = typeof okOutput.stdout === 'string' ? okOutput.stdout : JSON.stringify(okOutput.stdout)
-      if (s.trim() && s !== stdout) {
+      if (s.trim() && s !== (typeof rawStdout === 'string' ? rawStdout : '')) {
         artifacts.push({ type: 'stdout', label: 'stdout', content: s.trim() })
       }
     }
@@ -141,6 +212,7 @@ export async function GET(req: NextRequest) {
     // Step 4: 提取产出物和截图
     const artifacts: { type: string; label: string; content: string; run_name: string; time: string }[] = []
     const screenshots: string[] = []
+    const manusTaskIds: string[] = []
 
     for (const tr of allToolRuns) {
       const extracted = extractArtifacts(tr)
@@ -149,6 +221,22 @@ export async function GET(req: NextRequest) {
           screenshots.push(a.content)
         } else {
           artifacts.push({ ...a, run_name: tr.name, time: tr.start_time })
+          // 收集 Manus task ID
+          if (a.manus_task_id && !manusTaskIds.includes(a.manus_task_id)) {
+            manusTaskIds.push(a.manus_task_id)
+          }
+        }
+      }
+    }
+
+    // Step 4b: 从 Manus 任务里拉取截图 URL（并发，最多 3 个）
+    if (manusTaskIds.length > 0) {
+      const manusScreenshots = await Promise.all(
+        manusTaskIds.slice(0, 3).map(id => fetchManusScreenshot(id))
+      )
+      for (const url of manusScreenshots) {
+        if (url && !screenshots.includes(url)) {
+          screenshots.push(url)
         }
       }
     }
@@ -185,6 +273,7 @@ export async function GET(req: NextRequest) {
       timeline,
       artifacts,
       screenshots,
+      manus_task_ids: manusTaskIds,
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
