@@ -6,11 +6,12 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePostHog } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
-  Lock, Zap, Activity, MessageCircle, Key, Download, Loader2
+  Lock, Zap, Activity, MessageCircle, Key, Download, Loader2,
+  Terminal, Image, RefreshCw, ChevronRight
 } from 'lucide-react'
 
 // ─── ONIT LIVE BOARD 设计理念（founder_intent, 2026-05-21）─────────────────────
@@ -139,11 +140,38 @@ interface TenantMetadata {
   }
   update_log: { date: string; author: string; note: string }[]
 }
+// ─── Trace Types ─────────────────────────────────────────────────────────────
+interface TraceTimelineItem {
+  id: string
+  tool: string
+  status: string
+  start_time: string
+  end_time?: string
+  root_run_name: string
+  has_output: boolean
+  error: string | null
+}
+interface TraceArtifact {
+  type: string
+  label: string
+  content: string
+  run_name: string
+  time: string
+}
+interface TraceData {
+  total_calls: number
+  agents: string[]
+  timeline: TraceTimelineItem[]
+  artifacts: TraceArtifact[]
+  screenshots: string[]
+}
+
 export interface LiveClientProps {
   meta: TenantMetadata
   tenantId: string
   tenantName: string
   tenantCreatedAt: string
+  tenantSlug: string
   apiKeyCount: number
   runDays: number
   overallProgress: number
@@ -181,6 +209,186 @@ function toLines(val: string | string[] | undefined): string[] {
   if (!val) return []
   if (Array.isArray(val)) return val.filter(Boolean)
   return val.split('\n').filter(Boolean)
+}
+
+// ─── Trace Tab ───────────────────────────────────────────────────────────────
+function TraceTab({ tenantSlug }: { tenantSlug: string }) {
+  const [data, setData] = useState<TraceData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchTrace = () => {
+    setLoading(true)
+    fetch(`/api/langsmith-trace?slug=${encodeURIComponent(tenantSlug)}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(e => { setError(String(e)); setLoading(false) })
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchTrace() }, [tenantSlug])
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-mono text-xs">Trace</Badge>
+            <Badge variant="secondary" className="text-xs">LangSmith</Badge>
+            {data && <Badge variant="outline" className="text-xs">{data.total_calls} 次工具调用</Badge>}
+          </div>
+          <button
+            onClick={fetchTrace}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            刷新
+          </button>
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">执行轨迹</h2>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          从 LangSmith 实时拉取 Agent 执行过程——工具调用时间线、产出物、截图。
+          锚点：<code className="text-xs font-mono bg-muted px-1 rounded">{tenantSlug}</code>
+        </p>
+      </div>
+
+      <Separator />
+
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          正在从 LangSmith 拉取执行轨迹…
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          拉取失败：{error}
+        </div>
+      )}
+
+      {!loading && !error && data && (
+        <>
+          {/* 总览数字 */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">累计工具调用</p>
+                <p className="text-2xl font-bold mt-1">{data.total_calls}</p>
+                <p className="text-xs text-muted-foreground mt-1">本项目全部 Agent</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">参与 Agent</p>
+                <p className="text-2xl font-bold mt-1">{data.agents.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">{data.agents.join(' · ')}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">产出物</p>
+                <p className="text-2xl font-bold mt-1">{data.artifacts.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">{data.screenshots.length > 0 ? `含 ${data.screenshots.length} 张截图` : '无截图'}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 工具调用时间线 */}
+          <Section icon={Activity} title="工具调用时间线" subtitle="按时间顺序展示 Agent 调用的所有工具">
+            <Card>
+              <CardContent className="pt-4">
+                {data.timeline.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/50 italic py-2">暂无工具调用记录</p>
+                ) : (
+                  <div className="space-y-1">
+                    {data.timeline.map((item, i) => (
+                      <div key={item.id} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
+                        <span className="text-xs font-mono text-muted-foreground/50 shrink-0 pt-0.5 w-5 text-right">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{item.tool}</code>
+                            <Badge
+                              variant={item.status === 'success' ? 'default' : item.error ? 'destructive' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {item.status === 'success' ? '成功' : item.error ? '失败' : item.status}
+                            </Badge>
+                            {item.has_output && (
+                              <span className="text-xs text-muted-foreground">有输出</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground/60 font-mono">
+                              {new Date(item.start_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </span>
+                            <ChevronRight className="w-3 h-3 text-muted-foreground/30" />
+                            <span className="text-xs text-muted-foreground/50">{item.root_run_name}</span>
+                          </div>
+                          {item.error && (
+                            <p className="text-xs text-destructive mt-0.5 truncate">{item.error}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </Section>
+
+          {/* 产出物 */}
+          <Section icon={Terminal} title="产出物" subtitle="E2B 执行结果、写入文件等">
+            {data.artifacts.length === 0 ? (
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground/50 italic py-2">本次执行无可提取的产出物</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {data.artifacts.map((a, i) => (
+                  <Card key={i}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-mono">{a.type}</Badge>
+                        <code className="text-xs text-muted-foreground">{a.label}</code>
+                        <span className="text-xs text-muted-foreground/50 ml-auto">{a.run_name}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <pre className="text-xs bg-muted rounded p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-48">{a.content}</pre>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          {/* 截图 */}
+          <Section icon={Image} title="截图" subtitle="Agent 执行 steel_screenshot 时的截图">
+            {data.screenshots.length === 0 ? (
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground/50 italic py-2">本次执行无截图（Agent 未调用截图工具）</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {data.screenshots.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`截图 ${i + 1}`} className="rounded-lg border border-border w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </Section>
+        </>
+      )}
+    </div>
+  )
 }
 
 // ─── MCSP Tab（复用 how-we-work MutualSuccessPlan 结构）─────────────────────
@@ -574,15 +782,26 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, runDays, overallProgress }: {
+function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
   meta: TenantMetadata
   runDays: number
   overallProgress: number
+  tenantSlug: string
 }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
   const inProgressMilestone = meta.current_milestone
   const currentM = milestones.find(m => m.id === inProgressMilestone)
+
+  // 拉取 LangSmith trace 数据，用于填充总览数字
+  const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetch(`/api/langsmith-trace?slug=${encodeURIComponent(tenantSlug)}`)
+      .then(r => r.json())
+      .then(d => setTraceStats({ total_calls: d.total_calls ?? 0, agents: d.agents ?? [] }))
+      .catch(() => {})
+  }, [tenantSlug])
 
   return (
     <div className="space-y-8">
@@ -633,9 +852,13 @@ function OmtTab({ meta, runDays, overallProgress }: {
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">累计 Agent 调用次数</p>
-                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
-                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+                <p className="text-xs text-muted-foreground">累计工具调用</p>
+                {traceStats ? (
+                  <p className="text-2xl font-bold mt-1">{traceStats.total_calls}</p>
+                ) : (
+                  <div className="mt-1"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">LangSmith 实时</p>
               </div>
               <Zap className="w-4 h-4 text-muted-foreground" />
             </div>
@@ -646,9 +869,13 @@ function OmtTab({ meta, runDays, overallProgress }: {
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">已连接 Agent 数</p>
-                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
-                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+                <p className="text-xs text-muted-foreground">参与 Agent 数</p>
+                {traceStats ? (
+                  <p className="text-2xl font-bold mt-1">{traceStats.agents.length}</p>
+                ) : (
+                  <div className="mt-1"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">{traceStats ? traceStats.agents.join(' · ') : 'LangSmith 实时'}</p>
               </div>
               <GitBranch className="w-4 h-4 text-muted-foreground" />
             </div>
@@ -947,7 +1174,7 @@ function OmtTab({ meta, runDays, overallProgress }: {
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
-export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
+export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
   const posthog = usePostHog()
 
   useEffect(() => {
@@ -992,6 +1219,10 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
             <Layers className="w-3.5 h-3.5" />
             实施进度表
           </TabsTrigger>
+          <TabsTrigger value="trace" className="gap-2">
+            <Terminal className="w-3.5 h-3.5" />
+            执行轨迹
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="mcsp">
@@ -999,7 +1230,11 @@ export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, apiKey
         </TabsContent>
 
         <TabsContent value="omt">
-          <OmtTab meta={meta} runDays={runDays} overallProgress={overallProgress} />
+          <OmtTab meta={meta} runDays={runDays} overallProgress={overallProgress} tenantSlug={tenantSlug} />
+        </TabsContent>
+
+        <TabsContent value="trace">
+          <TraceTab tenantSlug={tenantSlug} />
         </TabsContent>
       </Tabs>
 

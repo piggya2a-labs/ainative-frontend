@@ -175,6 +175,7 @@ export default async function LiveReportPage({
         tenantId={tenant.id}
         tenantName={tenant.name}
         tenantCreatedAt={tenant.created_at}
+        tenantSlug={tenant.slug}
         apiKeyCount={apiKeyCount ?? 0}
         runDays={runDays}
         overallProgress={overallProgress}
