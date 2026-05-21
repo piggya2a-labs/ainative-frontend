@@ -111,8 +111,13 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
         label: 'stdout',
         content: stdout.trim()
       }
-      // 检测 stdout 里是否有 manus_task_id
-      const taskIdMatch = stdout.match(/"?manus_task_id"?\s*[:=]\s*"?([A-Za-z0-9_-]{10,30})"?/)
+      // 检测 stdout 里是否有 Manus task_id
+      // 匹配两种格式：
+      // 1. manus_task_id: xxx（显式标记）
+      // 2. "task_id": "xxx"（Manus API 响应 JSON）
+      const taskIdMatch =
+        stdout.match(/"?manus_task_id"?\s*[:=]\s*"?([A-Za-z0-9_-]{10,30})"?/) ||
+        stdout.match(/"task_id"\s*:\s*"([A-Za-z0-9_-]{10,30})"/)
       if (taskIdMatch) {
         artifact.manus_task_id = taskIdMatch[1]
       }
