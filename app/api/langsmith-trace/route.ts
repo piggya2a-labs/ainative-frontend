@@ -76,15 +76,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Step 1: 查询最近 100 个 root runs（parent_run_id 为空）
+    // Step 1: 用 POST /api/v1/runs/query 查询最近 100 个 root runs
     const runsRes = await fetch(
-      `${BASE}/runs?project_name=${encodeURIComponent(LANGSMITH_PROJECT)}&run_type=chain&is_root=true&limit=100`,
-      { headers: { 'x-api-key': LANGSMITH_API_KEY } }
+      `${BASE}/api/v1/runs/query`,
+      {
+        method: 'POST',
+        headers: {
+          'x-api-key': LANGSMITH_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_name: LANGSMITH_PROJECT,
+          run_type: 'chain',
+          is_root: true,
+          limit: 100,
+        }),
+      }
     )
     if (!runsRes.ok) {
-      return NextResponse.json({ error: `LangSmith API error: ${runsRes.status}` }, { status: 502 })
+      const errText = await runsRes.text()
+      return NextResponse.json({ error: `LangSmith API error: ${runsRes.status} ${errText}` }, { status: 502 })
     }
-    const rootRuns: LangSmithRun[] = await runsRes.json()
+    const runsData = await runsRes.json()
+    const rootRuns: LangSmithRun[] = runsData.runs || runsData || []
 
     // Step 2: 过滤出 inputs 里包含 tenantSlug 的 runs
     const matchedRuns = rootRuns.filter(run => {
@@ -93,20 +107,31 @@ export async function GET(req: NextRequest) {
     })
 
     if (matchedRuns.length === 0) {
-      return NextResponse.json({ runs: [], total_calls: 0, agents: [], artifacts: [], screenshots: [] })
+      return NextResponse.json({ runs: [], total_calls: 0, agents: [], artifacts: [], screenshots: [], timeline: [] })
     }
 
     // Step 3: 对每个匹配的 root run，查询其子 tool runs
     const allToolRuns: (LangSmithRun & { root_run_id: string; root_run_name: string })[] = []
 
     for (const rootRun of matchedRuns.slice(0, 10)) {
-      // 查子 runs
       const childRes = await fetch(
-        `${BASE}/runs?trace_id=${rootRun.id}&run_type=tool&limit=50`,
-        { headers: { 'x-api-key': LANGSMITH_API_KEY } }
+        `${BASE}/api/v1/runs/query`,
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key': LANGSMITH_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            trace: rootRun.id,
+            run_type: 'tool',
+            limit: 50,
+          }),
+        }
       )
       if (!childRes.ok) continue
-      const childRuns: LangSmithRun[] = await childRes.json()
+      const childData = await childRes.json()
+      const childRuns: LangSmithRun[] = childData.runs || childData || []
       for (const cr of childRuns) {
         allToolRuns.push({ ...cr, root_run_id: rootRun.id, root_run_name: rootRun.name })
       }
@@ -135,7 +160,7 @@ export async function GET(req: NextRequest) {
       else if (name.includes('lumen') || name.includes('Lumen') || name.includes('meta_manage')) agentSet.add('@Lumen')
       else if (name.includes('sega') || name.includes('Sega') || name.includes('dev')) agentSet.add('@Sega')
       else if (name.includes('eva') || name.includes('Eva') || name.includes('evaluator')) agentSet.add('@Eva')
-      else agentSet.add(name.slice(0, 20))
+      else if (name.trim()) agentSet.add(name.slice(0, 20))
     }
 
     // Step 6: 构建时间线（按时间排序的工具调用）
