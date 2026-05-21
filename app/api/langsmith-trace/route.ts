@@ -103,7 +103,18 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
 
   // E2B 沙箱执行结果
   if (toolName.includes('e2b') || toolName.includes('run_code')) {
-    const rawStdout = outputs.stdout ?? outputs.output ?? outputs.result ?? ''
+    // E2B tool output 结构：{ content: '{"ok":true,"stdout":"..."}' }
+    // 需要先解析 content JSON，再拿里面的 stdout
+    let parsedStdout = ''
+    if (typeof outputs.content === 'string') {
+      try {
+        const parsed = JSON.parse(outputs.content)
+        if (parsed && typeof parsed.stdout === 'string') {
+          parsedStdout = parsed.stdout
+        }
+      } catch { /* ignore */ }
+    }
+    const rawStdout = parsedStdout || outputs.stdout ?? outputs.output ?? outputs.result ?? ''
     const stdout = typeof rawStdout === 'string' ? rawStdout : JSON.stringify(rawStdout)
     if (stdout && stdout.trim()) {
       const artifact: { type: 'stdout'; label: string; content: string; manus_task_id?: string } = {
