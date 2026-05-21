@@ -379,7 +379,7 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
                 {data.screenshots.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`截图 ${i + 1}`} className="rounded-lg border border-border w-full object-cover" />
+                    <img src={url} alt={`截图 ${i + 1}`} className="rounded-lg border border-border w-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   </a>
                 ))}
               </div>
