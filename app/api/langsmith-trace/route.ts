@@ -124,10 +124,14 @@ function extractArtifacts(run: LangSmithRun): { type: 'stdout' | 'file' | 'scree
       }
 
       // 直接从 stdout 里提取截图 URL（不需要再调 Manus API）
-      // 匹配格式： screenshot_url: https://...
-      const screenshotMatch = stdout.match(/screenshot_url:\s*(https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif)\S*)/i)
+      // 优先匹配 FINAL screenshot_url，其次匹配 screenshot_url
+      // 用 [^\s]+ 确保不跨行
+      const screenshotMatch =
+        stdout.match(/FINAL\s+screenshot_url:\s*(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|webp|gif)[^\s]*)/i) ||
+        stdout.match(/(?<!FINAL\s)screenshot_url:\s*(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|webp|gif)[^\s]*)/i)
       if (screenshotMatch) {
-        artifacts.push({ type: 'screenshot', label: 'Manus 截图', content: screenshotMatch[1].trim() })
+        const cleanUrl = screenshotMatch[1].replace(/[\r\n].*/g, '').trim()
+        if (cleanUrl) artifacts.push({ type: 'screenshot', label: 'Manus 截图', content: cleanUrl })
       }
 
       artifacts.push(artifact)
