@@ -80,6 +80,7 @@ interface Props {
   auditLogs: AuditLog[]
   composioConnected: boolean
   composioToolCount: number
+  zapierConnected: boolean
   agentCount: number
   allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null; status?: string | null }>
 }
@@ -197,6 +198,7 @@ export function DashboardClient({
   auditLogs,
   composioConnected: initialComposioConnected,
   composioToolCount,
+  zapierConnected: initialZapierConnected,
   agentCount,
   allAgents,
 }: Props) {
@@ -385,6 +387,9 @@ export function DashboardClient({
   // Composio 连接器状态（初始值从服务端 user_metadata 读取，刷新后不丢失）
   const [composioConnecting, setComposioConnecting] = useState(false)
   const [composioConnected, setComposioConnected] = useState(initialComposioConnected)
+  // Zapier 连接器状态
+  const [zapierConnected, setZapierConnected] = useState(initialZapierConnected)
+  const [showZapierEmbed, setShowZapierEmbed] = useState(false)
   const searchParams = useSearchParams()
 
   const handleComposioConnect = async () => {
@@ -604,7 +609,64 @@ export function DashboardClient({
               </Button>
             )}
           </div>
-
+          {/* Zapier 工具授权 */}
+          <div className="flex flex-col border-t border-border">
+            <div className="flex items-center justify-between gap-4 px-4 py-3 bg-background">
+              <div className="flex items-center gap-3 min-w-0">
+                <svg viewBox="0 0 32 32" className="w-5 h-5 shrink-0" aria-hidden fill="none">
+                  <rect width="32" height="32" rx="8" fill="#FF4A00"/>
+                  <text x="6" y="22" fontSize="16" fontWeight="bold" fill="white" fontFamily="sans-serif">Z</text>
+                </svg>
+                <div className="min-w-0">
+                  <span className="text-sm font-medium">Zapier</span>
+                  <span className="text-xs text-muted-foreground ml-2">连接 9000+ 应用，Agent 自动继承</span>
+                </div>
+              </div>
+              {zapierConnected ? (
+                <span className="text-xs text-[oklch(0.65_0.18_145)] font-medium flex items-center gap-1">
+                  <Check className="w-3 h-3" /> 已连接
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-7 text-xs shrink-0"
+                  variant="default"
+                  onClick={() => setShowZapierEmbed(true)}
+                >
+                  连接 →
+                </Button>
+              )}
+            </div>
+            {showZapierEmbed && (
+              <div className="px-4 pb-4">
+                <script src="https://mcp.zapier.com/embed/v1/mcp.js" async />
+                <zapier-mcp
+                  embed-id="27e9eff5-0a7c-4db6-841f-3980b8989afc"
+                  width="100%"
+                  height="500px"
+                  ref={(el: HTMLElement | null) => {
+                    if (!el) return
+                    el.addEventListener('mcp-server-url', async (event: Event) => {
+                      const serverUrl = (event as CustomEvent).detail?.serverUrl
+                      if (!serverUrl) return
+                      // 把 URL 存到 tenants.zapier_mcp_url
+                      const { data: { session } } = await createClient().auth.getSession()
+                      if (!session?.access_token) return
+                      await fetch('/api/zapier/save-mcp-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ zapier_mcp_url: serverUrl }),
+                      })
+                      setZapierConnected(true)
+                      setShowZapierEmbed(false)
+                      toast.success('Zapier 已连接！Agent 现在可以使用 9000+ 应用了 🎉')
+                    })
+                    el.addEventListener('close-requested', () => setShowZapierEmbed(false))
+                  }}
+                />
+              </div>
+            )}
+          </div>
           <InlineCollapsible title="API KEYS" count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}>
             {loadingKeys ? (
               <div className="px-4 py-3 text-xs text-muted-foreground font-mono">加载中…</div>

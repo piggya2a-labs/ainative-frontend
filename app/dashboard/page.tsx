@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   // ⚠️ 字段说明：connected_agents 由 Composio 查询结果异步写入，不用为渲染来源（渲染用实时 Composio 查询结果）。
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
@@ -153,6 +153,10 @@ export default async function DashboardPage() {
   const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
   const composioConnected = !!composioToken
 
+  // ─── Zapier 连接状态（从 tenants.zapier_mcp_url 读）──────────────────────────────
+  const zapierMcpUrl = (tenant as Record<string, unknown> | null)?.zapier_mcp_url as string | null
+  const zapierConnected = !!zapierMcpUrl
+
   // ─── COMPOSIO 查询说明（防回退注释，勿删）──────────────────────────────────────
   // 正确做法：用平台 admin key（COMPOSIO_ADMIN_KEY）+ user_ids[]=user.id 查 v3.1 端点
   // Composio MCP OAuth 的 access_token 无法查 REST API，不要用它查 connectedAccounts
@@ -230,6 +234,7 @@ export default async function DashboardPage() {
         auditLogs={auditLogs ?? []}
         composioConnected={composioConnected}
         composioToolCount={composioToolCount}
+        zapierConnected={zapierConnected}
         agentCount={agentCount ?? 0}
         allAgents={allAgents ?? []}
         />
