@@ -145,6 +145,41 @@ function milestoneBadge(status: string) {
   return <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground">待开始</Badge>
 }
 
+function ZapierEmbedContainer({ onConnect, onClose }: { onConnect: (url: string) => void; onClose: () => void }) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    // Dynamically load the Zapier MCP embed script
+    const script = document.createElement('script')
+    script.src = 'https://mcp.zapier.com/embed/v1/mcp.js'
+    script.async = true
+    document.head.appendChild(script)
+    // Create the custom element after script loads
+    const createEmbed = () => {
+      const el = document.createElement('zapier-mcp') as HTMLElement
+      el.setAttribute('embed-id', '27e9eff5-0a7c-4db6-841f-3980b8989afc')
+      el.setAttribute('width', '100%')
+      el.setAttribute('height', '500px')
+      el.addEventListener('mcp-server-url', (event: Event) => {
+        const serverUrl = (event as CustomEvent).detail?.serverUrl
+        if (serverUrl) onConnect(serverUrl)
+      })
+      el.addEventListener('close-requested', () => onClose())
+      container.appendChild(el)
+    }
+    if (document.querySelector('zapier-mcp') !== null || customElements.get('zapier-mcp')) {
+      createEmbed()
+    } else {
+      script.onload = createEmbed
+    }
+    return () => {
+      if (container) container.innerHTML = ''
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return <div className="px-4 pb-4" ref={containerRef} />
+}
 function InlineCollapsible({ title, count, children }: { title: string; count?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
@@ -638,33 +673,21 @@ export function DashboardClient({
               )}
             </div>
             {showZapierEmbed && (
-              <div className="px-4 pb-4">
-                <script src="https://mcp.zapier.com/embed/v1/mcp.js" async />
-                <zapier-mcp
-                  embed-id="27e9eff5-0a7c-4db6-841f-3980b8989afc"
-                  width="100%"
-                  height="500px"
-                  ref={(el: HTMLElement | null) => {
-                    if (!el) return
-                    el.addEventListener('mcp-server-url', async (event: Event) => {
-                      const serverUrl = (event as CustomEvent).detail?.serverUrl
-                      if (!serverUrl) return
-                      // 把 URL 存到 tenants.zapier_mcp_url
-                      const { data: { session } } = await createClient().auth.getSession()
-                      if (!session?.access_token) return
-                      await fetch('/api/zapier/save-mcp-url', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                        body: JSON.stringify({ zapier_mcp_url: serverUrl }),
-                      })
-                      setZapierConnected(true)
-                      setShowZapierEmbed(false)
-                      toast.success('Zapier 已连接！Agent 现在可以使用 9000+ 应用了 🎉')
-                    })
-                    el.addEventListener('close-requested', () => setShowZapierEmbed(false))
-                  }}
-                />
-              </div>
+              <ZapierEmbedContainer
+                onConnect={async (serverUrl: string) => {
+                  const { data: { session } } = await createClient().auth.getSession()
+                  if (!session?.access_token) return
+                  await fetch('/api/zapier/save-mcp-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ zapier_mcp_url: serverUrl }),
+                  })
+                  setZapierConnected(true)
+                  setShowZapierEmbed(false)
+                  toast.success('Zapier 已连接！Agent 现在可以使用 9000+ 应用了 🎉')
+                }}
+                onClose={() => setShowZapierEmbed(false)}
+              />
             )}
           </div>
           <InlineCollapsible title="API KEYS" count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}>
