@@ -84,6 +84,7 @@ export default async function LiveReportPage({
 }) {
   const { name } = await params
   const { t: token } = await searchParams
+  const siteConfig = await getSiteConfig()
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -108,23 +109,25 @@ export default async function LiveReportPage({
   // 验证 share_token
   if (!meta || !meta.share_token) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
+      <><Navbar siteConfig={siteConfig} />
+      <main className="min-h-screen flex items-center justify-center px-4 pt-14">
         <div className="text-center space-y-3">
           <div className="text-2xl font-bold">链接无效</div>
           <p className="text-sm text-muted-foreground">该客户尚未开通 Live 看板。</p>
         </div>
-      </main>
+      </main></>
     )
   }
 
   if (meta.share_token !== token) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
+      <><Navbar siteConfig={siteConfig} />
+      <main className="min-h-screen flex items-center justify-center px-4 pt-14">
         <div className="text-center space-y-3">
           <div className="text-2xl font-bold">访问令牌无效</div>
           <p className="text-sm text-muted-foreground">请确认链接是否完整，或联系你的 ONIT 客户成功经理获取正确链接。</p>
         </div>
-      </main>
+      </main></>
     )
   }
 
@@ -137,7 +140,8 @@ export default async function LiveReportPage({
   // 不要删除这个判断，否则新建看板会直接崩溃。
   if (!meta.client || !meta.audit) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
+      <><Navbar siteConfig={siteConfig} />
+      <main className="min-h-screen flex items-center justify-center px-4 pt-14">
         <div className="text-center space-y-4">
           <div className="text-xs font-mono text-muted-foreground">ONIT / {tenant.name}</div>
           <div className="text-2xl font-bold">等待初始化</div>
@@ -145,7 +149,7 @@ export default async function LiveReportPage({
             看板已创建，正在等待 Agent 写入项目信息。请去 Telegram 找 @onitmeowbot，告诉 Agent 这个项目的目标和背景。
           </p>
         </div>
-      </main>
+      </main></>
     )
   }
 
@@ -159,7 +163,6 @@ export default async function LiveReportPage({
     ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
     : 0
   const runDays = daysSince(client.contract_start)
-  const siteConfig = await getSiteConfig()
 
   return (
     <>
