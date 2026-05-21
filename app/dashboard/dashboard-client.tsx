@@ -81,6 +81,7 @@ interface Props {
   composioConnected: boolean
   composioToolCount: number
   zapierConnected: boolean
+  pipedreamConnected: boolean
   agentCount: number
   allAgents: Array<{ id: string; name: string; icon_url?: string | null; mcp_url?: string | null; url?: string | null; description?: string | null; status?: string | null }>
 }
@@ -234,6 +235,7 @@ export function DashboardClient({
   composioConnected: initialComposioConnected,
   composioToolCount,
   zapierConnected: initialZapierConnected,
+  pipedreamConnected: initialPipedreamConnected,
   agentCount,
   allAgents,
 }: Props) {
@@ -425,6 +427,9 @@ export function DashboardClient({
   // Zapier 连接器状态
   const [zapierConnected, setZapierConnected] = useState(initialZapierConnected)
   const [showZapierEmbed, setShowZapierEmbed] = useState(false)
+  // Pipedream Connect 状态
+  const [pipedreamConnected, setPipedreamConnected] = useState(initialPipedreamConnected)
+  const [pipedreamConnecting, setPipedreamConnecting] = useState(false)
   const searchParams = useSearchParams()
 
   const handleComposioConnect = async () => {
@@ -537,6 +542,47 @@ export function DashboardClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Pipedream Connect 授权入口
+  const handlePipedreamConnect = async () => {
+    setPipedreamConnecting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      // 请求后端生成 connect token
+      const res = await fetch('/api/pipedream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'connect-token' }),
+      })
+      const data = await res.json() as { connect_link_url?: string; error?: string }
+      if (data.connect_link_url) {
+        // 在新窗口打开 Pipedream 授权页，用户授权完成后关闭
+        const popup = window.open(data.connect_link_url, 'pipedream-connect', 'width=600,height=700,scrollbars=yes')
+        // 监听 popup 关闭事件
+        const checkClosed = setInterval(async () => {
+          if (popup?.closed) {
+            clearInterval(checkClosed)
+            // 回调后端记录连接状态
+            const { data: { session: s } } = await supabase.auth.getSession()
+            if (!s?.access_token) return
+            await fetch('/api/pipedream/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.access_token}` },
+              body: JSON.stringify({}),
+            })
+            setPipedreamConnected(true)
+            toast.success('Pipedream 已连接！已连接的应用将显示在 Agent 列表里。')
+            setTimeout(() => window.location.reload(), 1500)
+          }
+        }, 500)
+      } else {
+        toast.error(data.error ?? 'Pipedream 未配置，请稍后再试')
+      }
+    } catch {
+      toast.error('连接失败，请重试')
+    } finally { setPipedreamConnecting(false) }
+  }
+
   const meta = tenant?.metadata as {
     share_token?: string
     current_milestone?: string
@@ -644,20 +690,21 @@ export function DashboardClient({
               </Button>
             )}
           </div>
-          {/* Zapier 工具授权 */}
+          {/* Pipedream Connect 工具授权 */}
           <div className="flex flex-col border-t border-border">
             <div className="flex items-center justify-between gap-4 px-4 py-3 bg-background">
               <div className="flex items-center gap-3 min-w-0">
                 <svg viewBox="0 0 32 32" className="w-5 h-5 shrink-0" aria-hidden fill="none">
-                  <rect width="32" height="32" rx="8" fill="#FF4A00"/>
-                  <text x="6" y="22" fontSize="16" fontWeight="bold" fill="white" fontFamily="sans-serif">Z</text>
+                  <rect width="32" height="32" rx="8" fill="#1a1a2e"/>
+                  <circle cx="16" cy="16" r="7" fill="none" stroke="#00d4ff" strokeWidth="2"/>
+                  <circle cx="16" cy="16" r="3" fill="#00d4ff"/>
                 </svg>
                 <div className="min-w-0">
-                  <span className="text-sm font-medium">Zapier</span>
-                  <span className="text-xs text-muted-foreground ml-2">连接 9000+ 应用，Agent 自动继承</span>
+                  <span className="text-sm font-medium">Pipedream</span>
+                  <span className="text-xs text-muted-foreground ml-2">连接 3000+ 应用，Agent 自动继承</span>
                 </div>
               </div>
-              {zapierConnected ? (
+              {pipedreamConnected ? (
                 <span className="text-xs text-[oklch(0.65_0.18_145)] font-medium flex items-center gap-1">
                   <Check className="w-3 h-3" /> 已连接
                 </span>
@@ -666,29 +713,13 @@ export function DashboardClient({
                   size="sm"
                   className="h-7 text-xs shrink-0"
                   variant="default"
-                  onClick={() => setShowZapierEmbed(true)}
+                  disabled={pipedreamConnecting}
+                  onClick={handlePipedreamConnect}
                 >
-                  连接 →
+                  {pipedreamConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : '连接 →'}
                 </Button>
               )}
             </div>
-            {showZapierEmbed && (
-              <ZapierEmbedContainer
-                onConnect={async (serverUrl: string) => {
-                  const { data: { session } } = await createClient().auth.getSession()
-                  if (!session?.access_token) return
-                  await fetch('/api/zapier/save-mcp-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                    body: JSON.stringify({ zapier_mcp_url: serverUrl }),
-                  })
-                  setZapierConnected(true)
-                  setShowZapierEmbed(false)
-                  toast.success('Zapier 已连接！Agent 现在可以使用 9000+ 应用了 🎉')
-                }}
-                onClose={() => setShowZapierEmbed(false)}
-              />
-            )}
           </div>
           <InlineCollapsible title="API KEYS" count={apiKeys.length > 0 ? String(apiKeys.length) : undefined}>
             {loadingKeys ? (
@@ -930,8 +961,11 @@ export function DashboardClient({
                     st === 'EXPIRED' ? `${agent.name}（需重新授权）` :
                     st === 'INITIALIZING' || st === 'INITIATED' ? `${agent.name}（连接中...）` :
                     `${agent.name}（连接失败）`
+                  const manageUrl = agent.id.startsWith('pipedream-')
+                    ? 'https://pipedream.com/accounts'
+                    : 'https://app.composio.dev'
                   return (
-                    <a key={agent.id} href="https://app.composio.dev" target="_blank" rel="noopener noreferrer" title={tooltip}>
+                    <a key={agent.id} href={manageUrl} target="_blank" rel="noopener noreferrer" title={tooltip}>
                       <div className="relative">
                         <AgentIcon
                           name={agent.name}
@@ -949,9 +983,16 @@ export function DashboardClient({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-mono">已连接 {agentCount} 个工具，点击头像管理。</span>
-                <a href="https://app.composio.dev" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Composio</Button>
-                </a>
+                <div className="flex items-center gap-1.5">
+                  <a href="https://app.composio.dev" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Composio</Button>
+                  </a>
+                  {pipedreamConnected && (
+                    <a href="https://pipedream.com/accounts" target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="h-6 text-xs gap-1"><ExternalLink className="w-3 h-3" />Pipedream</Button>
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           )}
