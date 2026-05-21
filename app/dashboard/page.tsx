@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   // ⚠️ 字段说明：connected_agents 由 Composio 查询结果异步写入，不用为渲染来源（渲染用实时 Composio 查询结果）。
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url, pipedream_connected_at')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url, pipedream_connected_at')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
@@ -157,10 +157,6 @@ export default async function DashboardPage() {
   const zapierMcpUrl = (tenant as Record<string, unknown> | null)?.zapier_mcp_url as string | null
   const zapierConnected = !!zapierMcpUrl
 
-  // ─── Pipedream Connect 连接状态（从 tenants.pipedream_connected_at 读）──────────
-  const pipedreamConnectedAt = (tenant as Record<string, unknown> | null)?.pipedream_connected_at as string | null
-  const pipedreamConnected = !!pipedreamConnectedAt
-
   // ─── COMPOSIO 查询说明（防回退注释，勿删）──────────────────────────────────────
   // 正确做法：用平台 admin key（COMPOSIO_ADMIN_KEY）+ user_ids[]=user.id 查 v3.1 端点
   // Composio MCP OAuth 的 access_token 无法查 REST API，不要用它查 connectedAccounts
@@ -216,66 +212,8 @@ export default async function DashboardPage() {
     }
   }
 
-  // ─── Pipedream 已连接应用列表（server-side 拉取，和 Composio 并排显示）──────────
-  let pipedreamAgents: ComposioAgent[] = []
-  if (pipedreamConnected) {
-    try {
-      const pdClientId = process.env.PIPEDREAM_CLIENT_ID ?? ''
-      const pdClientSecret = process.env.PIPEDREAM_CLIENT_SECRET ?? ''
-      const pdProjectId = process.env.PIPEDREAM_PROJECT_ID ?? ''
-      const pdEnv = process.env.PIPEDREAM_ENVIRONMENT ?? 'production'
-      if (pdClientId && pdClientSecret && pdProjectId) {
-        // 先拿 access token
-        const tokenRes = await fetch('https://api.pipedream.com/v1/oauth/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'client_credentials',
-            client_id: pdClientId,
-            client_secret: pdClientSecret,
-          }).toString(),
-        })
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json() as { access_token?: string }
-          const pdAccessToken = tokenData.access_token ?? ''
-          if (pdAccessToken) {
-            const accountsRes = await fetch(
-              `https://api.pipedream.com/v1/connect/${pdProjectId}/accounts?external_user_id=${encodeURIComponent(user.id)}&limit=100`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${pdAccessToken}`,
-                  'x-pd-environment': pdEnv,
-                },
-                next: { revalidate: 60 },
-              }
-            )
-            if (accountsRes.ok) {
-              const accountsData = await accountsRes.json() as { data?: Array<{ id: string; app?: { name?: string; name_slug?: string; img_src?: string }; healthy?: boolean }> }
-              pipedreamAgents = (accountsData.data ?? []).map((account) => {
-                const slug = account.app?.name_slug ?? account.id
-                const appName = account.app?.name ?? (slug.charAt(0).toUpperCase() + slug.slice(1))
-                const domain = slug.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
-                return {
-                  id: `pipedream-${account.id}`,
-                  name: appName,
-                  icon_url: account.app?.img_src ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
-                  mcp_url: null,
-                  url: `https://${domain}`,
-                  description: 'via Pipedream',
-                  status: account.healthy !== false ? 'ACTIVE' : 'FAILED',
-                }
-              })
-            }
-          }
-        }
-      }
-    } catch {
-      // 查询失败不影响页面加载
-    }
-  }
-
-  // ─── 合并：Composio 工具 + Pipedream 工具 + 用户手动开启的 agent ──────────────
-  const allAgents: ComposioAgent[] = [...composioAgents, ...pipedreamAgents]
+  // ─── 合并：Composio 工具 + 用户手动开启的 agent ──────────────────────────────────────────────
+  const allAgents: ComposioAgent[] = [...composioAgents]
   const agentCount = allAgents.length
 
   const siteConfig = await getSiteConfig()
@@ -297,7 +235,6 @@ export default async function DashboardPage() {
         composioConnected={composioConnected}
         composioToolCount={composioToolCount}
         zapierConnected={zapierConnected}
-        pipedreamConnected={pipedreamConnected}
         agentCount={agentCount ?? 0}
         allAgents={allAgents ?? []}
         />
