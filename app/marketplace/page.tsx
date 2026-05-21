@@ -4,8 +4,19 @@ import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { MarketplaceClient } from './marketplace-client'
 import type { MarketplaceAgentItem } from '@/lib/database.types'
+import type { Metadata } from 'next'
 
 export const revalidate = 60
+
+export const metadata: Metadata = {
+  title: 'AI Agent Marketplace — MCP & A2A Agents | ONIT',
+  description: 'Browse 40+ pre-built AI agents with MCP and A2A support. Connect GitHub, Slack, Notion, Supabase and more to your AI team in one click.',
+  openGraph: {
+    title: 'AI Agent Marketplace | ONIT',
+    description: 'Browse 40+ pre-built AI agents. MCP & A2A native. Connect to Claude, ChatGPT, Cursor in minutes.',
+    type: 'website',
+  },
+}
 
 async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
   try {

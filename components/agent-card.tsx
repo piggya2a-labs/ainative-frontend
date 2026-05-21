@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-client'
 import { AgentIcon } from '@/components/agent-icon'
 import {
@@ -264,6 +265,16 @@ export function AgentCard({
 
         <CardFooter className="flex items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">{typeLabel}</Badge>
+          {/* SEO: link to detail page for marketplace agents */}
+          {!agent.langsmith_handle && (
+            <Link
+              href={`/marketplace/${agent.id}`}
+              className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              详情 →
+            </Link>
+          )}
           {timestamp && (
             <TooltipProvider>
               <Tooltip>
