@@ -165,6 +165,11 @@ interface TraceTimelineItem {
   tool_call_count?: number
   tool_names?: string[]
   duration_ms?: number
+  first_token_ms?: number | null
+  model?: string | null
+  total_cost?: number | null
+  cost_estimated?: boolean
+  feedback_stats?: Record<string, { n: number; avg: number }> | null
   stats_loaded?: boolean
 }
 interface TraceArtifact {
@@ -388,9 +393,16 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
             </Card>
             <Card>
               <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">产出物</p>
-                <p className="text-2xl font-bold mt-1">{data.artifacts.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">{data.screenshots.length > 0 ? `含 ${data.screenshots.length} 张截图` : '无截图'}</p>
+                <p className="text-xs text-muted-foreground">估算成本</p>
+                <p className="text-2xl font-bold mt-1">
+                  {(() => {
+                    const total = data.timeline.reduce((sum, r) => sum + (r.total_cost ?? 0), 0)
+                    return total > 0 ? `$${total.toFixed(4)}` : '—'
+                  })()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.timeline.some(r => r.cost_estimated) ? '含估算值' : 'LangSmith 原生'}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -427,6 +439,12 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
                             <span className="text-xs text-muted-foreground/50">{item.root_run_name}</span>
                             {item.stats_loaded && (
                               <>
+                                {item.model && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    <span className="text-xs text-blue-500/70 font-mono">{item.model.replace('anthropic/', '')}</span>
+                                  </>
+                                )}
                                 <span className="text-xs text-muted-foreground/40">·</span>
                                 <span className="text-xs text-muted-foreground/60 font-mono">
                                   {(item.total_tokens ?? 0).toLocaleString()} tokens
@@ -439,12 +457,38 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
                                 <span className="text-xs text-muted-foreground/60">
                                   {item.tool_call_count} 次工具调用
                                 </span>
+                                {item.total_cost != null && item.total_cost > 0 && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    <span className="text-xs text-emerald-600/70 font-mono">
+                                      ${item.total_cost.toFixed(4)}{item.cost_estimated ? ' ≈' : ''}
+                                    </span>
+                                  </>
+                                )}
                                 {item.duration_ms && (
                                   <>
                                     <span className="text-xs text-muted-foreground/40">·</span>
                                     <span className="text-xs text-muted-foreground/60">
                                       {(item.duration_ms / 1000).toFixed(1)}s
                                     </span>
+                                  </>
+                                )}
+                                {item.first_token_ms != null && item.first_token_ms > 0 && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    <span className="text-xs text-muted-foreground/60">
+                                      TTFT {(item.first_token_ms / 1000).toFixed(1)}s
+                                    </span>
+                                  </>
+                                )}
+                                {item.feedback_stats && Object.keys(item.feedback_stats).length > 0 && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    {Object.entries(item.feedback_stats).map(([k, v]) => (
+                                      <span key={k} className="text-xs text-amber-600/70">
+                                        {k}: {v.avg.toFixed(1)}
+                                      </span>
+                                    ))}
                                   </>
                                 )}
                               </>
