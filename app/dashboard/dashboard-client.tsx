@@ -235,26 +235,30 @@ export function DashboardClient({
   const [creatingTenant, setCreatingTenant] = useState(false)
   const [showNewTenantModal, setShowNewTenantModal] = useState(false)
   const [newTenantName, setNewTenantName] = useState('')
+  const [createTenantError, setCreateTenantError] = useState<string | null>(null)
   const handleCreateTenant = async () => {
     if (!newTenantName.trim()) return
     setCreatingTenant(true)
+    setCreateTenantError(null)
     try {
       const res = await fetch('/api/tenants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTenantName.trim() }),
       })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
         posthog?.capture('tenant_create', { name: newTenantName.trim() })
-        const createdName = newTenantName.trim()
-        setNewTenantName(''); setShowNewTenantModal(false)
+        setNewTenantName(''); setShowNewTenantModal(false); setCreateTenantError(null)
         if (data.tenant) { setTenants(prev => [...prev, data.tenant]); setActiveTenantId(data.tenant.id) }
         // 新建成功后直接跳 Telegram，让用户去跟 Agent 说项目目标
-        // 设计决策：不弹窗，直接跳，体验跟「加入 →」按钮一致
         window.open('https://t.me/onitmeowbot', '_blank')
         router.refresh()
+      } else {
+        setCreateTenantError(data.error || `创建失败 (${res.status})`)
       }
+    } catch (e) {
+      setCreateTenantError(e instanceof Error ? e.message : '网络错误')
     } finally { setCreatingTenant(false) }
   }
 
@@ -965,7 +969,7 @@ export function DashboardClient({
       </Dialog>
 
       {/* Modal: 新建看板 */}
-      <Dialog open={showNewTenantModal} onOpenChange={(open) => { if (!open) { setShowNewTenantModal(false); setNewTenantName('') } }}>
+      <Dialog open={showNewTenantModal} onOpenChange={(open) => { if (!open) { setShowNewTenantModal(false); setNewTenantName(''); setCreateTenantError(null) } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm">新建看板</DialogTitle>
@@ -976,6 +980,11 @@ export function DashboardClient({
               <Label className="text-xs">看板名称（客户名 / 项目名）</Label>
               <Input placeholder="如：Acme Corp、小红书项目、客服 Agent 试运行" value={newTenantName} onChange={(e) => setNewTenantName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCreateTenant()} className="text-xs" autoFocus />
             </div>
+            {createTenantError && (
+              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-xs text-red-600">{createTenantError}</p>
+              </div>
+            )}
             <Button className="w-full" size="sm" onClick={handleCreateTenant} disabled={creatingTenant || !newTenantName.trim()}>
               {creatingTenant ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}创建
             </Button>
