@@ -11,7 +11,7 @@ export default function LoginPage() {
   const supabase = createClient()
   const posthog = usePostHog()
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,6 +29,19 @@ export default function LoginPage() {
     setSuccess(null)
 
     posthog?.capture('auth_submit', { mode })
+
+    if (mode === 'reset') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/dashboard`,
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setSuccess('重置密码邮件已发送，请检查你的邮箱。')
+      }
+      setLoading(false)
+      return
+    }
 
     if (mode === 'signup') {
       const { error } = await supabase.auth.signUp({
@@ -59,6 +72,19 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const handleGoogleLogin = async () => {
+    posthog?.capture('auth_submit', { mode: 'google' })
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    })
+    if (error) {
+      setError(error.message)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
@@ -71,47 +97,68 @@ export default function LoginPage() {
             <span className="font-semibold text-lg tracking-tight">ONIT</span>
           </Link>
           <p className="mt-2 text-sm text-gray-500">
-            {mode === 'login' ? '登录你的账户' : '创建新账户'}
+            {mode === 'login' ? '登录你的账户' : mode === 'signup' ? '创建新账户' : '重置密码'}
           </p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          {/* Tab 切换 */}
-          <div className="flex border border-gray-200 rounded-md p-0.5 mb-6 bg-gray-50">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login')
-                setError(null)
-                setSuccess(null)
-                posthog?.capture('auth_mode_switch', { mode: 'login' })
-              }}
-              className={`flex-1 py-1.5 text-sm rounded transition-all ${
-                mode === 'login'
-                  ? 'bg-white text-black shadow-sm font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              登录
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('signup')
-                setError(null)
-                setSuccess(null)
-                posthog?.capture('auth_mode_switch', { mode: 'signup' })
-              }}
-              className={`flex-1 py-1.5 text-sm rounded transition-all ${
-                mode === 'signup'
-                  ? 'bg-white text-black shadow-sm font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              注册
-            </button>
-          </div>
+
+          {/* Tab 切换（只在 login/signup 时显示） */}
+          {mode !== 'reset' && (
+            <div className="flex border border-gray-200 rounded-md p-0.5 mb-5 bg-gray-50">
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
+                className={`flex-1 py-1.5 text-sm rounded transition-all ${
+                  mode === 'login'
+                    ? 'bg-white text-black shadow-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                登录
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('signup'); setError(null); setSuccess(null) }}
+                className={`flex-1 py-1.5 text-sm rounded transition-all ${
+                  mode === 'signup'
+                    ? 'bg-white text-black shadow-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                注册
+              </button>
+            </div>
+          )}
+
+          {/* Google OAuth 按钮（login/signup 模式） */}
+          {mode !== 'reset' && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium border border-gray-200 rounded-md bg-white hover:bg-gray-50 transition-colors mb-4"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                使用 Google 账号{mode === 'login' ? '登录' : '注册'}
+              </button>
+
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-2 text-gray-400">或使用邮箱</span>
+                </div>
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -128,23 +175,36 @@ export default function LoginPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                密码
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent placeholder:text-gray-400"
-              />
-              {mode === 'signup' && (
-                <p className="mt-1 text-xs text-gray-400">至少 6 位</p>
-              )}
-            </div>
+            {mode !== 'reset' && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-gray-700">
+                    密码
+                  </label>
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => { setMode('reset'); setError(null); setSuccess(null) }}
+                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      忘记密码？
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  minLength={6}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent placeholder:text-gray-400"
+                />
+                {mode === 'signup' && (
+                  <p className="mt-1 text-xs text-gray-400">至少 6 位</p>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md">
@@ -163,8 +223,24 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? '处理中...' : mode === 'login' ? '登录' : '注册'}
+              {loading
+                ? '处理中...'
+                : mode === 'login'
+                ? '登录'
+                : mode === 'signup'
+                ? '注册'
+                : '发送重置邮件'}
             </button>
+
+            {mode === 'reset' && (
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                ← 返回登录
+              </button>
+            )}
           </form>
         </div>
 
