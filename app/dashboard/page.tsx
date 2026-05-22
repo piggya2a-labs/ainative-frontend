@@ -94,7 +94,8 @@ export default async function DashboardPage() {
 
   // 连接器从 tenants.metadata.connectors 读（tenant_connectors 表已删）
   type ConnectorEntry = { id: string; agent_id: string; status: 'connected' | 'pending_start' | 'pending_verify' | 'disconnected' | 'error'; metadata: Record<string, unknown> | null; connected_at?: string | null; created_at: string }
-  const tenantConnectors: ConnectorEntry[] = ((tenant as Record<string, unknown> | null)?.metadata as Record<string, unknown> | null)?.connectors as ConnectorEntry[] ?? []
+  const rawConnectors = ((tenant as Record<string, unknown> | null)?.metadata as Record<string, unknown> | null)?.connectors
+  const tenantConnectors: ConnectorEntry[] = Array.isArray(rawConnectors) ? (rawConnectors as ConnectorEntry[]) : []
   const mcpConnectors = tenantConnectors.filter(c => c.status === 'connected')
   const mcpAgentIds = mcpConnectors.map(c => c.agent_id).filter(Boolean)
   const { data: mcpAgentCards } = mcpAgentIds.length > 0
