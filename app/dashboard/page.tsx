@@ -60,7 +60,7 @@ export default async function DashboardPage() {
   console.log('[DEBUG] SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY, 'length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length)
   const { data: tenantsRaw, error: tenantsError } = await adminClient
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
   console.log('[DEBUG] tenantsRaw count:', tenantsRaw?.length, 'error:', JSON.stringify(tenantsError))
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
