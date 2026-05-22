@@ -219,9 +219,41 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
 
   const fetchTrace = () => {
     setLoading(true)
-    fetch(`/api/langsmith-trace?slug=${encodeURIComponent(tenantSlug)}`)
+    // 直连 LangSmith API，按 tenant_slug metadata 过滤 runs
+    fetch('https://api.smith.langchain.com/api/v1/runs/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
+      },
+      body: JSON.stringify({
+        filter: `and(eq(metadata_key, "tenant_slug"), eq(metadata_value, "${tenantSlug}"))`,
+        is_root: true,
+        limit: 50
+      })
+    })
       .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
+      .then(d => {
+        const runs: Array<{ id: string; name: string; status: string; start_time: string; end_time?: string; child_run_ids?: string[] }> = d.runs ?? []
+        const parsed: TraceData = {
+          total_calls: runs.reduce((acc, r) => acc + (r.child_run_ids?.length ?? 0), 0),
+          agents: [...new Set(runs.map(r => r.name))],
+          timeline: runs.map(r => ({
+            id: r.id,
+            tool: r.name,
+            status: r.status,
+            start_time: r.start_time,
+            end_time: r.end_time,
+            root_run_name: r.name,
+            has_output: true,
+            error: null
+          })),
+          artifacts: [],
+          screenshots: []
+        }
+        setData(parsed)
+        setLoading(false)
+      })
       .catch(e => { setError(String(e)); setLoading(false) })
   }
 
@@ -797,9 +829,27 @@ function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
   const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    fetch(`/api/langsmith-trace?slug=${encodeURIComponent(tenantSlug)}`)
+    // 直连 LangSmith API，按 tenant_slug metadata 过滤 runs
+    fetch('https://api.smith.langchain.com/api/v1/runs/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
+      },
+      body: JSON.stringify({
+        filter: `and(eq(metadata_key, "tenant_slug"), eq(metadata_value, "${tenantSlug}"))`,
+        is_root: true,
+        limit: 50
+      })
+    })
       .then(r => r.json())
-      .then(d => setTraceStats({ total_calls: d.total_calls ?? 0, agents: d.agents ?? [] }))
+      .then(d => {
+        const runs: Array<{ name: string; child_run_ids?: string[] }> = d.runs ?? []
+        setTraceStats({
+          total_calls: runs.reduce((acc, r) => acc + (r.child_run_ids?.length ?? 0), 0),
+          agents: [...new Set(runs.map(r => r.name))]
+        })
+      })
       .catch(() => {})
   }, [tenantSlug])
 

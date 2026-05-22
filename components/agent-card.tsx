@@ -337,15 +337,19 @@ function AgentCardDialog({
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true)
     try {
-      const res = await fetch(`/api/agent-notes?agent_id=${encodeURIComponent(agent.id)}`)
-      if (res.ok) {
-        const data = await res.json()
-        setNotes(data.notes ?? [])
-      }
+      // 直连 Supabase agent_memory 表，不经过 Vercel API Route
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('agent_memory')
+        .select('id, content, created_at')
+        .eq('agent_id', agent.id)
+        .eq('key', 'note')
+        .order('created_at', { ascending: false })
+      setNotes(data ?? [])
     } finally {
       setNotesLoading(false)
     }
-  }, [agent.name, agent.id])
+  }, [agent.id])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
 
@@ -353,17 +357,12 @@ function AgentCardDialog({
     if (!noteInput.trim()) return
     setNoteSaving(true)
     try {
-      // 从 supabase session 拿 access_token，传给 API 做服务端身份验证
+      // 直连 Supabase agent_memory 表写入
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-      const res = await fetch('/api/agent-notes', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ agent_id: agent.id, content: noteInput.trim() }),
-      })
-      if (res.ok) {
+      const { error } = await supabase
+        .from('agent_memory')
+        .insert({ agent_id: agent.id, key: 'note', content: noteInput.trim() })
+      if (!error) {
         setNoteInput('')
         await fetchNotes()
       }
