@@ -232,16 +232,14 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
 
   const fetchTrace = () => {
     setLoading(true)
-    // 查 LangGraph Platform threads，按 tenant_slug 过滤
-    const LGURL = process.env.NEXT_PUBLIC_LANGGRAPH_URL ?? 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
-    const LGKEY = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
-    // 先查 thread，再查 thread 里的 runs
-    fetch(`${LGURL}/threads/search`, {
+    // 通过 Next.js API route 查 LangGraph（服务端安全读取 API key）
+    const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': LGKEY },
-      body: JSON.stringify({ metadata: { tenant_slug: tenantSlug }, limit: 20 })
-    })
-      .then(r => r.json())
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, body })
+    }).then(r => r.json())
+    // 先查 thread，再查 thread 里的 runs
+    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
       .then(async (threads: Array<{ thread_id: string; metadata?: Record<string, unknown> }>) => {
         if (!Array.isArray(threads) || !threads.length) {
           setData({ total_calls: 0, agents: [], timeline: [], artifacts: [], screenshots: [] })
@@ -251,8 +249,7 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
         // 查每个 thread 的 runs（最多取前 5 个 thread）
         const allRuns: Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }> = []
         await Promise.all(threads.slice(0, 5).map(async t => {
-          const r = await fetch(`${LGURL}/threads/${t.thread_id}/runs`, { headers: { 'x-api-key': LGKEY } })
-          const runs = await r.json() as Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }>
+          const runs = await lg(`/threads/${t.thread_id}/runs`) as Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }>
           if (Array.isArray(runs)) allRuns.push(...runs)
         }))
         // 按时间倒序
@@ -860,8 +857,11 @@ function OmtTab({ meta, runDays, tenantSlug }: {
   const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const LGURL = process.env.NEXT_PUBLIC_LANGGRAPH_URL ?? 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
-    const LGKEY = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
+    const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, body })
+    }).then(r => r.json())
     const agentNames: Record<string, string> = {
       '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
       'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
@@ -869,18 +869,12 @@ function OmtTab({ meta, runDays, tenantSlug }: {
       '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
       'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
     }
-    fetch(`${LGURL}/threads/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': LGKEY },
-      body: JSON.stringify({ metadata: { tenant_slug: tenantSlug }, limit: 20 })
-    })
-      .then(r => r.json())
+    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
       .then(async (threads: Array<{ thread_id: string }>) => {
         if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [] }); return }
         const allRuns: Array<{ assistant_id: string }> = []
         await Promise.all(threads.slice(0, 5).map(async t => {
-          const r = await fetch(`${LGURL}/threads/${t.thread_id}/runs`, { headers: { 'x-api-key': LGKEY } })
-          const runs = await r.json() as Array<{ assistant_id: string }>
+          const runs = await lg(`/threads/${t.thread_id}/runs`) as Array<{ assistant_id: string }>
           if (Array.isArray(runs)) allRuns.push(...runs)
         }))
         setTraceStats({
