@@ -72,7 +72,7 @@ function Pending() {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface MilestoneTask { name: string; done: boolean; owner: string; status?: 'done' | 'in_progress' | 'blocked' | 'todo' }
+interface MilestoneTask { name: string; done: boolean; owner: string; status?: 'done' | 'running' | 'in_progress' | 'blocked' | 'todo' | 'triage' | 'pending' }
 interface MilestoneData {
   id: string
   order: number
