@@ -175,8 +175,6 @@ export interface LiveClientProps {
   tenantSlug: string
   apiKeyCount: number
   runDays: number
-  overallProgress: number
-  currentProgress: number
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -831,14 +829,15 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
+function OmtTab({ meta, runDays, tenantSlug }: {
   meta: TenantMetadata
   runDays: number
-  overallProgress: number
   tenantSlug: string
 }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
+  // 进度从 meta.milestones 实时计算，随 Supabase Realtime 推送自动更新
+  const overallProgress = Math.round((doneMilestones / Math.max(milestones.length, 1)) * 100)
   const inProgressMilestone = meta.current_milestone
   const currentM = milestones.find(m => m.id === inProgressMilestone)
 
@@ -1241,7 +1240,7 @@ function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
-export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
+export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays }: LiveClientProps) {
   const posthog = usePostHog()
   const [meta, setMeta] = useState<TenantMetadata>(initialMeta)
 
@@ -1318,7 +1317,7 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
         </TabsContent>
 
         <TabsContent value="omt">
-          <OmtTab meta={meta} runDays={runDays} overallProgress={overallProgress} tenantSlug={tenantSlug} />
+          <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} />
         </TabsContent>
 
         <TabsContent value="trace">

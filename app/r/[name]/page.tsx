@@ -191,8 +191,6 @@ export default async function LiveReportPage({
         tenantSlug={tenant.slug}
         apiKeyCount={apiKeyCount ?? 0}
         runDays={runDays}
-        overallProgress={overallProgress}
-        currentProgress={currentProgress}
       />
       </main>
     </>  
