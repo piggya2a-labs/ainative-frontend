@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { usePostHog } from 'posthog-js/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SubmitMcpDialog } from '@/components/submit-mcp-dialog'
 import { AgentCard, type AgentRecord } from '@/components/agent-card'
 import { Plus, Search, X } from 'lucide-react'
@@ -16,6 +17,27 @@ interface Props {
   groupLabel: string
   emptyState: string
   addButton: string
+}
+
+// 分类 tab 定义
+const TABS = [
+  { value: 'all',     label: '全部' },
+  { value: 'mcp',     label: 'MCP' },
+  { value: 'openapi', label: 'OpenAPI' },
+  { value: 'native',  label: 'Native' },
+  { value: 'browser', label: 'Browser' },
+] as const
+
+type TabValue = typeof TABS[number]['value']
+
+function getTabForAgent(connector_type: string | null): TabValue {
+  switch (connector_type) {
+    case 'mcp':     return 'mcp'
+    case 'openapi': return 'openapi'
+    case 'native':  return 'native'
+    case 'browser': return 'browser'
+    default:        return 'mcp'   // a2a / webhook / cli → 归入 mcp
+  }
 }
 
 function toAgentRecord(agent: MarketplaceAgentItem, isConnected: boolean): AgentRecord {
@@ -49,11 +71,11 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [connectedMap, setConnectedMap] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<TabValue>('all')
 
   const fetchConnected = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-    // 连接器从 tenants.metadata.connectors 读（tenant_connectors 表已删）
     const { data: tenantRow } = await supabase
       .from('tenants')
       .select('metadata')
@@ -127,57 +149,102 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
-      // 断开连接：通过 api-connector-register Edge Function 处理（将状态改为 disconnected）
-      // tenant_connectors 表已删，直接从本地 map 移除
       setConnectedMap((prev) => { const next = { ...prev }; delete next[record.id]; return next })
       posthog?.capture('marketplace_agent_disconnect_success', { agent_id: record.id })
     } catch {}
     finally { setDisconnecting(null) }
   }
 
+  // 先按 tab 过滤，再按搜索词过滤
   const filteredAgents = useMemo(() => {
-    if (!query.trim()) return agents
-    const q = query.toLowerCase()
-    return agents.filter((a) => {
-      const skills = (Array.isArray(a.skills) ? a.skills : []) as AgentSkill[]
-      return a.name.toLowerCase().includes(q) || (a.description ?? '').toLowerCase().includes(q) ||
-        (a.provider ?? '').toLowerCase().includes(q) ||
-        skills.some((s) => s.id.toLowerCase().includes(q) || (s.description ?? '').toLowerCase().includes(q))
-    })
-  }, [agents, query])
+    let result = agents
+    // tab 过滤
+    if (activeTab !== 'all') {
+      result = result.filter(a => getTabForAgent(a.connector_type) === activeTab)
+    }
+    // 搜索词过滤
+    if (query.trim()) {
+      const q = query.toLowerCase()
+      result = result.filter((a) => {
+        const skills = (Array.isArray(a.skills) ? a.skills : []) as AgentSkill[]
+        return a.name.toLowerCase().includes(q) ||
+          (a.description ?? '').toLowerCase().includes(q) ||
+          (a.provider ?? '').toLowerCase().includes(q) ||
+          skills.some((s) => s.id.toLowerCase().includes(q) || (s.description ?? '').toLowerCase().includes(q))
+      })
+    }
+    return result
+  }, [agents, query, activeTab])
+
+  // 各 tab 的 agent 数量
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: agents.length }
+    for (const tab of TABS.slice(1)) {
+      counts[tab.value] = agents.filter(a => getTabForAgent(a.connector_type) === tab.value).length
+    }
+    return counts
+  }, [agents])
 
   const totalSkills = agents.reduce((sum, a) => sum + (Array.isArray(a.skills) ? a.skills.length : 0), 0)
 
   return (
     <>
-      {/* 搜索 + 添加 */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="relative flex-1">
+      {/* ── 搜索 + 添加 ── */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input placeholder="搜索 Agent、工具名、描述…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 pr-9 h-9 text-sm" />
+          <Input
+            placeholder="搜索 Agent 名称、工具、描述…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9 pr-9 h-9 text-sm"
+          />
           {query && (
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setQuery('')}>
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setQuery('')}
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-        <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={() => { posthog?.capture('marketplace_submit_mcp_open'); setSubmitOpen(true) }}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 shrink-0"
+          onClick={() => { posthog?.capture('marketplace_submit_mcp_open'); setSubmitOpen(true) }}
+        >
           <Plus className="w-3.5 h-3.5" />{addButton}
         </Button>
       </div>
 
-      {/* 分组标题 */}
-      {filteredAgents.length > 0 && (
-        <div className="flex items-center gap-3 mb-5">
-          <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground">{groupLabel}</h2>
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground font-mono">{filteredAgents.length} agents · {totalSkills} tools</span>
-        </div>
-      )}
+      {/* ── 分类 Tabs ── */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="mb-6">
+        <TabsList variant="line" className="h-9 w-full justify-start gap-0 rounded-none border-b border-border px-0">
+          {TABS.map(tab => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="px-4 h-9 text-sm font-medium gap-2"
+            >
+              {tab.label}
+              {tabCounts[tab.value] > 0 && (
+                <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                  {tabCounts[tab.value]}
+                </span>
+              )}
+            </TabsTrigger>
+          ))}
+          {/* 右侧统计 */}
+          <span className="ml-auto flex items-center text-xs text-muted-foreground font-mono pr-1 self-center">
+            {agents.length} agents · {totalSkills.toLocaleString()} tools
+          </span>
+        </TabsList>
+      </Tabs>
 
-      {/* 空状态 */}
+      {/* ── 空状态 ── */}
       {agents.length === 0 && (
-        <div className="text-center py-20">
+        <div className="text-center py-24">
           <p className="text-sm text-muted-foreground font-mono mb-4">{emptyState}</p>
           <Button variant="outline" onClick={() => { posthog?.capture('marketplace_submit_mcp_open', { source: 'empty_state' }); setSubmitOpen(true) }}>
             <Plus className="w-3.5 h-3.5 mr-2" />{addButton}
@@ -186,15 +253,21 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
       )}
 
       {agents.length > 0 && filteredAgents.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-sm text-muted-foreground">没有找到匹配 &ldquo;{query}&rdquo; 的 Agent 或工具</p>
-          <button className="text-xs text-muted-foreground underline mt-2" onClick={() => setQuery('')}>清除搜索</button>
+        <div className="text-center py-24">
+          <p className="text-sm text-muted-foreground mb-2">
+            {query ? `没有找到匹配 "${query}" 的 Agent` : `该分类暂无 Agent`}
+          </p>
+          {query && (
+            <button className="text-xs text-muted-foreground underline" onClick={() => setQuery('')}>
+              清除搜索
+            </button>
+          )}
         </div>
       )}
 
-      {/* Agent 卡片网格 —— 统一 AgentCard */}
+      {/* ── Agent 卡片网格 ── */}
       {filteredAgents.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAgents.map((agent) => (
             <AgentCard
               key={agent.id}

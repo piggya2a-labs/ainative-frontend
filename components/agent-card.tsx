@@ -156,9 +156,17 @@ function isActive(agent: AgentRecord) {
 
 function StatusBadge({ agent }: { agent: AgentRecord }) {
   const active = isActive(agent)
-  const label = agent.type === 'agent'
-    ? (active ? '在线' : '待机')
-    : (active ? '已连接' : '未连接')
+  // 内部 agent 保留「在线/待机」badge；外部 marketplace agent：已连接显示绿点，未连接不显示任何东西
+  if (agent.type !== 'agent' && !active) return null
+  if (agent.type !== 'agent' && active) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-medium text-[oklch(0.55_0.15_145)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] shrink-0" />
+        已连接
+      </span>
+    )
+  }
+  const label = active ? '在线' : '待机'
   return (
     <Badge
       variant="outline"
@@ -206,87 +214,53 @@ export function AgentCard({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Card className="hover:ring-foreground/20 transition-all cursor-default h-full">
-        <CardHeader>
-          {/* Title + status */}
+      <Card className="hover:ring-1 hover:ring-foreground/20 transition-all cursor-default flex flex-col h-[148px]">
+        <CardHeader className="flex-1 pb-2">
+          {/* Icon + 名字 + 已连接状态 */}
           <div className="flex items-start gap-2">
             <AgentIcon
               name={agent.name}
               iconUrl={agent.icon_url}
               mcpUrl={agent.mcp_url}
               url={agent.url}
-              size={20}
+              size={18}
               className="mt-0.5 shrink-0"
             />
             <DialogTrigger
-              render={<button className="font-heading text-base leading-snug font-medium cursor-pointer hover:underline underline-offset-2 text-left" />}
+              render={<button className="font-heading text-sm leading-snug font-medium cursor-pointer hover:underline underline-offset-2 text-left flex-1 min-w-0" />}
             >
-              {agent.name}
+              <span className="line-clamp-1">{agent.name}</span>
             </DialogTrigger>
-            <CardAction>
+            <CardAction className="shrink-0">
               <StatusBadge agent={agent} />
             </CardAction>
           </div>
-          <CardDescription className="line-clamp-2 text-xs leading-relaxed">
-            {agent.description}
+          {/* 描述：固定 2 行 */}
+          <CardDescription className="line-clamp-2 text-xs leading-relaxed mt-1.5">
+            {agent.description ?? '暂无描述'}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="flex flex-col gap-2">
-          {/* Protocol badges */}
-          {interfaces.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {interfaces.slice(0, 2).map((iface, i) => (
-                <Badge
-                  key={i}
-                  variant="outline"
-                  className={`text-[10px] font-mono ${protocolCls(iface.protocol)}`}
-                >
-                  {iface.protocol}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Skill pills */}
+        <CardFooter className="flex items-center gap-2 pt-0 mt-auto">
+          {/* 协议类型 badge（单个，简洁） */}
+          <Badge variant="secondary" className="text-[10px] font-mono shrink-0">
+            {agent.connector_type ?? typeLabel}
+          </Badge>
+          {/* 工具数量 */}
           {skills.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {skills.slice(0, 3).map((s) => (
-                <Badge key={s.id} variant="outline" className="text-[10px] font-mono">
-                  {s.name ?? s.id}
-                </Badge>
-              ))}
-              {skills.length > 3 && (
-                <span className="text-[10px] text-muted-foreground">+{skills.length - 3}</span>
-              )}
-            </div>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {skills.length} tools
+            </span>
           )}
-        </CardContent>
-
-        <CardFooter className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-[10px]">{typeLabel}</Badge>
-          {/* SEO: link to detail page for marketplace agents */}
+          {/* SEO 详情链接 */}
           {!agent.langsmith_handle && (
             <Link
               href={`/marketplace/${agent.id}`}
-              className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors"
+              className="ml-auto text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
               详情 →
             </Link>
-          )}
-          {timestamp && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={<span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground font-mono cursor-default" />}
-                >
-                  <Clock className="w-2.5 h-2.5" />
-                  {relativeTime(timestamp)}
-                </TooltipTrigger>
-                <TooltipContent>{formatDate(timestamp)}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           )}
         </CardFooter>
       </Card>
