@@ -85,6 +85,13 @@ interface MilestoneData {
   tasks_done: number
   owner: string
   tasks?: MilestoneTask[]
+  // 调度字段（dispatcher 写入）
+  assignee?: string          // e.g. "@Lumen"
+  run_id?: string            // LangGraph run_id
+  thread_id?: string         // LangGraph thread_id
+  blocked_reason?: string    // 阻塞原因
+  failure_count?: number     // 失败次数
+  dispatched_at?: string     // 派发时间
 }
 interface RiskItem {
   risk: string
@@ -642,8 +649,9 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
                   <TableHead className="w-[80px] text-xs">阶段</TableHead>
                   <TableHead className="text-xs">名称</TableHead>
                   <TableHead className="text-xs">目标日期</TableHead>
-                  <TableHead className="text-xs">Owner</TableHead>
+                  <TableHead className="text-xs">执行 Agent</TableHead>
                   <TableHead className="text-xs">状态</TableHead>
+                  <TableHead className="text-xs">Run ID</TableHead>
                   <TableHead className="text-xs">双方签认</TableHead>
                 </TableRow>
               </TableHeader>
@@ -664,7 +672,11 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
                         <TableCell className="text-sm font-mono text-muted-foreground">
                           {m.completed_at ?? m.target_date ?? '—'}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{m.owner}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {m.assignee
+                            ? <Badge variant="secondary" className="text-xs font-mono">{m.assignee}</Badge>
+                            : <span className="text-muted-foreground/40">—</span>}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -673,6 +685,14 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
                           >
                             {milestoneStatusLabel(m.status)}
                           </Badge>
+                          {m.blocked_reason && (
+                            <p className="text-xs text-red-500 mt-1 max-w-[160px] truncate" title={m.blocked_reason}>⚠ {m.blocked_reason}</p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {m.run_id
+                            ? <a href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${m.run_id}`} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">{m.run_id.slice(0, 8)}…</a>
+                            : <span className="text-muted-foreground/40">—</span>}
                         </TableCell>
                         <TableCell>
                           {signed
@@ -851,6 +871,18 @@ function OmtTab({ meta, runDays, tenantSlug }: {
   const overallProgress = Math.round((doneMilestones / Math.max(milestones.length, 1)) * 100)
   const inProgressMilestone = meta.current_milestone
   const currentM = milestones.find(m => m.id === inProgressMilestone)
+
+  // Agent 注册表
+  const [agentRegistry, setAgentRegistry] = useState<Array<{ id: string; name: string; langsmith_handle: string | null; enabled: boolean; url?: string; description?: string }> | null>(null)
+  useEffect(() => {
+    fetch('/api/agent-registry').then(r => r.json()).then(d => setAgentRegistry(d.agents ?? [])).catch(() => {})
+  }, [])
+
+  // 调度日志
+  const [dispatcherLog, setDispatcherLog] = useState<Array<{ runid: number; status: string; start_time: string; end_time: string; return_message: string }> | null>(null)
+  useEffect(() => {
+    fetch('/api/dispatcher-log').then(r => r.json()).then(d => setDispatcherLog(d.logs ?? [])).catch(() => {})
+  }, [])
 
   // 拉取 LangGraph trace 数据，用于填充总览数字
   const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
@@ -1118,6 +1150,27 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                         </Badge>
                       </div>
                     </div>
+                    {/* 执行 Agent + run_id + 派发时间 */}
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                      {m.assignee && (
+                        <Badge variant="secondary" className="text-xs font-mono">{m.assignee}</Badge>
+                      )}
+                      {m.run_id && (
+                        <a
+                          href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${m.run_id}`}
+                          target="_blank" rel="noreferrer"
+                          className="text-xs font-mono text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+                        >
+                          run:{m.run_id.slice(0, 8)}…
+                        </a>
+                      )}
+                      {m.dispatched_at && (
+                        <span className="text-xs text-muted-foreground/60">派发 {m.dispatched_at.slice(0, 16).replace('T', ' ')}</span>
+                      )}
+                      {(m.failure_count ?? 0) > 0 && (
+                        <Badge variant="destructive" className="text-xs">失败 {m.failure_count} 次</Badge>
+                      )}
+                    </div>
                     <div className="mt-2 space-y-1">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>进度</span>
@@ -1137,7 +1190,7 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                         />
                       </div>
                     </div>
-                  {m.status === 'blocked' && m.blocked_reason && (
+                  {m.blocked_reason && (
                     <div className="px-4 pb-2">
                       <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 rounded px-2 py-1">
                         ⚠️ {m.blocked_reason}
@@ -1265,6 +1318,96 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                 <div className="py-2 text-sm text-muted-foreground/40 italic">暂无更新日志</div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* Agent 注册表 */}
+      <Section icon={Users} title="Agent 注册表" subtitle="当前系统注册的核心 Agent，来自 agent_registry 表">
+        <Card>
+          <CardContent className="pt-4">
+            {agentRegistry === null ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+            ) : agentRegistry.length === 0 ? (
+              <div className="text-sm text-muted-foreground/40 italic">暂无已注册的系统 Agent</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Agent</TableHead>
+                    <TableHead className="text-xs">描述</TableHead>
+                    <TableHead className="text-xs">LangSmith Handle</TableHead>
+                    <TableHead className="text-xs">状态</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {agentRegistry.map(agent => (
+                    <TableRow key={agent.id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{agent.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{agent.id}</div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px]">{agent.description ?? '—'}</TableCell>
+                      <TableCell>
+                        {agent.langsmith_handle
+                          ? <Badge variant="outline" className="text-xs font-mono">{agent.langsmith_handle}</Badge>
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={agent.enabled ? 'default' : 'secondary'} className="text-xs">
+                          {agent.enabled ? '已启用' : '已禁用'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </Section>
+
+      {/* 调度日志 */}
+      <Section icon={Terminal} title="调度日志" subtitle="pg_cron 每 5 分钟跑一次，最近 10 条记录">
+        <Card>
+          <CardContent className="pt-4">
+            {dispatcherLog === null ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+            ) : dispatcherLog.length === 0 ? (
+              <div className="text-sm text-muted-foreground/40 italic">暂无调度记录</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">开始时间</TableHead>
+                    <TableHead className="text-xs">耗时</TableHead>
+                    <TableHead className="text-xs">状态</TableHead>
+                    <TableHead className="text-xs">返回</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dispatcherLog.map(log => {
+                    const ms = log.end_time && log.start_time
+                      ? Math.round((new Date(log.end_time).getTime() - new Date(log.start_time).getTime()))
+                      : null
+                    return (
+                      <TableRow key={log.runid}>
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {log.start_time ? new Date(log.start_time).toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' }).slice(0, 16) : '—'}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ms !== null ? `${ms}ms` : '—'}</TableCell>
+                        <TableCell>
+                          <Badge variant={log.status === 'succeeded' ? 'default' : 'destructive'} className="text-xs">
+                            {log.status === 'succeeded' ? '成功' : log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{log.return_message ?? '—'}</TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </Section>
