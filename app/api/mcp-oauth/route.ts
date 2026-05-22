@@ -3,6 +3,9 @@
  * Called by the /mcp-auth page after user authenticates.
  * Generates a one-time auth code, stores it in mcp_oauth_codes,
  * then redirects back to the client's redirect_uri with the code.
+ *
+ * API key strategy: stored directly in tenants.api_key (single-key design).
+ * If the tenant already has an api_key, reuse it. Otherwise generate a new one.
  */
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,7 +18,7 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { supabase_access_token, redirect_uri, client_id, state, code_challenge } = body
+    const { supabase_access_token, redirect_uri, client_id, state } = body
 
     if (!supabase_access_token || !redirect_uri) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -31,10 +34,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
-    // Get tenant_id from tenants table
+    // Get tenant and existing api_key
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('id')
+      .select('id, api_key')
       .eq('auth_user_id', user.id)
       .maybeSingle()
 
@@ -42,39 +45,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    // Get or create an API key for this tenant
-    const { data: existingKeys } = await supabase
-      .from('tenant_api_keys')
-      .select('key_prefix, id')
-      .eq('tenant_id', tenant.id)
-      .is('revoked_at', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    let apiKey: string
-
-    if (existingKeys && existingKeys.length > 0) {
-      // We can't recover the raw key from the hash, so we need to create a new one
-      // for OAuth flow. Generate a fresh key.
+    // Reuse existing api_key or generate a new one
+    let apiKey: string = tenant.api_key ?? ''
+    if (!apiKey || !apiKey.startsWith('onit_')) {
       apiKey = `onit_${generateRandomHex(32)}`
-      const keyHash = await sha256hex(apiKey)
-      const keyPrefix = apiKey.slice(0, 12)
-      await supabase.from('tenant_api_keys').insert({
-        tenant_id: tenant.id,
-        key_hash: keyHash,
-        key_prefix: keyPrefix,
-        name: `MCP OAuth (${new Date().toISOString().slice(0, 10)})`,
-      })
-    } else {
-      apiKey = `onit_${generateRandomHex(32)}`
-      const keyHash = await sha256hex(apiKey)
-      const keyPrefix = apiKey.slice(0, 12)
-      await supabase.from('tenant_api_keys').insert({
-        tenant_id: tenant.id,
-        key_hash: keyHash,
-        key_prefix: keyPrefix,
-        name: 'MCP OAuth',
-      })
+      await supabase
+        .from('tenants')
+        .update({ api_key: apiKey })
+        .eq('id', tenant.id)
     }
 
     // Generate a one-time auth code
@@ -103,10 +81,4 @@ function generateRandomHex(bytes: number): string {
   const arr = new Uint8Array(bytes)
   crypto.getRandomValues(arr)
   return Array.from(arr).map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-async function sha256hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input)
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
