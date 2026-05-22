@@ -105,7 +105,6 @@ export async function DELETE(req: NextRequest) {
     .update({
       composio_token: null,
       composio_connected_at: null,
-      connected_agents: [],
     })
     .eq('user_id', user.id)
 

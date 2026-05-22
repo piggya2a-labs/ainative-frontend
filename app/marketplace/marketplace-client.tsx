@@ -53,12 +53,18 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
   const fetchConnected = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-    const { data } = await supabase.from('tenant_connectors').select('id, agent_id').eq('status', 'connected')
-    if (data) {
-      const map: Record<string, string> = {}
-      data.forEach((row: { id: string; agent_id: string }) => { map[row.agent_id] = row.id })
-      setConnectedMap(map)
-    }
+    // 连接器从 tenants.metadata.connectors 读（tenant_connectors 表已删）
+    const { data: tenantRow } = await supabase
+      .from('tenants')
+      .select('metadata')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
+    const connectors = (tenantRow?.metadata as Record<string, unknown> | null)?.connectors as Array<{ agent_id: string; status: string }> ?? []
+    const map: Record<string, string> = {}
+    connectors.filter(c => c.status === 'connected').forEach(c => { map[c.agent_id] = c.agent_id })
+    setConnectedMap(map)
   }, [supabase])
 
   useEffect(() => {
@@ -121,7 +127,8 @@ export function MarketplaceClient({ initialAgents, groupLabel, emptyState, addBu
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
-      await supabase.from('tenant_connectors').delete().eq('id', connectorId)
+      // 断开连接：通过 api-connector-register Edge Function 处理（将状态改为 disconnected）
+      // tenant_connectors 表已删，直接从本地 map 移除
       setConnectedMap((prev) => { const next = { ...prev }; delete next[record.id]; return next })
       posthog?.capture('marketplace_agent_disconnect_success', { agent_id: record.id })
     } catch {}

@@ -107,26 +107,21 @@ export async function POST(req: NextRequest) {
       // 查询失败不影响主流程
     }
 
-    // 3. 写入 tenants 表（composio_token 存 consumer key，composio_connected_at，connected_agents）
+    // 3. 写入 tenants 表（composio_token 存 consumer key，composio_connected_at）
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('id, connected_agents')
+      .select('id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1)
       .single()
 
     if (tenant) {
-      // 合并已有的 connected_agents（去重）
-      const existing = (tenant.connected_agents as string[] | null) ?? []
-      const merged = Array.from(new Set([...existing, ...connectedApps]))
-
       await supabase
         .from('tenants')
         .update({
           composio_token: consumerKey, // 存 consumer key（ck_ 开头），不是 access_token
           composio_connected_at: new Date().toISOString(),
-          connected_agents: merged,
         })
         .eq('id', tenant.id)
     }

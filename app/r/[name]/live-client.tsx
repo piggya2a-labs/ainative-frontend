@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase-client'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
@@ -1224,8 +1225,28 @@ function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
-export function LiveClient({ meta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
+export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays, overallProgress, currentProgress }: LiveClientProps) {
   const posthog = usePostHog()
+  const [meta, setMeta] = useState<TenantMetadata>(initialMeta)
+
+  // ─── Supabase Realtime: 订阅 tenants broadcast，状态变化毫秒级推送 ─────────
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`tenant:${tenantId}`)
+      .on(
+        'broadcast',
+        { event: 'UPDATE' },
+        (payload: { new?: { metadata?: TenantMetadata; status?: string } }) => {
+          if (payload.new?.metadata) {
+            setMeta(payload.new.metadata as TenantMetadata)
+          }
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [tenantId])
+  // ─────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     posthog?.capture('live_board_view', {

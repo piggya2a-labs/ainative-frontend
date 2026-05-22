@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   // ⚠️ 字段说明：connected_agents 由 Composio 查询结果异步写入，不用为渲染来源（渲染用实时 Composio 查询结果）。
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
+    .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           .from('tenants')
           .update({ metadata: defaultMeta })
           .eq('id', t.id)
-          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, connected_agents, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at, zapier_mcp_url')
+          .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
           .single()
         if (updateError) {
           console.error('[MCSP init] update error:', JSON.stringify(updateError))
@@ -90,72 +90,41 @@ export default async function DashboardPage() {
     ? [{ key_prefix: apiKeyRecord.slice(0, 12), created_at: apiKeyCreatedAt }]
     : []
 
-  // 用户在 Marketplace 已连接的外部 MCP（从 tenant_connectors 读取）
-  const { data: mcpConnectors } = tenant
-    ? await supabase
-        .from('tenant_connectors')
-        .select('id, agent_id, status, metadata, created_at, discovered_tools')
-        .eq('tenant_id', tenant.id)
-        .eq('status', 'connected')
-        .order('created_at', { ascending: false })
-    : { data: [] }
-
-  // 拿到 agent_registry 里对应的名字和描述
-  const mcpAgentIds = (mcpConnectors ?? []).map(c => c.agent_id).filter(Boolean)
+  // 连接器从 tenants.metadata.connectors 读（tenant_connectors 表已删）
+  type ConnectorEntry = { agent_id: string; status: string; metadata?: Record<string, unknown>; connected_at?: string | null }
+  const tenantConnectors: ConnectorEntry[] = ((tenant as Record<string, unknown> | null)?.metadata as Record<string, unknown> | null)?.connectors as ConnectorEntry[] ?? []
+  const mcpConnectors = tenantConnectors.filter(c => c.status === 'connected')
+  const mcpAgentIds = mcpConnectors.map(c => c.agent_id).filter(Boolean)
   const { data: mcpAgentCards } = mcpAgentIds.length > 0
     ? await supabase
         .from('agent_registry')
         .select('id, name, description, skills, icon_url, mcp_url, url')
         .in('id', mcpAgentIds)
     : { data: [] }
-
-  // 合并成前端需要的格式
-  const mcpTools = (mcpConnectors ?? []).map(c => {
+  const mcpTools = mcpConnectors.map(c => {
     const card = (mcpAgentCards ?? []).find(a => a.id === c.agent_id)
     return {
-      id: c.id,
+      id: c.agent_id,
       agent_id: c.agent_id,
       name: card?.name ?? c.agent_id,
       description: card?.description ?? '',
       skills: (card?.skills ?? []) as Array<{ id: string; name: string; description: string }>,
-      connected_at: c.created_at,
+      connected_at: c.connected_at ?? null,
       icon_url: card?.icon_url ?? null,
       mcp_url: card?.mcp_url ?? null,
       url: card?.url ?? null,
     }
   })
 
-  // GitHub 集成状态（从 github_installation_bindings 读）
-  const { data: githubBindings } = tenant
-    ? await supabase
-        .from('github_installation_bindings')
-        .select('id, repository_full_name, status, created_at')
-        .eq('tenant_id', tenant.id)
-        .eq('status', 'active')
-    : { data: [] }
-
-  // Channel connectors（渠道连接状态，用于 Integrations 区块）
-  const { data: connectors } = tenant
-    ? await supabase
-        .from('tenant_connectors')
-        .select('id, agent_id, status, metadata, created_at')
-        .eq('tenant_id', tenant.id)
-    : { data: [] }
-
-  // Recent audit logs（最近 10 条系统活动）
-  const { data: auditLogs } = await supabase
-    .from('audit_logs')
-    .select('id, action, resource_type, status, metadata, created_at')
-    .order('created_at', { ascending: false })
-    .limit(10)
+  // GitHub bindings 和 audit_logs 表已删，用空数组占位
+  const githubBindings: unknown[] = []
+  const connectors = tenantConnectors
+  const auditLogs: unknown[] = []
 
   // ─── Composio 连接状态（从 tenants 表读，单一来源）──────────────────────────────
   const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
   const composioConnected = !!composioToken
 
-  // ─── Zapier 连接状态（从 tenants.zapier_mcp_url 读）──────────────────────────────
-  const zapierMcpUrl = (tenant as Record<string, unknown> | null)?.zapier_mcp_url as string | null
-  const zapierConnected = !!zapierMcpUrl
 
   // ─── COMPOSIO 查询说明（防回退注释，勿删）──────────────────────────────────────
   // 正确做法：用平台 admin key（COMPOSIO_ADMIN_KEY）+ user_ids[]=user.id 查 v3.1 端点
@@ -198,14 +167,7 @@ export default async function DashboardPage() {
           }
         })
 
-        // 同步更新 tenants.connected_agents（后台静默写入，不阻塞渲染）
-        if (tenant) {
-          const appNames = items.map(i => (i.toolkit?.slug ?? '').toLowerCase()).filter(Boolean)
-          void adminClient
-            .from('tenants')
-            .update({ connected_agents: appNames })
-            .eq('id', tenant.id)
-        }
+        // connected_agents 字段已删，不再同步写入
       }
     } catch {
       // 查询失败不影响页面加载
@@ -234,7 +196,6 @@ export default async function DashboardPage() {
         auditLogs={auditLogs ?? []}
         composioConnected={composioConnected}
         composioToolCount={composioToolCount}
-        zapierConnected={zapierConnected}
         agentCount={agentCount ?? 0}
         allAgents={allAgents ?? []}
         />
