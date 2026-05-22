@@ -18,11 +18,12 @@ async function getUser() {
   return user
 }
 
-// slug 生成：name 转小写 + 去特殊字符 + 8位随机 hex
+// slug 生成：name 转小写 + 去所有非 a-z0-9 字符（含中文）+ 8位随机 hex
+// ⚠️ 数据库约束 tenants_slug_format_check 只允许 [a-z0-9-]，中文必须去掉
 function buildSlug(name: string): string {
   const base = name
     .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-')
+    .replace(/[^a-z0-9]/g, '-')  // 中文、空格、特殊字符全部转 -
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 32) || 'project'
