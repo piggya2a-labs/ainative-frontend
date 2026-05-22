@@ -49,17 +49,18 @@ export default async function DashboardPage() {
   // ⚠️ 防回退：telegram_chat_id/telegram_username/telegram_bound_at 在 tenants 表，不要用 telegram_bindings 表（已删）
   // ⚠️ 字段说明：display_name 和 avatar_url 是预留字段，目前没有任何地方读取展示，不需要写入逻辑。
   // ⚠️ 字段说明：connected_agents 由 Composio 查询结果异步写入，不用为渲染来源（渲染用实时 Composio 查询结果）。
-  const { data: tenantsRaw } = await supabase
+  // ⚠️ 必须用 adminClient（service_role）查询，tenants 表 RLS 对 anon key 不开放 SELECT
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data: tenantsRaw } = await adminClient
     .from('tenants')
     .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, display_name, avatar_url, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   // ─── 自动初始化 MCSP metadata（对每个未初始化的 tenant 执行）──────────────
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
   const tenants = await Promise.all(
     (tenantsRaw ?? []).map(async (t) => {
       if (!(t.metadata as Record<string, unknown> | null)?.share_token) {
