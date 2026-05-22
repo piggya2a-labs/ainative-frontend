@@ -1,5 +1,6 @@
 'use client'
-
+import { Streamdown } from 'streamdown'
+import 'streamdown/styles.css'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -83,6 +84,16 @@ function Pending() {
   return <span className="text-sm text-muted-foreground/50 italic">待填写</span>
 }
 
+// ─── Markdown 渲染辅助（用于自由文本字段）────────────────────────────────────────
+function Md({ children, className }: { children?: string | null; className?: string }) {
+  if (!children) return null
+  return (
+    <div className={`text-sm [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mt-0.5 [&_img]:rounded-md [&_img]:max-w-full [&_img]:mt-2 [&_a]:text-onit-blue [&_a]:underline [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground ${className ?? ''}`}>
+      <Streamdown>{children}</Streamdown>
+    </div>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MilestoneTask { name: string; done: boolean; owner: string; status?: 'done' | 'running' | 'in_progress' | 'blocked' | 'todo' | 'triage' | 'pending' }
 interface MilestoneData {
@@ -140,6 +151,7 @@ interface TenantMetadata {
     evidence_count: number
     modules_filled: number
     agent_ratio?: number
+    notes?: string   // 自由 Markdown 区，@Lumen 随时追加
   }
   audit: {
     health: 'green' | 'yellow' | 'red'
@@ -157,7 +169,7 @@ interface TenantMetadata {
     client_lead: string
     telegram_handle?: string
   }
-  update_log: { date: string; author: string; note: string; type?: string }[]
+  update_log: { date: string; author: string; note: string; type?: string; evidence?: string[] }[]
 }
 // ─── Trace Types ─────────────────────────────────────────────────────────────
 interface TraceTimelineItem {
@@ -639,12 +651,12 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
             {mcsp.context && (
               <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
                 <span className="text-xs text-muted-foreground pt-0.5 font-medium">背景说明</span>
-                <span className="text-sm leading-relaxed">{mcsp.context}</span>
+                <Md>{mcsp.context}</Md>
               </div>
             )}
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">合作目标</span>
-              <span className="text-sm leading-relaxed">{mcsp.goal || <Pending />}</span>
+              {mcsp.goal ? <Md>{mcsp.goal}</Md> : <Pending />}
             </div>
           </CardContent>
         </Card>
@@ -659,12 +671,9 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
               <CardDescription className="text-xs">我们现在的处境</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {asIsLines.length > 0 ? asIsLines.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
-                  <span className="text-sm">{item}</span>
-                </div>
-              )) : <Pending />}
+              {mcsp.as_is
+                ? <Md>{typeof mcsp.as_is === 'string' ? mcsp.as_is : mcsp.as_is.join('\n')}</Md>
+                : <Pending />}
             </CardContent>
           </Card>
           <Card className="border-border">
@@ -673,12 +682,9 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
               <CardDescription className="text-xs">3 个月后我们希望庆祝什么</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {toBeLines.length > 0 ? toBeLines.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-xs font-mono text-muted-foreground mt-0.5">{i + 1}.</span>
-                  <span className="text-sm">{item}</span>
-                </div>
-              )) : <Pending />}
+              {mcsp.to_be
+                ? <Md>{typeof mcsp.to_be === 'string' ? mcsp.to_be : mcsp.to_be.join('\n')}</Md>
+                : <Pending />}
             </CardContent>
           </Card>
         </div>
@@ -939,6 +945,17 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
           </CardContent>
         </Card>
       </Section>
+
+      {/* mcsp.notes 自由 Markdown 区（@Lumen 随时追加）*/}
+      {mcsp.notes && (
+        <Section icon={FileText} title="Agent 笔记" subtitle="@Lumen 随时追加的分析、图表、总结——支持 Markdown 和图片">
+          <Card>
+            <CardContent className="pt-4">
+              <Md className="max-w-none">{mcsp.notes}</Md>
+            </CardContent>
+          </Card>
+        </Section>
+      )}
 
       {/* @Eva 审计结论 */}
       <Section icon={AlertTriangle} title="@Eva 审计结论" subtitle="M3 阶段由 @Eva 执行，结论实时更新">
@@ -1456,8 +1473,17 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
                       {log.type === 'milestone_done' ? '✅' : log.type === 'audit' ? '📊' : log.type === 'task_update' ? '🔧' : log.type === 'user_message' ? '💬' : '•'}
                     </span>
                     <div className="flex-1">
-                      <span className="text-sm">{log.note}</span>
-                      <span className="text-xs text-muted-foreground ml-2">— {log.author}</span>
+                      <Md>{log.note}</Md>
+                      <span className="text-xs text-muted-foreground">— {log.author}</span>
+                      {log.evidence && log.evidence.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {log.evidence.map((url, ei) => (
+                            <a key={ei} href={url} target="_blank" rel="noopener noreferrer">
+                              <img src={url} alt={`证据截图 ${ei + 1}`} className="rounded-md border border-border/50 w-full object-cover hover:opacity-90 transition-opacity" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
