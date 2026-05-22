@@ -11,12 +11,11 @@ export default function LoginPage() {
   const supabase = createClient()
   const posthog = usePostHog()
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login')
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     posthog?.capture('page_view', { page: 'login' })
@@ -26,30 +25,12 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setSuccess(null)
-
     posthog?.capture('auth_submit', { mode })
-
-    if (mode === 'reset') {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/dashboard`,
-      })
-      if (error) {
-        setError(error.message)
-      } else {
-        setSuccess('重置密码邮件已发送，请检查你的邮箱。')
-      }
-      setLoading(false)
-      return
-    }
 
     if (mode === 'signup') {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
       })
       if (error) {
         setError(error.message)
@@ -104,9 +85,8 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
 
-          {/* Tab 切换（只在 login/signup 时显示） */}
-          {mode !== 'reset' && (
-            <div className="flex border border-gray-200 rounded-md p-0.5 mb-5 bg-gray-50">
+          {/* Tab 切换 */}
+          <div className="flex border border-gray-200 rounded-md p-0.5 mb-5 bg-gray-50">
               <button
                 type="button"
                 onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
@@ -130,11 +110,9 @@ export default function LoginPage() {
                 注册
               </button>
             </div>
-          )}
 
-          {/* Google OAuth 按钮（login/signup 模式） */}
-          {mode !== 'reset' && (
-            <>
+          {/* Google OAuth 按钮 */}
+          <>
               <button
                 type="button"
                 onClick={handleGoogleLogin}
@@ -158,7 +136,6 @@ export default function LoginPage() {
                 </div>
               </div>
             </>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -175,21 +152,11 @@ export default function LoginPage() {
               />
             </div>
 
-            {mode !== 'reset' && (
-              <div>
+            <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-medium text-gray-700">
                     密码
                   </label>
-                  {mode === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => { setMode('reset'); setError(null); setSuccess(null) }}
-                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      忘记密码？
-                    </button>
-                  )}
                 </div>
                 <input
                   type="password"
@@ -204,17 +171,10 @@ export default function LoginPage() {
                   <p className="mt-1 text-xs text-gray-400">至少 6 位</p>
                 )}
               </div>
-            )}
 
             {error && (
               <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-xs text-red-600">{error}</p>
-              </div>
-            )}
-
-            {success && (
-              <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-xs text-green-600">{success}</p>
               </div>
             )}
 
@@ -223,24 +183,10 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading
-                ? '处理中...'
-                : mode === 'login'
-                ? '登录'
-                : mode === 'signup'
-                ? '注册'
-                : '发送重置邮件'}
+              {loading ? '处理中...' : mode === 'login' ? '登录' : '注册'}
             </button>
 
-            {mode === 'reset' && (
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
-                className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                ← 返回登录
-              </button>
-            )}
+
           </form>
         </div>
 
