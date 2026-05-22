@@ -157,6 +157,15 @@ interface TraceTimelineItem {
   root_run_name: string
   has_output: boolean
   error: string | null
+  // 量化指标（按需加载）
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+  llm_rounds?: number
+  tool_call_count?: number
+  tool_names?: string[]
+  duration_ms?: number
+  stats_loaded?: boolean
 }
 interface TraceArtifact {
   type: string
@@ -267,19 +276,37 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
           '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
           'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
         }
+        const timelineBase = allRuns.slice(0, 20).map(r => ({
+          id: r.run_id,
+          tool: agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8),
+          status: r.status,
+          start_time: r.created_at,
+          end_time: r.updated_at,
+          root_run_name: agentNames[r.assistant_id] ?? 'Agent',
+          has_output: r.status === 'success',
+          error: r.status === 'error' ? '执行失败' : null,
+          stats_loaded: false,
+        }))
+
+        // 并发拉取每个 run 的量化指标
+        const statsResults = await Promise.allSettled(
+          timelineBase.map(item =>
+            fetch(`/api/run-stats?run_id=${item.id}`).then(r => r.json())
+          )
+        )
+        const timeline: TraceTimelineItem[] = timelineBase.map((item, i) => {
+          const statsResult = statsResults[i]
+          if (statsResult.status === 'fulfilled' && !statsResult.value.error) {
+            const s = statsResult.value
+            return { ...item, ...s, stats_loaded: true }
+          }
+          return item
+        })
+
         const parsed: TraceData = {
           total_calls: allRuns.length,
           agents: [...new Set(allRuns.map(r => agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8)))],
-          timeline: allRuns.slice(0, 50).map(r => ({
-            id: r.run_id,
-            tool: agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8),
-            status: r.status,
-            start_time: r.created_at,
-            end_time: r.updated_at,
-            root_run_name: agentNames[r.assistant_id] ?? 'Agent',
-            has_output: r.status === 'success',
-            error: r.status === 'error' ? '执行失败' : null
-          })),
+          timeline,
           artifacts: [],
           screenshots: []
         }
@@ -335,10 +362,10 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
       {!loading && !error && data && (
         <>
           {/* 总览数字 */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">累计工具调用</p>
+                <p className="text-xs text-muted-foreground">累计 Run 次数</p>
                 <p className="text-2xl font-bold mt-1">{data.total_calls}</p>
                 <p className="text-xs text-muted-foreground mt-1">本项目全部 Agent</p>
               </CardContent>
@@ -348,6 +375,15 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
                 <p className="text-xs text-muted-foreground">参与 Agent</p>
                 <p className="text-2xl font-bold mt-1">{data.agents.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">{data.agents.join(' · ')}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">总 Token 消耗</p>
+                <p className="text-2xl font-bold mt-1">
+                  {data.timeline.reduce((sum, r) => sum + (r.total_tokens ?? 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">全部 run 累计</p>
               </CardContent>
             </Card>
             <Card>
@@ -383,12 +419,36 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
                               <span className="text-xs text-muted-foreground">有输出</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-xs text-muted-foreground/60 font-mono">
                               {new Date(item.start_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
                             <ChevronRight className="w-3 h-3 text-muted-foreground/30" />
                             <span className="text-xs text-muted-foreground/50">{item.root_run_name}</span>
+                            {item.stats_loaded && (
+                              <>
+                                <span className="text-xs text-muted-foreground/40">·</span>
+                                <span className="text-xs text-muted-foreground/60 font-mono">
+                                  {(item.total_tokens ?? 0).toLocaleString()} tokens
+                                </span>
+                                <span className="text-xs text-muted-foreground/40">·</span>
+                                <span className="text-xs text-muted-foreground/60">
+                                  {item.llm_rounds} 轮思考
+                                </span>
+                                <span className="text-xs text-muted-foreground/40">·</span>
+                                <span className="text-xs text-muted-foreground/60">
+                                  {item.tool_call_count} 次工具调用
+                                </span>
+                                {item.duration_ms && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    <span className="text-xs text-muted-foreground/60">
+                                      {(item.duration_ms / 1000).toFixed(1)}s
+                                    </span>
+                                  </>
+                                )}
+                              </>
+                            )}
                           </div>
                           {item.error && (
                             <p className="text-xs text-destructive mt-0.5 truncate">{item.error}</p>
