@@ -151,7 +151,6 @@ interface TenantMetadata {
     evidence_count: number
     modules_filled: number
     agent_ratio?: number
-    notes?: string   // 自由 Markdown 区，@Lumen 随时追加
   }
   audit: {
     health: 'green' | 'yellow' | 'red'
@@ -945,17 +944,6 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
           </CardContent>
         </Card>
       </Section>
-
-      {/* mcsp.notes 自由 Markdown 区（@Lumen 随时追加）*/}
-      {mcsp.notes && (
-        <Section icon={FileText} title="Agent 笔记" subtitle="@Lumen 随时追加的分析、图表、总结——支持 Markdown 和图片">
-          <Card>
-            <CardContent className="pt-4">
-              <Md className="max-w-none">{mcsp.notes}</Md>
-            </CardContent>
-          </Card>
-        </Section>
-      )}
 
       {/* @Eva 审计结论 */}
       <Section icon={AlertTriangle} title="@Eva 审计结论" subtitle="M3 阶段由 @Eva 执行，结论实时更新">
