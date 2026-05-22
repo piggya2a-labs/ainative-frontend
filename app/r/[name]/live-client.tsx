@@ -232,34 +232,52 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
 
   const fetchTrace = () => {
     setLoading(true)
-    // 直连 LangSmith API，按 tenant_slug metadata 过滤 runs
-    fetch('https://api.smith.langchain.com/api/v1/runs/query', {
+    // 查 LangGraph Platform threads，按 tenant_slug 或 tenant_slugs 过滤
+    const LGURL = process.env.NEXT_PUBLIC_LANGGRAPH_URL ?? 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
+    const LGKEY = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
+    // 先查 thread，再查 thread 里的 runs
+    fetch(`${LGURL}/threads/search`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
-      },
-      body: JSON.stringify({
-        filter: `and(eq(metadata_key, "tenant_slug"), eq(metadata_value, "${tenantSlug}"))`,
-        is_root: true,
-        limit: 50
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': LGKEY },
+      body: JSON.stringify({ metadata: { tenant_slug: tenantSlug }, limit: 20 })
     })
       .then(r => r.json())
-      .then(d => {
-        const runs: Array<{ id: string; name: string; status: string; start_time: string; end_time?: string; child_run_ids?: string[] }> = d.runs ?? []
+      .then(async (threads: Array<{ thread_id: string; metadata?: Record<string, unknown> }>) => {
+        if (!threads.length) {
+          setData({ total_calls: 0, agents: [], timeline: [], artifacts: [], screenshots: [] })
+          setLoading(false)
+          return
+        }
+        // 查每个 thread 的 runs（最多取前 5 个 thread）
+        const allRuns: Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }> = []
+        await Promise.all(threads.slice(0, 5).map(async t => {
+          const r = await fetch(`${LGURL}/threads/${t.thread_id}/runs`, {
+            headers: { 'x-api-key': LGKEY }
+          })
+          const runs = await r.json() as Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }>
+          if (Array.isArray(runs)) allRuns.push(...runs)
+        }))
+        // 按时间倒序
+        allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        const agentNames: Record<string, string> = {
+          '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
+          'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
+          '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
+          '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
+          'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
+        }
         const parsed: TraceData = {
-          total_calls: runs.reduce((acc, r) => acc + (r.child_run_ids?.length ?? 0), 0),
-          agents: [...new Set(runs.map(r => r.name))],
-          timeline: runs.map(r => ({
-            id: r.id,
-            tool: r.name,
+          total_calls: allRuns.length,
+          agents: [...new Set(allRuns.map(r => agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8)))],
+          timeline: allRuns.slice(0, 50).map(r => ({
+            id: r.run_id,
+            tool: agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8),
             status: r.status,
-            start_time: r.start_time,
-            end_time: r.end_time,
-            root_run_name: r.name,
-            has_output: true,
-            error: null
+            start_time: r.created_at,
+            end_time: r.updated_at,
+            root_run_name: agentNames[r.assistant_id] ?? 'Agent',
+            has_output: r.status === 'success',
+            error: r.status === 'error' ? '执行失败' : null
           })),
           artifacts: [],
           screenshots: []
@@ -840,29 +858,36 @@ function OmtTab({ meta, runDays, tenantSlug }: {
   const inProgressMilestone = meta.current_milestone
   const currentM = milestones.find(m => m.id === inProgressMilestone)
 
-  // 拉取 LangSmith trace 数据，用于填充总览数字
+  // 拉取 LangGraph trace 数据，用于填充总览数字
   const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // 直连 LangSmith API，按 tenant_slug metadata 过滤 runs
-    fetch('https://api.smith.langchain.com/api/v1/runs/query', {
+    const LGURL = process.env.NEXT_PUBLIC_LANGGRAPH_URL ?? 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
+    const LGKEY = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
+    const agentNames: Record<string, string> = {
+      '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
+      'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
+      '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
+      '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
+      'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
+    }
+    fetch(`${LGURL}/threads/search`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.NEXT_PUBLIC_LANGSMITH_API_KEY ?? ''
-      },
-      body: JSON.stringify({
-        filter: `and(eq(metadata_key, "tenant_slug"), eq(metadata_value, "${tenantSlug}"))`,
-        is_root: true,
-        limit: 50
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': LGKEY },
+      body: JSON.stringify({ metadata: { tenant_slug: tenantSlug }, limit: 20 })
     })
       .then(r => r.json())
-      .then(d => {
-        const runs: Array<{ name: string; child_run_ids?: string[] }> = d.runs ?? []
+      .then(async (threads: Array<{ thread_id: string }>) => {
+        if (!threads.length) { setTraceStats({ total_calls: 0, agents: [] }); return }
+        const allRuns: Array<{ assistant_id: string }> = []
+        await Promise.all(threads.slice(0, 5).map(async t => {
+          const r = await fetch(`${LGURL}/threads/${t.thread_id}/runs`, { headers: { 'x-api-key': LGKEY } })
+          const runs = await r.json() as Array<{ assistant_id: string }>
+          if (Array.isArray(runs)) allRuns.push(...runs)
+        }))
         setTraceStats({
-          total_calls: runs.reduce((acc, r) => acc + (r.child_run_ids?.length ?? 0), 0),
-          agents: [...new Set(runs.map(r => r.name))]
+          total_calls: allRuns.length,
+          agents: [...new Set(allRuns.map(r => agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8)))]
         })
       })
       .catch(() => {})
