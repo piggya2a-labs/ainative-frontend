@@ -5,7 +5,11 @@ const POSTHOG_API_KEY = process.env.POSTHOG_PERSONAL_API_KEY ?? ''
 const POSTHOG_PROJECT_ID = process.env.POSTHOG_PROJECT_ID ?? ''
 
 // 查询某个 tenant 的客户活跃度事件
-// 事件列表：live_board_view, marketplace_agent_connect_success, dashboard_telegram_cta_click, api_key_create
+// 事件名以实际 PostHog 埋点为准：
+//   live_board_view          → 客户访问 Live 看板（live-client useEffect 埋点）
+//   live_report_tab_switch   → 客户切换 Tab（有数据，作为「看板互动」备用）
+//   marketplace_agent_connect_click → 连接 Agent 点击
+//   api_key_create           → 创建 API Key
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tenantId = searchParams.get('tenant_id')
@@ -15,29 +19,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'PostHog not configured', events: {} }, { status: 200 })
   }
 
-  const events = [
-    'live_board_view',
-    'marketplace_agent_connect_success',
-    'dashboard_telegram_cta_click',
-    'api_key_create',
+  // 事件列表：[查询事件名, 返回 key]
+  const eventMap: [string, string][] = [
+    ['live_report_tab_switch',           'live_report_tab_switch'],   // 看板互动（有实际数据）
+    ['marketplace_agent_connect_click',  'marketplace_agent_connect_success'], // 连接 Agent
+    ['live_report_telegram_click',       'dashboard_telegram_cta_click'],      // Telegram 点击
+    ['api_key_create',                   'api_key_create'],           // 创建 API Key
   ]
 
   try {
     const counts: Record<string, number> = {}
 
-    await Promise.all(events.map(async (event) => {
-      const filter = tenantId
-        ? `properties.tenant_id="${tenantId}"`
-        : tenantSlug
-        ? `properties.tenant_slug="${tenantSlug}"`
-        : ''
+    await Promise.all(eventMap.map(async ([eventName, returnKey]) => {
+      // 优先用 tenant_id 过滤，其次 tenant_slug，都没有则全局计数
+      const filters: string[] = []
+      if (tenantId) filters.push(`properties.tenant_id = '${tenantId}'`)
+      else if (tenantSlug) filters.push(`properties.tenant_slug = '${tenantSlug}'`)
 
       const query = {
         query: {
           kind: 'EventsQuery',
           select: ['count()'],
-          event: event,
-          where: filter ? [filter] : [],
+          where: [`event = '${eventName}'`, ...filters],
           limit: 1,
         },
       }
@@ -53,9 +56,9 @@ export async function GET(req: NextRequest) {
 
       if (resp.ok) {
         const data = await resp.json()
-        counts[event] = data?.results?.[0]?.[0] ?? 0
+        counts[returnKey] = data?.results?.[0]?.[0] ?? 0
       } else {
-        counts[event] = -1 // -1 表示查询失败
+        counts[returnKey] = -1 // -1 表示查询失败
       }
     }))
 

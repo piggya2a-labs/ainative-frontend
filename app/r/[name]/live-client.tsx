@@ -1009,7 +1009,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
   }, [tenantId, tenantSlug])
 
   // 拉取 LangGraph trace 数据，用于填充总览数字
-  const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
+  const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[]; success_count: number; pass_rate: number | null } | null>(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
@@ -1020,15 +1020,19 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
     // agentName() 来自顶层 AGENT_NAMES 常量
     lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
       .then(async (threads: Array<{ thread_id: string }>) => {
-        if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [] }); return }
-        const allRuns: Array<{ assistant_id: string }> = []
+        if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }); return }
+        const allRuns: Array<{ assistant_id: string; status: string }> = []
         await Promise.all(threads.slice(0, 5).map(async t => {
-          const runs = await lg(`/threads/${t.thread_id}/runs`) as Array<{ assistant_id: string }>
+          const runs = await lg(`/threads/${t.thread_id}/runs`) as Array<{ assistant_id: string; status: string }>
           if (Array.isArray(runs)) allRuns.push(...runs)
         }))
+        const successCount = allRuns.filter(r => r.status === 'success').length
+        const passRate = allRuns.length > 0 ? Math.round((successCount / allRuns.length) * 100) : null
         setTraceStats({
           total_calls: allRuns.length,
-          agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))]
+          agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
+          success_count: successCount,
+          pass_rate: passRate,
         })
       })
       .catch(() => {})
@@ -1125,27 +1129,39 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
             </div>
           </CardContent>
         </Card>
-        {/* #5 与客户沟通次数 */}
+        {/* #5 与客户沟通次数（来自 update_log type=user_message 条目数）*/}
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">与客户沟通次数</p>
-                <div className="mt-1"><ComingSoon /></div>
-                <p className="text-xs text-muted-foreground mt-1">数据来源待定</p>
+                <p className="text-2xl font-bold mt-1">
+                  {meta.update_log?.filter(l => l.type === 'user_message').length ?? 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">update_log · user_message</p>
               </div>
               <MessageCircle className="w-4 h-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
-        {/* #6 试运行通过率 */}
+        {/* #6 试运行通过率（LangSmith run success / total）*/}
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">试运行通过率</p>
-                <div className="mt-1"><ComingSoon source="LangSmith" /></div>
-                <p className="text-xs text-muted-foreground mt-1">打标后开放</p>
+                <div className="mt-1">
+                  {traceStats === null ? (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+                  ) : traceStats.pass_rate === null ? (
+                    <p className="text-2xl font-bold">—</p>
+                  ) : (
+                    <p className="text-2xl font-bold">{traceStats.pass_rate}%</p>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {traceStats ? `${traceStats.success_count}/${traceStats.total_calls} runs 成功` : 'LangSmith 实时'}
+                </p>
               </div>
               <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
             </div>
@@ -1393,8 +1409,8 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
       <Section icon={Activity} title="客户活跃度" subtitle="PostHog 事件统计，事件已在客户端埋点，服务端查询接入后开放">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: '看板浏览次数', icon: Activity, key: 'live_board_view', source: 'PostHog live_board_view' },
-            { label: '连接 Agent 次数', icon: GitBranch, key: 'marketplace_agent_connect_success', source: 'PostHog marketplace_agent_connect_success' },
+            { label: '看板互动次数', icon: Activity, key: 'live_report_tab_switch', source: 'PostHog live_report_tab_switch' },
+            { label: '连接 Agent 次数', icon: GitBranch, key: 'marketplace_agent_connect_success', source: 'PostHog marketplace_agent_connect_click' },
             { label: '点击 Telegram 次数', icon: MessageCircle, key: 'dashboard_telegram_cta_click', source: 'PostHog dashboard_telegram_cta_click' },
             { label: '创建 API Key 次数', icon: Lock, key: 'api_key_create', source: 'PostHog api_key_create' },
           ].map(({ label, icon: Icon, key, source }) => {
