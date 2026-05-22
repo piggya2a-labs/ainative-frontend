@@ -1095,7 +1095,7 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                           {m.completed_at ?? m.target_date ?? '—'}
                         </span>
                         <Badge
-                          variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                          variant={m.status === 'done' ? 'default' : m.status === 'running' ? 'secondary' : 'outline'}
                           className="text-xs"
                         >
                           {milestoneStatusLabel(m.status)}
@@ -1114,7 +1114,7 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                             width: `${progress}%`,
                             backgroundColor: m.status === 'done'
                               ? 'var(--onit-green)'
-                              : m.status === 'in_progress'
+                              : m.status === 'running'
                               ? 'var(--foreground)'
                               : 'var(--muted-foreground)',
                           }}

@@ -9,7 +9,7 @@ import { getSiteConfig } from '@/lib/queries'
 interface MilestoneData {
   id: string
   order: number
-  status: 'done' | 'in_progress' | 'pending'
+  status: 'done' | 'running' | 'ready' | 'blocked' | 'todo' | 'triage' | 'pending'
   name: string
   completed_at?: string | null
   started_at?: string | null
