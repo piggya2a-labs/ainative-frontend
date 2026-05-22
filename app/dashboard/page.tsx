@@ -56,15 +56,11 @@ export default async function DashboardPage() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  console.log('[DEBUG] user.id:', user.id)
-  console.log('[DEBUG] SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY, 'length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length)
   const { data: tenantsRaw, error: tenantsError } = await adminClient
     .from('tenants')
     .select('id, name, slug, status, created_at, metadata, composio_token, composio_connected_at, api_key, api_key_created_at, telegram_chat_id, telegram_username, telegram_bound_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
-  console.log('[DEBUG] tenantsRaw count:', tenantsRaw?.length, 'error:', JSON.stringify(tenantsError))
-
   // ─── 自动初始化 MCSP metadata（对每个未初始化的 tenant 执行）──────────────
   const tenants = await Promise.all(
     (tenantsRaw ?? []).map(async (t) => {
@@ -186,13 +182,9 @@ export default async function DashboardPage() {
 
   const siteConfig = await getSiteConfig()
 
-  // DEBUG: 临时显示 tenants 数量
-  const debugInfo = `tenants:${tenants.length} raw:${tenantsRaw?.length ?? 'null'} err:${tenantsError?.message ?? 'none'} uid:${user.id.slice(0,8)}`
-
   return (
     <>
       <Navbar siteConfig={siteConfig} />
-      <div style={{background:'red',color:'white',padding:'4px',fontSize:'10px',fontFamily:'monospace'}}>{debugInfo}</div>
       <Suspense>
         <DashboardClient
         user={user}
