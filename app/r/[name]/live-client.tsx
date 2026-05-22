@@ -180,10 +180,25 @@ export interface LiveClientProps {
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+// 状态机：triage→todo→ready→running→blocked→done
+// 数据来源：tenants.metadata.milestones[].status（Supabase Realtime 实时推送）
+// Human 把里程碑改成 ready，Dispatcher 才会在下一个 60s tick 派发
 function milestoneStatusLabel(s: string) {
   if (s === 'done') return '已完成'
-  if (s === 'in_progress') return '进行中'
+  if (s === 'running') return '执行中'
+  if (s === 'ready') return '待派发'
+  if (s === 'blocked') return '已阻塞'
+  if (s === 'todo') return '待整理'
+  if (s === 'triage') return '分诊中'
+  if (s === 'in_progress') return '执行中' // 兼容旧数据
   return '待开始'
+}
+function milestoneStatusColor(s: string): string {
+  if (s === 'done') return 'var(--onit-green)'
+  if (s === 'running') return 'var(--onit-blue, #3b82f6)'
+  if (s === 'ready') return 'var(--onit-amber)'
+  if (s === 'blocked') return 'var(--destructive)'
+  return 'var(--muted-foreground)'
 }
 function healthLabel(h: string) {
   if (h === 'green') return '健康'
@@ -643,8 +658,9 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
                         <TableCell className="text-sm text-muted-foreground">{m.owner}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={m.status === 'done' ? 'default' : m.status === 'in_progress' ? 'secondary' : 'outline'}
+                            variant="outline"
                             className="text-xs"
+                            style={{ color: milestoneStatusColor(m.status), borderColor: milestoneStatusColor(m.status) }}
                           >
                             {milestoneStatusLabel(m.status)}
                           </Badge>
@@ -869,9 +885,9 @@ function OmtTab({ meta, runDays, overallProgress, tenantSlug }: {
         </p>
         <div className="grid grid-cols-3 gap-3 pt-2">
           {[
-            { label: '更新频率', desc: '每次 cadence 会议前更新，或有卡点变化时随时更新' },
-            { label: '主要读者', desc: `${client.client_lead || '客户负责人'} 日常跟进——需要知道「今天该做什么」` },
-            { label: 'Agent 用途', desc: 'Agent 读取 MCSP 里程碑结构自动生成初始进度表，并在每次任务完成后自动更新' },
+            { label: '数据来源', desc: 'tenants.metadata.milestones — Supabase Realtime 毫秒级推送，无轮询' },
+            { label: '调度机制', desc: 'pg_cron 每 60 秒扫一次，只处理 Human 显式标为 ready 的里程碑，不会自动触发 LLM' },
+            { label: '执行轨迹', desc: 'LangSmith runs（按 tenant_slug 过滤）— Agent 执行完成后 Automation Rule 自动回调' },
           ].map(({ label, desc }) => (
             <div key={label} className="rounded-lg border border-border/50 p-3 space-y-1">
               <span className="text-xs font-medium">{label}</span>
