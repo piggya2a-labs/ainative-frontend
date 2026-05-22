@@ -166,15 +166,7 @@ export default async function LiveReportPage({
     )
   }
 
-  // 计算派生数据（milestones 现在是数组）
-  const { milestones, audit, client, current_milestone } = meta
-  const allMilestones = Array.isArray(milestones) ? milestones : []
-  const doneMilestones = allMilestones.filter(m => m.status === 'done').length
-  const overallProgress = Math.round((doneMilestones / Math.max(allMilestones.length, 1)) * 100)
-  const currentM = allMilestones.find(m => m.id === current_milestone)
-  const currentProgress = currentM
-    ? Math.round((currentM.tasks_done / Math.max(currentM.tasks_total, 1)) * 100)
-    : 0
+  const { client } = meta
   const runDays = daysSince(client.contract_start)
 
   return (
