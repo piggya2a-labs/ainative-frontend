@@ -1245,17 +1245,18 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
   const posthog = usePostHog()
   const [meta, setMeta] = useState<TenantMetadata>(initialMeta)
 
-  // ─── Supabase Realtime: 订阅 tenants broadcast，状态变化毫秒级推送 ─────────
+  // ─── Supabase Realtime: 订阅 tenants postgres_changes，状态变化毫秒级推送 ─────────
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
       .channel(`tenant:${tenantId}`)
       .on(
-        'broadcast',
-        { event: 'UPDATE' },
-        (payload: { new?: { metadata?: TenantMetadata; status?: string } }) => {
-          if (payload.new?.metadata) {
-            setMeta(payload.new.metadata as TenantMetadata)
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tenants', filter: `id=eq.${tenantId}` },
+        (payload: { new?: Record<string, unknown> }) => {
+          const newMeta = payload.new?.metadata
+          if (newMeta && typeof newMeta === 'object') {
+            setMeta(newMeta as TenantMetadata)
           }
         }
       )

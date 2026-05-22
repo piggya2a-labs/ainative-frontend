@@ -44,7 +44,7 @@ interface McpTool {
   name: string
   description: string
   skills: Array<{ id: string; name: string; description: string }>
-  connected_at: string
+  connected_at: string | null
   icon_url?: string | null
   mcp_url?: string | null
   url?: string | null

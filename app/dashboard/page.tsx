@@ -91,7 +91,7 @@ export default async function DashboardPage() {
     : []
 
   // 连接器从 tenants.metadata.connectors 读（tenant_connectors 表已删）
-  type ConnectorEntry = { agent_id: string; status: string; metadata?: Record<string, unknown>; connected_at?: string | null }
+  type ConnectorEntry = { id: string; agent_id: string; status: 'connected' | 'pending_start' | 'pending_verify' | 'disconnected' | 'error'; metadata: Record<string, unknown> | null; connected_at?: string | null; created_at: string }
   const tenantConnectors: ConnectorEntry[] = ((tenant as Record<string, unknown> | null)?.metadata as Record<string, unknown> | null)?.connectors as ConnectorEntry[] ?? []
   const mcpConnectors = tenantConnectors.filter(c => c.status === 'connected')
   const mcpAgentIds = mcpConnectors.map(c => c.agent_id).filter(Boolean)
@@ -117,9 +117,9 @@ export default async function DashboardPage() {
   })
 
   // GitHub bindings 和 audit_logs 表已删，用空数组占位
-  const githubBindings: unknown[] = []
+  const githubBindings: Array<{ id: string; repository_full_name: string; status: string; created_at: string }> = []
   const connectors = tenantConnectors
-  const auditLogs: unknown[] = []
+  const auditLogs: Array<{ id: string; action: string; resource_type: string; status: string; metadata?: { actor?: string; cost_usd?: number; [key: string]: unknown }; created_at: string }> = []
 
   // ─── Composio 连接状态（从 tenants 表读，单一来源）──────────────────────────────
   const composioToken = (tenant as Record<string, unknown> | null)?.composio_token as string | null
