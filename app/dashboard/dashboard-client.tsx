@@ -9,8 +9,9 @@ import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus, Pencil, Download, CheckCircle2 } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Trash2, ExternalLink, Loader2, ChevronDown, Plus, Pencil, Download, CheckCircle2, Mic, MicOff, Paperclip, Send, X } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
 import { useSearchParams } from 'next/navigation'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -234,25 +235,85 @@ export function DashboardClient({
 
   const [creatingTenant, setCreatingTenant] = useState(false)
   const [showNewTenantModal, setShowNewTenantModal] = useState(false)
-  const [newTenantName, setNewTenantName] = useState('')
+  const [newTenantBrief, setNewTenantBrief] = useState('')
   const [createTenantError, setCreateTenantError] = useState<string | null>(null)
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  // 语音录制
+  const handleVoiceToggle = async () => {
+    if (isRecording && mediaRecorder) {
+      mediaRecorder.stop()
+      setIsRecording(false)
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      const chunks: BlobPart[] = []
+      recorder.ondataavailable = (e) => chunks.push(e.data)
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' })
+        setAttachedFiles(prev => [...prev, file])
+        // 简单提示用户语音已附加
+        setNewTenantBrief(prev => prev + (prev ? '\n' : '') + '[语音已录制，将一并发送]')
+      }
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch {
+      setCreateTenantError('无法访问麦克风，请检查权限')
+    }
+  }
+
+  // 文件拖拽
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length) setAttachedFiles(prev => [...prev, ...files])
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length) setAttachedFiles(prev => [...prev, ...files])
+  }
+
   const handleCreateTenant = async () => {
-    if (!newTenantName.trim()) return
+    if (!newTenantBrief.trim()) return
     setCreatingTenant(true)
     setCreateTenantError(null)
     try {
-      const res = await fetch('/api/tenants', {
+      // 如果有附件，先把文件内容读成文本拼进 brief
+      let fullBrief = newTenantBrief.trim()
+      for (const file of attachedFiles) {
+        if (file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+          const text = await file.text()
+          fullBrief += `\n\n[附件 ${file.name}]:\n${text.slice(0, 2000)}`
+        }
+      }
+
+      const res = await fetch('/api/tenants/create-with-mcsp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTenantName.trim() }),
+        body: JSON.stringify({ brief: fullBrief }),
       })
       const data = await res.json()
       if (res.ok) {
-        posthog?.capture('tenant_create', { name: newTenantName.trim() })
-        setNewTenantName(''); setShowNewTenantModal(false); setCreateTenantError(null)
-        if (data.tenant) { setTenants(prev => [...prev, data.tenant]); setActiveTenantId(data.tenant.id) }
-        // 新建成功后直接跳 Telegram，让用户去跟 Agent 说项目目标
-        window.open('https://t.me/onitmeowbot', '_blank')
+        posthog?.capture('tenant_create_mcsp', { name: data.tenant?.name })
+        setNewTenantBrief('')
+        setAttachedFiles([])
+        setShowNewTenantModal(false)
+        setCreateTenantError(null)
+        if (data.tenant) {
+          setTenants(prev => [...prev, data.tenant])
+          setActiveTenantId(data.tenant.id)
+        }
         router.refresh()
       } else {
         setCreateTenantError(data.error || `创建失败 (${res.status})`)
@@ -969,26 +1030,114 @@ export function DashboardClient({
       </Dialog>
 
       {/* Modal: 新建看板 */}
-      <Dialog open={showNewTenantModal} onOpenChange={(open) => { if (!open) { setShowNewTenantModal(false); setNewTenantName(''); setCreateTenantError(null) } }}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showNewTenantModal} onOpenChange={(open) => { if (!open) { setShowNewTenantModal(false); setNewTenantBrief(''); setAttachedFiles([]); setCreateTenantError(null) } }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-sm">新建看板</DialogTitle>
-            <DialogDescription>为新客户或新项目创建一个独立的 Live 看板。创建后可由 @Lumen 写入 MCSP 数据。</DialogDescription>
+            <DialogDescription className="text-xs">描述你的项目背景，AI 会自动生成完整的共同成功计划，Live 看板立刻就有内容。</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">看板名称（客户名 / 项目名）</Label>
-              <Input placeholder="如：Acme Corp、小红书项目、客服 Agent 试运行" value={newTenantName} onChange={(e) => setNewTenantName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCreateTenant()} className="text-xs" autoFocus />
-            </div>
-            {createTenantError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-xs text-red-600">{createTenantError}</p>
+
+          {/* 拖拽区域 */}
+          <div
+            className={`relative rounded-xl border transition-colors ${
+              isDragging ? 'border-primary bg-primary/5' : 'border-input bg-background'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <Textarea
+              placeholder={`随便说说，比如：\n我们是一家做跨境电商的公司，现在客服全靠人工，每天处理 500+ 工单，响应慢、成本高。希望用 AI Agent 把自动化覆盖率提到 70% 以上，3 个月内上线。`}
+              value={newTenantBrief}
+              onChange={(e) => setNewTenantBrief(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreateTenant()
+              }}
+              className="min-h-[140px] resize-none border-0 bg-transparent text-sm focus-visible:ring-0 focus-visible:border-0 pr-4"
+              autoFocus
+              disabled={creatingTenant}
+            />
+
+            {/* 附件预览 */}
+            {attachedFiles.length > 0 && (
+              <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                {attachedFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded-md text-xs">
+                    <Paperclip className="w-3 h-3" />
+                    <span className="max-w-[120px] truncate">{f.name}</span>
+                    <button onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} className="hover:text-destructive">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            <Button className="w-full" size="sm" onClick={handleCreateTenant} disabled={creatingTenant || !newTenantName.trim()}>
-              {creatingTenant ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}创建
-            </Button>
+
+            {/* 底部工具栏 */}
+            <div className="flex items-center justify-between px-3 pb-3 pt-1 border-t border-input/40">
+              <div className="flex items-center gap-1">
+                {/* 文件上传 */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".txt,.md,.pdf,.doc,.docx,image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                  title="上传文件"
+                  disabled={creatingTenant}
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+
+                {/* 语音录制 */}
+                <button
+                  type="button"
+                  onClick={handleVoiceToggle}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    isRecording
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200 animate-pulse'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={isRecording ? '停止录音' : '语音输入'}
+                  disabled={creatingTenant}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+
+                <span className="text-xs text-muted-foreground ml-1">
+                  {isDragging ? '松开以上传文件' : '支持拖拽文件'}
+                </span>
+              </div>
+
+              {/* 发送按钮 */}
+              <button
+                type="button"
+                onClick={handleCreateTenant}
+                disabled={creatingTenant || !newTenantBrief.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {creatingTenant
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />AI 生成中…</>
+                  : <><Send className="w-3.5 h-3.5" />生成看板</>}
+              </button>
+            </div>
           </div>
+
+          {createTenantError && (
+            <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-xs text-red-600">{createTenantError}</p>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground text-center">
+            ⌘ + Enter 快速发送 · 支持拖拽文件或语音录入
+          </p>
         </DialogContent>
       </Dialog>
 
