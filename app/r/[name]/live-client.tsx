@@ -76,7 +76,7 @@ interface MilestoneTask { name: string; done: boolean; owner: string }
 interface MilestoneData {
   id: string
   order: number
-  status: 'done' | 'in_progress' | 'pending'
+  status: 'done' | 'running' | 'ready' | 'blocked' | 'todo' | 'triage' | 'pending'
   name: string
   completed_at?: string | null
   started_at?: string | null
@@ -188,7 +188,6 @@ function milestoneStatusLabel(s: string) {
   if (s === 'blocked') return '已阻塞'
   if (s === 'todo') return '待整理'
   if (s === 'triage') return '分诊中'
-  if (s === 'in_progress') return '执行中' // 兼容旧数据
   return '待开始'
 }
 function milestoneStatusColor(s: string): string {
