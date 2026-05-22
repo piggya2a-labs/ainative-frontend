@@ -25,7 +25,7 @@ async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data, error } = await supabase
-      .from('agent_registry')
+      .from('agent_market')
       .select('id, name, description, provider, skills, mcp_url, tags, updated_at, icon_url, documentation_url, connector_type, oauth_config')
       .is('langsmith_handle', null)
       .eq('enabled', true)

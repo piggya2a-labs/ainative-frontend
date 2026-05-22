@@ -16,7 +16,7 @@ async function getSupabaseCounts() {
     )
     // 拉取所有 enabled agents 的 skills 字段，算总数和 skills 总数
     const { data: agents, count: agentCount } = await supabase
-      .from('agent_registry')
+      .from('agent_market')
       .select('skills', { count: 'exact' })
       .eq('enabled', true)
     const toolCount = (agents ?? []).reduce(

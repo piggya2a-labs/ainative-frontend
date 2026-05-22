@@ -48,7 +48,7 @@ async function getAgent(id: string): Promise<AgentRow | null> {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data, error } = await supabase
-      .from('agent_registry')
+      .from('agent_market')
       .select('id, name, description, provider, skills, mcp_url, icon_url, documentation_url, connector_type, tags, updated_at')
       .eq('id', id)
       .eq('enabled', true)
@@ -67,7 +67,7 @@ async function getAllAgentIds(): Promise<string[]> {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data } = await supabase
-      .from('agent_registry')
+      .from('agent_market')
       .select('id')
       .eq('enabled', true)
     return (data ?? []).map((r: { id: string }) => r.id)

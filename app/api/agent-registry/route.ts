@@ -8,7 +8,7 @@ export async function GET() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data, error } = await supabase
-      .from('agent_registry')
+      .from('agent_market')
       .select('id, name, type, langsmith_handle, enabled, tags, url, description')
       .eq('type', 'system')
       .eq('enabled', true)

@@ -8,7 +8,7 @@
  * 最后生成：2026-05-19
  */
 
-// ─── agent_registry ──────────────────────────────────────────────────────────
+// ─── agent_market ──────────────────────────────────────────────────────────
 
 export type AgentType = 'agent' | 'external' | 'capability' | 'spec'
 
@@ -98,7 +98,7 @@ export interface ConnectorListItem {
   oauth_required: boolean
   status: 'connected' | 'disconnected' | 'error' | null
   connected_at: string | null
-  // 以下字段来自 agent_registry，EF 暂未返回，前端用 fallback
+  // 以下字段来自 agent_market，EF 暂未返回，前端用 fallback
   skills?: AgentSkill[]
   tags?: string[] | null
   icon_url?: string | null

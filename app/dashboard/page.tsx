@@ -97,7 +97,7 @@ export default async function DashboardPage() {
   const mcpAgentIds = mcpConnectors.map(c => c.agent_id).filter(Boolean)
   const { data: mcpAgentCards } = mcpAgentIds.length > 0
     ? await supabase
-        .from('agent_registry')
+        .from('agent_market')
         .select('id, name, description, skills, icon_url, mcp_url, url')
         .in('id', mcpAgentIds)
     : { data: [] }

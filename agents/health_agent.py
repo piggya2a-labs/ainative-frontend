@@ -42,7 +42,7 @@ API_ROUTES = {
     "/api/generate-dashboard": 401,
 }
 
-SUPABASE_TABLES = ["agent_registry", "tool_registry", "tenant_connectors", "tenants", "audit_logs"]
+SUPABASE_TABLES = ["agent_market", "tool_registry", "tenant_connectors", "tenants", "audit_logs"]
 
 results = []
 

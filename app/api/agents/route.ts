@@ -10,7 +10,7 @@ export const revalidate = 60 // ISR: 60s cache
 
 export async function GET() {
   const { data, error } = await supabase
-    .from('agent_registry')
+    .from('agent_market')
     .select('id, name, type, description, url, enabled, skills, capabilities, tags, icon_url')
     .eq('type', 'agent')
     .eq('enabled', true)

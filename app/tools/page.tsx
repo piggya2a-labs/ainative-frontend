@@ -29,7 +29,7 @@ async function getPlatformAgents(): Promise<PlatformAgent[]> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
   const { data, error } = await supabase
-    .from('agent_registry')
+    .from('agent_market')
     .select('id, name, description, skills, mcp_url, icon_url, connector_type')
     .in('connector_type', ['platform', 'custom'])
     .eq('enabled', true)

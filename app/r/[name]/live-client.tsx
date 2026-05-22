@@ -1346,7 +1346,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
       </Section>
 
       {/* Agent 注册表 */}
-      <Section icon={Users} title="Agent 注册表" subtitle="当前系统注册的核心 Agent，来自 agent_registry 表">
+      <Section icon={Users} title="Agent 注册表" subtitle="当前系统注册的核心 Agent，来自 agent_market 表">
         <Card>
           <CardContent className="pt-4">
             {agentRegistry === null ? (

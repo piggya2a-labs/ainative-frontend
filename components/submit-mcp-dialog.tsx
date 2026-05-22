@@ -112,7 +112,7 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
         return
       }
 
-      // 无 OAuth：后端已写入 agent_registry，直接进入 preview
+      // 无 OAuth：后端已写入 agent_market，直接进入 preview
       const toolList: DiscoveredTool[] = (data.tools ?? []).map((t: string | DiscoveredTool) =>
         typeof t === 'string' ? { name: t } : t
       )
@@ -145,12 +145,12 @@ export function SubmitMcpDialog({ open, onOpenChange, onSuccess }: SubmitMcpDial
     setLoading(true)
     posthog?.capture('marketplace_mcp_publish_start', { mcp_url: mcpUrl, name, agent_id: discovered.agent_id })
     try {
-      // 后端在 discover 阶段已写入 agent_registry + tenant_connectors
-      // 如果用户修改了 name/description，更新 agent_registry
+      // 后端在 discover 阶段已写入 agent_market + tenant_connectors
+      // 如果用户修改了 name/description，更新 agent_market
       if ((name.trim() && name.trim() !== discovered.name) || description.trim()) {
         const supabase = createClient()
         await supabase
-          .from('agent_registry')
+          .from('agent_market')
           .update({
             ...(name.trim() ? { name: name.trim() } : {}),
             ...(description.trim() ? { description: description.trim() } : {}),
