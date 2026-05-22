@@ -48,7 +48,6 @@ interface TenantMetadata {
   }
   client: {
     name: string
-    display_name: string
     contract_start: string
     plan_period: string
     lumen: string

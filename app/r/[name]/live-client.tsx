@@ -131,7 +131,6 @@ interface TenantMetadata {
   }
   client: {
     name: string
-    display_name: string
     contract_start: string
     plan_period: string
     lumen: string
@@ -139,7 +138,7 @@ interface TenantMetadata {
     client_lead: string
     telegram_handle?: string
   }
-  update_log: { date: string; author: string; note: string }[]
+  update_log: { date: string; author: string; note: string; type?: string }[]
 }
 // ─── Trace Types ─────────────────────────────────────────────────────────────
 interface TraceTimelineItem {
@@ -498,7 +497,7 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
           <CardContent className="pt-4 space-y-0">
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户名称</span>
-              <span className="text-sm">{client.display_name}</span>
+              <span className="text-sm">{client.name}</span>
             </div>
             <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
               <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户成功经理</span>
@@ -1138,27 +1137,42 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                         />
                       </div>
                     </div>
+                  {m.status === 'blocked' && m.blocked_reason && (
+                    <div className="px-4 pb-2">
+                      <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 rounded px-2 py-1">
+                        ⚠️ {m.blocked_reason}
+                      </p>
+                    </div>
+                  )}
                   </CardHeader>
                   {m.tasks && m.tasks.length > 0 && (
                     <CardContent className="pt-0">
                       <div className="space-y-1.5">
-                        {m.tasks.map((task, i) => (
+                        {m.tasks.map((task, i) => {
+                          // support both old done:bool and new status:string
+                          const isDone = task.status === 'done' || task.done === true
+                          const isRunning = task.status === 'in_progress'
+                          const isBlocked = task.status === 'blocked'
+                          return (
                           <div key={i} className="flex items-center gap-2.5 py-1">
                             <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
-                              task.done ? 'bg-foreground border-foreground' : 'border-border'
+                              isDone ? 'bg-foreground border-foreground' : isBlocked ? 'bg-red-500 border-red-500' : isRunning ? 'bg-blue-500 border-blue-500' : 'border-border'
                             }`}>
-                              {task.done && (
+                              {isDone && (
                                 <svg className="w-2.5 h-2.5 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
                             </div>
-                            <span className={`text-sm flex-1 ${task.done ? 'line-through text-muted-foreground' : ''}`}>
+                            <span className={`text-sm flex-1 ${isDone ? 'line-through text-muted-foreground' : ''}`}>
                               {task.name}
+                              {isRunning && <span className="ml-1.5 text-xs text-blue-500">进行中</span>}
+                              {isBlocked && <span className="ml-1.5 text-xs text-red-500">卡住了</span>}
                             </span>
                             <span className="text-xs text-muted-foreground shrink-0">{task.owner}</span>
                           </div>
-                        ))}
+                          )
+                        })
                       </div>
                     </CardContent>
                   )}
@@ -1238,6 +1252,9 @@ function OmtTab({ meta, runDays, tenantSlug }: {
                 meta.update_log.slice().reverse().map((log, i) => (
                   <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
                     <span className="text-xs font-mono text-muted-foreground shrink-0 pt-0.5">{log.date}</span>
+                    <span className="text-sm shrink-0 pt-0.5">
+                      {log.type === 'milestone_done' ? '✅' : log.type === 'audit' ? '📊' : log.type === 'task_update' ? '🔧' : log.type === 'user_message' ? '💬' : '•'}
+                    </span>
                     <div className="flex-1">
                       <span className="text-sm">{log.note}</span>
                       <span className="text-xs text-muted-foreground ml-2">— {log.author}</span>
@@ -1305,9 +1322,9 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
             {healthLabel(meta.audit.health)}
           </Badge>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{meta.client.display_name} 共同成功计划</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{meta.client.name} 共同成功计划</h1>
         <p className="text-muted-foreground text-sm max-w-2xl">
-          {meta.client.display_name} × ONIT — 实时里程碑追踪，由 @{meta.client.lumen} 维护。
+          {meta.client.name} × ONIT — 实时里程碑追踪，由 @{meta.client.lumen} 维护。
           MCSP 是完整操作系统，OMT 是每天看的施工进度牌。
         </p>
       </div>
