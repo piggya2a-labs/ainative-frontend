@@ -860,10 +860,11 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, runDays, tenantSlug }: {
+function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
   meta: TenantMetadata
   runDays: number
   tenantSlug: string
+  tenantId: string
 }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
@@ -883,6 +884,15 @@ function OmtTab({ meta, runDays, tenantSlug }: {
   useEffect(() => {
     fetch('/api/dispatcher-log').then(r => r.json()).then(d => setDispatcherLog(d.logs ?? [])).catch(() => {})
   }, [])
+
+  // PostHog 客户活跃度
+  const [posthogActivity, setPosthogActivity] = useState<Record<string, number> | null>(null)
+  useEffect(() => {
+    fetch(`/api/posthog-activity?tenant_id=${tenantId}&tenant_slug=${tenantSlug}`)
+      .then(r => r.json())
+      .then(d => setPosthogActivity(d.events ?? null))
+      .catch(() => setPosthogActivity(null))
+  }, [tenantId, tenantSlug])
 
   // 拉取 LangGraph trace 数据，用于填充总览数字
   const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[] } | null>(null)
@@ -1275,24 +1285,37 @@ function OmtTab({ meta, runDays, tenantSlug }: {
       <Section icon={Activity} title="客户活跃度" subtitle="PostHog 事件统计，事件已在客户端埋点，服务端查询接入后开放">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: '登录 Dashboard 次数', icon: Activity, source: 'PostHog page_view' },
-            { label: '连接 Agent 次数', icon: GitBranch, source: 'PostHog marketplace_agent_connect_success' },
-            { label: '点击 Telegram 次数', icon: MessageCircle, source: 'PostHog dashboard_telegram_cta_click' },
-            { label: '创建 API Key 次数', icon: Lock, source: 'PostHog api_key_create' },
-          ].map(({ label, icon: Icon, source }) => (
-            <Card key={label}>
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <div className="mt-1"><ComingSoon /></div>
-                    <p className="text-xs text-muted-foreground/50 mt-1 truncate">{source}</p>
+            { label: '看板浏览次数', icon: Activity, key: 'live_board_view', source: 'PostHog live_board_view' },
+            { label: '连接 Agent 次数', icon: GitBranch, key: 'marketplace_agent_connect_success', source: 'PostHog marketplace_agent_connect_success' },
+            { label: '点击 Telegram 次数', icon: MessageCircle, key: 'dashboard_telegram_cta_click', source: 'PostHog dashboard_telegram_cta_click' },
+            { label: '创建 API Key 次数', icon: Lock, key: 'api_key_create', source: 'PostHog api_key_create' },
+          ].map(({ label, icon: Icon, key, source }) => {
+            const count = posthogActivity?.[key]
+            const isLoading = posthogActivity === null
+            const isUnavailable = count === -1 || count === undefined
+            return (
+              <Card key={label}>
+                <CardContent className="pt-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <div className="mt-1">
+                        {isLoading ? (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+                        ) : isUnavailable ? (
+                          <ComingSoon source="PostHog" />
+                        ) : (
+                          <p className="text-2xl font-bold">{count}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground/50 mt-1 truncate">{source}</p>
+                    </div>
+                    <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
                   </div>
-                  <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </Section>
 
@@ -1493,7 +1516,7 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
         </TabsContent>
 
         <TabsContent value="omt">
-          <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} />
+          <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} tenantId={tenantId} />
         </TabsContent>
 
         <TabsContent value="trace">
