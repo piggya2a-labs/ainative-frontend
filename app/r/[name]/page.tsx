@@ -142,12 +142,25 @@ export default async function LiveReportPage({
     return (
       <><Navbar siteConfig={siteConfig} />
       <main className="min-h-screen flex items-center justify-center px-4 pt-14">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-6 max-w-sm">
           <div className="text-xs font-mono text-muted-foreground">ONIT / {tenant.name}</div>
-          <div className="text-2xl font-bold">等待初始化</div>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            看板已创建，正在等待 Agent 写入项目信息。请去 Telegram 找 @onitmeowbot，告诉 Agent 这个项目的目标和背景。
+          <div className="text-2xl font-bold">看板已创建</div>
+          <p className="text-sm text-muted-foreground">
+            Agent 团队正在等待你的第一条指令。
           </p>
+          <ol className="text-sm text-left space-y-2 text-muted-foreground">
+            <li><span className="font-semibold text-foreground">1.</span> 打开 Telegram，搜索 <span className="font-mono">@onitmeowbot</span></li>
+            <li><span className="font-semibold text-foreground">2.</span> 发送这个看板的名字：<span className="font-mono">{tenant.name}</span></li>
+            <li><span className="font-semibold text-foreground">3.</span> 告诉 Agent 这个项目的目标和背景</li>
+          </ol>
+          <a
+            href="https://t.me/onitmeowbot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-80 transition-opacity"
+          >
+            打开 Telegram → @onitmeowbot
+          </a>
         </div>
       </main></>
     )
