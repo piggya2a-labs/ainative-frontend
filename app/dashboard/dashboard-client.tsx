@@ -284,6 +284,48 @@ export function DashboardClient({
     if (files.length) setAttachedFiles(prev => [...prev, ...files])
   }
 
+  const [lumenPendingTenantId, setLumenPendingTenantId] = useState<string | null>(null)
+  const [lumenStatusMsg, setLumenStatusMsg] = useState<string>('@Lumen 正在准备你的看板…')
+
+  // 轮询看板，直到 @Lumen 写入 MCSP 数据
+  const pollTenantReady = async (tenantId: string) => {
+    const maxAttempts = 30 // 最多等 60 秒
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 2000))
+      try {
+        const res = await fetch(`/api/tenants?id=${tenantId}`)
+        if (res.ok) {
+          const data = await res.json()
+          const meta = data.tenant?.metadata as { mcsp?: { goal?: string } } | null
+          if (meta?.mcsp?.goal) {
+            // @Lumen 已写入 MCSP！
+            setTenants(prev => {
+              const exists = prev.find(t => t.id === tenantId)
+              if (exists) return prev.map(t => t.id === tenantId ? { ...t, metadata: data.tenant.metadata } : t)
+              return [...prev, data.tenant]
+            })
+            setActiveTenantId(tenantId)
+            setLumenPendingTenantId(null)
+            setShowNewTenantModal(false)
+            setNewTenantBrief('')
+            setAttachedFiles([])
+            setCreateTenantError(null)
+            router.refresh()
+            return
+          }
+          // 还没好，更新状态提示
+          const dots = '.'.repeat((i % 3) + 1)
+          setLumenStatusMsg(`@Lumen 正在准备你的看板${dots}`)
+        }
+      } catch { /* 忽略轮询错误 */ }
+    }
+    // 超时：看板已创建，但 @Lumen 还没写入，先显示空看板
+    setLumenPendingTenantId(null)
+    setShowNewTenantModal(false)
+    setCreatingTenant(false)
+    router.refresh()
+  }
+
   const handleCreateTenant = async () => {
     if (!newTenantBrief.trim()) return
     setCreatingTenant(true)
@@ -298,29 +340,42 @@ export function DashboardClient({
         }
       }
 
-      const res = await fetch('/api/tenants/create-with-mcsp', {
+      // 从 brief 里提取项目名称（取第一行，或前 20 字）
+      const firstLine = fullBrief.split('\n')[0].trim()
+      const tenantName = firstLine.slice(0, 40) || '新项目'
+
+      // 调 @Lumen 入口：哑前端，不在前端调 GPT
+      const res = await fetch('/api/tenants/init-with-lumen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: fullBrief }),
+        body: JSON.stringify({ name: tenantName, description: fullBrief }),
       })
       const data = await res.json()
-      if (res.ok) {
-        posthog?.capture('tenant_create_mcsp', { name: data.tenant?.name })
-        setNewTenantBrief('')
-        setAttachedFiles([])
-        setShowNewTenantModal(false)
-        setCreateTenantError(null)
-        if (data.tenant) {
-          setTenants(prev => [...prev, data.tenant])
-          setActiveTenantId(data.tenant.id)
+      if (res.ok && data.tenant_id) {
+        posthog?.capture('tenant_create_lumen', { tenant_id: data.tenant_id })
+        // 先把空 tenant 加进列表，让用户看到看板已创建
+        const emptyTenant: Tenant = {
+          id: data.tenant_id,
+          name: tenantName,
+          slug: data.tenant_slug,
+          status: 'triage',
+          created_at: new Date().toISOString(),
+          metadata: {},
         }
-        router.refresh()
+        setTenants(prev => [...prev, emptyTenant])
+        setActiveTenantId(data.tenant_id)
+        setLumenPendingTenantId(data.tenant_id)
+        setLumenStatusMsg('@Lumen 正在准备你的看板…')
+        // 开始轮询（不阻塞 UI）
+        pollTenantReady(data.tenant_id)
       } else {
         setCreateTenantError(data.error || `创建失败 (${res.status})`)
+        setCreatingTenant(false)
       }
     } catch (e) {
       setCreateTenantError(e instanceof Error ? e.message : '网络错误')
-    } finally { setCreatingTenant(false) }
+      setCreatingTenant(false)
+    }
   }
 
   const [renamingTenant, setRenamingTenant] = useState<Tenant | null>(null)
@@ -629,6 +684,14 @@ export function DashboardClient({
             <Badge variant="secondary" className="text-xs">Beta</Badge>
           </div>
         </div>
+
+        {/* @Lumen 正在准备看板的状态提示条 */}
+        {lumenPendingTenantId && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-[oklch(0.97_0.02_280)] border border-[oklch(0.85_0.08_280)] rounded-lg text-xs text-[oklch(0.45_0.18_280)]">
+            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            <span>{lumenStatusMsg}</span>
+          </div>
+        )}
 
         {/* Telegram + API KEYS + MCP */}
         <div className="border border-border rounded-lg overflow-hidden">

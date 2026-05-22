@@ -32,9 +32,22 @@ function buildSlug(name: string): string {
 }
 
 // GET /api/tenants — 列出当前用户所有 tenant
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // 支持 ?id= 查询单个 tenant（轮询用）
+  const id = req.nextUrl.searchParams.get('id')
+  if (id) {
+    const { data, error } = await adminClient
+      .from('tenants')
+      .select('id, name, slug, status, created_at, metadata')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ tenant: data })
+  }
 
   const { data, error } = await adminClient
     .from('tenants')
