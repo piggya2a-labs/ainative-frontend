@@ -106,8 +106,7 @@ export async function POST(req: NextRequest) {
       slug,
       user_id: user.id,
       status: 'triage',
-      share_token: shareToken,
-      metadata: {},
+      metadata: { share_token: shareToken },
     })
     .select('id, slug')
     .single()
