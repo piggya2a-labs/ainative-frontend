@@ -141,7 +141,7 @@ export default async function DashboardPage() {
 
   if (composioConnected) {
     try {
-      const composioAdminKey = process.env.COMPOSIO_ADMIN_KEY ?? 'ak_n_8uO-2LCmcqCjhkwVQA'
+      const composioAdminKey = process.env.COMPOSIO_ADMIN_KEY ?? process.env.COMPOSIO_API_KEY ?? ''
       const res = await fetch(
         `https://backend.composio.dev/api/v3.1/connected_accounts?user_ids[]=${encodeURIComponent(user.id)}&limit=100`,
         {

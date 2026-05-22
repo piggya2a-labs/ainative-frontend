@@ -19,9 +19,10 @@ import { randomBytes } from 'crypto'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const LANGGRAPH_URL = 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
+const LANGGRAPH_URL = process.env.LANGGRAPH_URL ?? 'https://piggya2a-0a1fda0a717459128b46c20d5a2662c7.us.langgraph.app'
 const LANGGRAPH_API_KEY = process.env.LANGSMITH_API_KEY!
-const LUMEN_ASSISTANT_ID = '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8'
+// 从环境变量读取，默认値仅作为开发备用
+const LUMEN_ASSISTANT_ID = process.env.LUMEN_ASSISTANT_ID ?? '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8'
 
 const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -98,7 +99,10 @@ export async function POST(req: NextRequest) {
 
   // 3. 创建空 tenant
   const slug = buildSlug(name.trim(), user.id)
-  const shareToken = `${slug}-live-2026q2`
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const quarter = Math.ceil((now.getUTCMonth() + 1) / 3)
+  const shareToken = `${slug}-live-${year}q${quarter}`
   const { data: tenant, error: tenantError } = await adminClient
     .from('tenants')
     .insert({

@@ -56,6 +56,18 @@ function Callout({ text }: { text: string }) {
   )
 }
 
+// ─── Agent UUID → 名字映射（单一来源，来自 agent_market 表）──────────────────────
+const AGENT_NAMES: Record<string, string> = {
+  '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
+  'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
+  '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
+  '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
+  'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
+}
+function agentName(id: string): string {
+  return AGENT_NAMES[id] ?? id.slice(0, 8)
+}
+
 // ─── 待开放标签 ───────────────────────────────────────────────────────────────
 function ComingSoon({ source }: { source?: string }) {
   return (
@@ -245,7 +257,7 @@ function toLines(val: string | string[] | undefined): string[] {
 }
 
 // ─── Trace Tab ───────────────────────────────────────────────────────────────
-function TraceTab({ tenantSlug }: { tenantSlug: string }) {
+function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetadata }) {
   const [data, setData] = useState<TraceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -274,20 +286,13 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
         }))
         // 按时间倒序
         allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        const agentNames: Record<string, string> = {
-          '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
-          'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
-          '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
-          '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
-          'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
-        }
         const timelineBase = allRuns.slice(0, 20).map(r => ({
           id: r.run_id,
-          tool: agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8),
+          tool: agentName(r.assistant_id),
           status: r.status,
           start_time: r.created_at,
           end_time: r.updated_at,
-          root_run_name: agentNames[r.assistant_id] ?? 'Agent',
+          root_run_name: agentName(r.assistant_id) || 'Agent',
           has_output: r.status === 'success',
           error: r.status === 'error' ? '执行失败' : null,
           stats_loaded: false,
@@ -308,12 +313,17 @@ function TraceTab({ tenantSlug }: { tenantSlug: string }) {
           return item
         })
 
+        // 从所有里程碑的 evidence 字段收集截图 URL
+        // 数据来自 whileloop.py lumen_update_milestone 的 evidence_urls 参数
+        const evidenceUrls: string[] = (meta?.milestones ?? []).flatMap(
+          (m: MilestoneData & { evidence?: string[] }) => m.evidence ?? []
+        )
         const parsed: TraceData = {
           total_calls: allRuns.length,
-          agents: [...new Set(allRuns.map(r => agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8)))],
+          agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
           timeline,
           artifacts: [],
-          screenshots: []
+          screenshots: evidenceUrls
         }
         setData(parsed)
         setLoading(false)
@@ -1007,13 +1017,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path, body })
     }).then(r => r.json())
-    const agentNames: Record<string, string> = {
-      '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
-      'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
-      '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
-      '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
-      'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
-    }
+    // agentName() 来自顶层 AGENT_NAMES 常量
     lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
       .then(async (threads: Array<{ thread_id: string }>) => {
         if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [] }); return }
@@ -1024,7 +1028,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
         }))
         setTraceStats({
           total_calls: allRuns.length,
-          agents: [...new Set(allRuns.map(r => agentNames[r.assistant_id] ?? r.assistant_id.slice(0, 8)))]
+          agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))]
         })
       })
       .catch(() => {})
@@ -1624,7 +1628,7 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
         </TabsContent>
 
         <TabsContent value="trace">
-          <TraceTab tenantSlug={tenantSlug} />
+          <TraceTab tenantSlug={tenantSlug} meta={meta} />
         </TabsContent>
       </Tabs>
 
