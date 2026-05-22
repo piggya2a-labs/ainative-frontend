@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       name: name.trim(),
       slug,
-      status: 'active',
+      status: 'triage',
     })
     .select('id, name, slug, status, created_at, metadata')
     .single()
