@@ -89,7 +89,7 @@ export default function LoginPage() {
           <div className="flex border border-gray-200 rounded-md p-0.5 mb-5 bg-gray-50">
               <button
                 type="button"
-                onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
+                onClick={() => { setMode('login'); setError(null) }}
                 className={`flex-1 py-1.5 text-sm rounded transition-all ${
                   mode === 'login'
                     ? 'bg-white text-black shadow-sm font-medium'
@@ -100,7 +100,7 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('signup'); setError(null); setSuccess(null) }}
+                onClick={() => { setMode('signup'); setError(null) }}
                 className={`flex-1 py-1.5 text-sm rounded transition-all ${
                   mode === 'signup'
                     ? 'bg-white text-black shadow-sm font-medium'
