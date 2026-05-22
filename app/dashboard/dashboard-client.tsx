@@ -678,9 +678,6 @@ export function DashboardClient({
             <p className="text-xs text-muted-foreground font-mono hidden sm:block truncate">{orgSlug}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowNewTenantModal(true)}>
-              <Plus className="w-3 h-3" />新建看板
-            </Button>
             <Badge variant="secondary" className="text-xs">Beta</Badge>
           </div>
         </div>
@@ -824,9 +821,7 @@ export function DashboardClient({
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between">
             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">PROJECT</span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground gap-1" onClick={() => setShowNewTenantModal(true)}>
-              <Plus className="w-3 h-3" /> 新建
-            </Button>
+
           </div>
           <div className="divide-y divide-border">
             {tenants.map((t, idx) => {
@@ -1092,8 +1087,8 @@ export function DashboardClient({
         </DialogContent>
       </Dialog>
 
-      {/* Modal: 新建看板 */}
-      <Dialog open={showNewTenantModal} onOpenChange={(open) => { if (!open) { setShowNewTenantModal(false); setNewTenantBrief(''); setAttachedFiles([]); setCreateTenantError(null) } }}>
+      {/* Modal: 新建看板 - 暂时隐藏 */}
+      <Dialog open={false} onOpenChange={() => {}}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-sm">新建看板</DialogTitle>
