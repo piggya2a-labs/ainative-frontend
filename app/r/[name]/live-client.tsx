@@ -506,10 +506,25 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
       const res = await fetch('/api/langgraph-trace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: `/threads/${liveThreadId}/history` }),
+        body: JSON.stringify({ path: `/threads/${liveThreadId}/history?limit=50` }),
       })
       const data = await res.json()
-      if (Array.isArray(data)) setCheckpoints(data)
+      // LangGraph history API 返回的格式：checkpoint_id 在 config.configurable.checkpoint_id 里
+      // 需要映射到顶层字段以匹配渲染逻辑
+      if (Array.isArray(data)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const normalized = data.map((cp: any) => ({
+          checkpoint_id: cp.config?.configurable?.checkpoint_id ?? cp.checkpoint_id ?? '',
+          created_at: cp.created_at ?? '',
+          metadata: cp.metadata,
+          next: cp.next ?? [],
+        }))
+        // 只保留 source=loop 且 next 不为空的 checkpoint（可以真正恢复的中间状态）
+        const restorable = normalized.filter((cp) =>
+          cp.metadata?.source === 'loop' && cp.next.length > 0
+        )
+        setCheckpoints(restorable.length > 0 ? restorable : normalized.slice(0, 5))
+      }
     } catch { /* ignore */ }
   }
 
