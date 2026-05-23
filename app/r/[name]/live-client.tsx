@@ -2,10 +2,14 @@
 import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import { toast } from '@/components/ui/sonner'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
@@ -13,7 +17,7 @@ import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
   Lock, Zap, Activity, MessageCircle, Key, Download, Loader2,
-  Terminal, Image, RefreshCw, ChevronRight
+  Terminal, Image, RefreshCw, ChevronRight, ChevronDown, StopCircle, History
 } from 'lucide-react'
 
 // ─── ONIT LIVE BOARD 设计理念（founder_intent, 2026-05-21）─────────────────────
@@ -288,6 +292,8 @@ function useThreadStream(threadId: string | undefined) {
   const [interrupts, setInterrupts] = useState<InterruptItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
+  // Thread 级别状态：idle / busy / interrupted / error（LangGraph 原生）
+  const [threadStatus, setThreadStatus] = useState<'idle' | 'busy' | 'interrupted' | 'error' | null>(null)
 
   useEffect(() => {
     if (!threadId) return
@@ -322,6 +328,12 @@ function useThreadStream(threadId: string | undefined) {
           } else {
             setInterrupts([])
           }
+          // 从 run_status 推断 thread 状态
+          const rs = payload.run_status as string | undefined
+          if (rs === 'pending' || rs === 'running') setThreadStatus('busy')
+          else if (rs === 'error') setThreadStatus('error')
+          else if (payload.has_interrupt) setThreadStatus('interrupted')
+          else setThreadStatus('idle')
           setIsStreaming(false)
           es.close()
           return
@@ -353,7 +365,12 @@ function useThreadStream(threadId: string | undefined) {
         if (payload.type === 'end') {
           setIsStreaming(false)
           setInterrupts([])
+          setThreadStatus('idle')
           es.close()
+        }
+        // metadata 事件：run 开始，thread 变为 busy
+        if (payload.type === 'metadata') {
+          setThreadStatus('busy')
         }
       } catch (_) { /* ignore parse errors */ }
     }
@@ -367,7 +384,7 @@ function useThreadStream(threadId: string | undefined) {
     return () => { es.close() }
   }, [threadId])
 
-  return { messages, interrupts, isStreaming, streamError }
+  return { messages, interrupts, isStreaming, streamError, threadStatus }
 }
 
 // ─── KR4: HumanGate — 看板内的 interrupt 确认 UI ───────────────────────────────────
@@ -452,9 +469,46 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   // KR3: 实时 thread_id（从初始 snapshot 拉取）
   const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
   // KR3: SSE 实时订阅
-  const { messages: liveMessages, interrupts, isStreaming, streamError } = useThreadStream(liveThreadId)
+  const { messages: liveMessages, interrupts, isStreaming, streamError, threadStatus } = useThreadStream(liveThreadId)
   // KR4: interrupt 后重新订阅
   const [streamKey, setStreamKey] = useState(0)
+  // Checkpoint 历史
+  const [checkpoints, setCheckpoints] = useState<Array<{ checkpoint_id: string; created_at: string; metadata?: { step?: number; source?: string; writes?: Record<string, unknown> } }>>([])
+  const [checkpointsOpen, setCheckpointsOpen] = useState(false)
+  const [cancellingRunId, setCancellingRunId] = useState<string | null>(null)
+
+  // 取消正在跑的 run
+  const cancelRun = async (runId: string) => {
+    if (!liveThreadId) return
+    setCancellingRunId(runId)
+    try {
+      await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${liveThreadId}/runs/${runId}/cancel` }),
+      })
+      toast('Run 已取消', { description: `run_id: ${runId.slice(0, 8)}…`, duration: 3000 })
+      setStreamKey(k => k + 1)
+    } catch {
+      toast('取消失败', { description: '请稍后重试', duration: 3000 })
+    } finally {
+      setCancellingRunId(null)
+    }
+  }
+
+  // 拉取 checkpoint 历史
+  const fetchCheckpoints = async () => {
+    if (!liveThreadId) return
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${liveThreadId}/history` }),
+      })
+      const data = await res.json()
+      if (Array.isArray(data)) setCheckpoints(data)
+    } catch { /* ignore */ }
+  }
 
   const fetchTrace = () => {
     setLoading(true)
@@ -553,6 +607,28 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
               <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                 等待确认
+              </Badge>
+            )}
+            {/* Thread 状态指示器（LangGraph 原生 idle/busy/interrupted/error） */}
+            {threadStatus === 'busy' && (
+              <Badge variant="secondary" className="text-xs flex items-center gap-1 text-onit-amber">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Thread 运行中
+              </Badge>
+            )}
+            {threadStatus === 'interrupted' && (
+              <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600">
+                Thread 已暂停
+              </Badge>
+            )}
+            {threadStatus === 'error' && (
+              <Badge variant="destructive" className="text-xs">
+                Thread 错误
+              </Badge>
+            )}
+            {threadStatus === 'idle' && (
+              <Badge variant="outline" className="text-xs text-onit-green border-onit-green/40">
+                Thread 空闲
               </Badge>
             )}
           </div>
@@ -720,6 +796,27 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                             <p className="text-xs text-destructive mt-0.5 truncate">{item.error}</p>
                           )}
                         </div>
+                        {/* Cancel Run 按鈕：只对 pending/running 状态显示 */}
+                        {(item.status === 'pending' || item.status === 'running') && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                                  onClick={() => cancelRun(item.id)}
+                                  disabled={cancellingRunId === item.id}
+                                >
+                                  {cancellingRunId === item.id
+                                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                                    : <StopCircle className="w-3 h-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>取消此 Run（interrupt 模式，保留 checkpoint）</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -727,6 +824,66 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
               </CardContent>
             </Card>
           </Section>
+
+          {/* Checkpoint 时间线（LangGraph 原生，折叠展示） */}
+          {liveThreadId && (
+            <Section icon={History} title="Checkpoint 历史" subtitle="LangGraph 每步写入一个 checkpoint，可用于时间旅行和回滚">
+              <Collapsible open={checkpointsOpen} onOpenChange={(open) => {
+                setCheckpointsOpen(open)
+                if (open && checkpoints.length === 0) fetchCheckpoints()
+              }}>
+                <Card>
+                  <CollapsibleTrigger className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors">
+                    <span className="text-xs text-muted-foreground">
+                      {checkpoints.length > 0 ? `${checkpoints.length} 个 checkpoint` : '点击加载 checkpoint 历史'}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${checkpointsOpen ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t border-border">
+                      {checkpoints.length === 0 ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-xs text-muted-foreground/50">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          正在加载…
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/30">
+                          {checkpoints.map((cp, i) => (
+                            <div key={cp.checkpoint_id} className="flex items-start gap-3 px-4 py-2.5">
+                              <span className="text-xs font-mono text-muted-foreground/40 shrink-0 pt-0.5 w-5 text-right">{i + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                                    {cp.checkpoint_id.slice(0, 8)}…
+                                  </code>
+                                  {cp.metadata?.step != null && (
+                                    <Badge variant="outline" className="text-xs">step {cp.metadata.step}</Badge>
+                                  )}
+                                  {cp.metadata?.source && (
+                                    <Badge variant="secondary" className="text-xs font-mono">{cp.metadata.source}</Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground/50 font-mono mt-0.5 block">
+                                  {new Date(cp.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                </span>
+                                {cp.metadata?.writes && Object.keys(cp.metadata.writes).length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {Object.keys(cp.metadata.writes).map(k => (
+                                      <Badge key={k} variant="outline" className="text-xs font-mono text-muted-foreground">{k}</Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            </Section>
+          )}
 
           {/* KR4: Human Gate — interrupt 确认 UI */}
           {interrupts.length > 0 && liveThreadId && (
