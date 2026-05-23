@@ -84,8 +84,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work - Deploy in Minutes, Not Months'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate 80% of repetitive tasks with intelligent agents that learn from your workflow. Start seeing results in your first hour.'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work Across Your Entire Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Delegate complete tasks to AI agents that remember context and work across your CRM, email, databases, and calendars. No more prompt babysitting—just real work done autonomously.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'See It In Action'
   const eyebrow = hero?.eyebrow
@@ -125,6 +125,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             No credit card required • 5-minute setup
+          </p>
+          <p className="text-sm font-medium text-foreground/80 pt-2">
+            Join thousands of teams automating real work
           </p>
         </div>
         {trustIndicators.length > 0 && (
