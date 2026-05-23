@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 允许 Manus 代理域名访问 Next.js dev server API
+  allowedDevOrigins: [
+    '*.sg1.manus.computer',
+    '*.manus.computer',
+  ],
   async rewrites() {
     return [
       // PostHog 服务端代理：绕过广告拦截器，确保行为数据完整

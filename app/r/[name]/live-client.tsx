@@ -2078,17 +2078,14 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
         </Table>
       </Section>
 
-      {/* 平台活跃度（PostHog 全平台指标）*/}
-      <Section icon={Activity} title="平台活跃度" subtitle="PostHog 实时统计，全平台事件数据（30天）">
+      {/* 平台活跃度（PostHog 按 tenant_id 过滤）*/}
+      <Section icon={Activity} title="看板活跃度" subtitle="PostHog 实时统计，按这个看板过滤">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: '今日 DAU', icon: Activity, key: 'dau_today', source: 'PostHog $pageview 今日去重用户' },
-            { label: '昨日 DAU', icon: Activity, key: 'dau_yesterday', source: 'PostHog $pageview 昨日去重用户' },
-            { label: '注册用户（30d）', icon: GitBranch, key: 'auth_success_30d', source: 'PostHog auth_success 去重用户' },
-            { label: '看板互动（30d）', icon: MessageCircle, key: 'live_report_tab_switch_30d', source: 'PostHog live_report_tab_switch' },
-            { label: 'Agent 连接点击（30d）', icon: GitBranch, key: 'marketplace_agent_connect_30d', source: 'PostHog marketplace_agent_connect_click' },
-            { label: 'MCP 发现成功（30d）', icon: Lock, key: 'marketplace_mcp_discover_30d', source: 'PostHog marketplace_mcp_discover_success' },
-            { label: '页面浏览量（30d）', icon: Activity, key: 'pageview_30d', source: 'PostHog $pageview' },
+            { label: '看板访问次数', icon: Activity, key: 'live_board_nav', source: 'PostHog live_board_nav' },
+            { label: '看板互动次数', icon: MessageCircle, key: 'live_report_tab_switch', source: 'PostHog live_report_tab_switch' },
+            { label: 'Agent 连接点击', icon: GitBranch, key: 'marketplace_agent_connect_click', source: 'PostHog marketplace_agent_connect_click' },
+            { label: 'Telegram 点击', icon: MessageCircle, key: 'live_report_telegram_click', source: 'PostHog live_report_telegram_click' },
           ].map(({ label, icon: Icon, key, source }) => {
             const count = posthogActivity?.[key]
             const isLoading = posthogActivity === null

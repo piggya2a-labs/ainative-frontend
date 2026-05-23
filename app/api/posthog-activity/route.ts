@@ -19,12 +19,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'PostHog not configured', events: {} }, { status: 200 })
   }
 
-  // 事件列表：[查询事件名, 返回 key]
+  // 事件列表：[查询事件名, 返回 key]（按 tenant_id 过滤，只统计这个 tenant 的看板数据）
   const eventMap: [string, string][] = [
-    ['live_report_tab_switch',           'live_report_tab_switch'],   // 看板互动（有实际数据）
-    ['marketplace_agent_connect_click',  'marketplace_agent_connect_success'], // 连接 Agent
-    ['live_report_telegram_click',       'dashboard_telegram_cta_click'],      // Telegram 点击
-    ['api_key_create',                   'api_key_create'],           // 创建 API Key
+    ['live_board_nav',                   'live_board_nav'],                   // 看板访问/导航次数
+    ['live_report_tab_switch',           'live_report_tab_switch'],           // 看板互动次数
+    ['marketplace_agent_connect_click',  'marketplace_agent_connect_click'],  // Agent 连接点击
+    ['live_report_telegram_click',       'live_report_telegram_click'],       // Telegram 点击
   ]
 
   try {
