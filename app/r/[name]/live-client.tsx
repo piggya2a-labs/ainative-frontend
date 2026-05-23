@@ -471,6 +471,8 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
   // KR4: interrupt 后重新订阅（必须在 useThreadStream 之前声明）
   const [streamKey, setStreamKey] = useState(0)
+  // fetchKey 独立控制 fetchTrace 重运行（与 streamKey 解耦）
+  const [fetchKey, setFetchKey] = useState(0)
   // KR3: SSE 实时订阅
   const { messages: liveMessages, interrupts, isStreaming, streamError, threadStatus } = useThreadStream(liveThreadId, streamKey)
   // Checkpoint 历史
@@ -678,6 +680,8 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         const latestThread = threads[0]
         const threadId = latestThread?.thread_id ?? ''
         setLiveThreadId(threadId)
+        // 每次 fetchTrace 完成后强制 SSE 重新订阅（即使 threadId 没变）
+        setStreamKey(k => k + 1)
 
         const parsed: TraceData = {
           total_calls: allRuns.length,
@@ -694,7 +698,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchTrace() }, [tenantSlug, streamKey])
+  useEffect(() => { fetchTrace() }, [tenantSlug, fetchKey])
 
   return (
     <div className="space-y-8">
@@ -742,7 +746,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
             )}
           </div>
           <button
-            onClick={fetchTrace}
+            onClick={() => setFetchKey(k => k + 1)}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
