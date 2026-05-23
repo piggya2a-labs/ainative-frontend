@@ -519,21 +519,27 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
     if (!liveThreadId) return
     setRestoringCheckpointId(checkpointId)
     try {
+      // 正确的时间旅行：POST /threads/{id}/runs 带 checkpoint 参数
+      // LangGraph 会从该 checkpoint 重新开始执行
       const res = await fetch('/api/langgraph-trace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          path: `/threads/${liveThreadId}/state`,
+          path: `/threads/${liveThreadId}/runs`,
           method: 'POST',
-          body: { checkpoint_id: checkpointId, values: {} },
+          body: {
+            assistant_id: 'meta_manage_agent',
+            checkpoint: { checkpoint_id: checkpointId },
+            input: null,
+          },
         }),
       })
       if (!res.ok) {
         const errText = await res.text()
         throw new Error(errText)
       }
-      toast('时间旅行成功', { description: `已从 checkpoint ${checkpointId.slice(0, 8)}… 恢复，重新订阅中…`, duration: 3000 })
-      setStreamKey(k => k + 1)
+      toast('时间旅行成功', { description: `已从 checkpoint ${checkpointId.slice(0, 8)}… 恢复，Agent 重新运行中…`, duration: 3000 })
+      setFetchKey(k => k + 1)
     } catch {
       toast('恢复失败', { description: '请稍后重试', duration: 3000 })
     } finally {
