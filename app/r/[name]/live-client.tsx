@@ -202,12 +202,22 @@ interface TraceArtifact {
   run_name: string
   time: string
 }
+interface ThreadMessage {
+  id: string
+  type: 'human' | 'ai' | 'tool' | 'system'
+  content: string
+  tool_calls?: Array<{ id: string; name: string; args: Record<string, unknown> }>
+  tool_call_id?: string
+  name?: string
+}
 interface TraceData {
   total_calls: number
   agents: string[]
   timeline: TraceTimelineItem[]
   artifacts: TraceArtifact[]
   screenshots: string[]
+  messages?: ThreadMessage[]
+  thread_id?: string
 }
 
 export interface LiveClientProps {
@@ -329,12 +339,38 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         const evidenceUrls: string[] = (meta?.milestones ?? []).flatMap(
           (m: MilestoneData & { evidence?: string[] }) => m.evidence ?? []
         )
+        // 拉最新 thread 的 messages
+        const latestThread = threads[0]
+        let messages: ThreadMessage[] = []
+        const threadId = latestThread?.thread_id ?? ''
+        try {
+          const state = await lg(`/threads/${latestThread.thread_id}/state`)
+          const rawMsgs: Array<Record<string, unknown>> = state?.values?.messages ?? []
+          messages = rawMsgs
+            .filter((m) => m.type !== 'system')
+            .map((m) => {
+              const content = Array.isArray(m.content)
+                ? (m.content as Array<{ type?: string; text?: string }>)
+                    .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
+                : String(m.content ?? '')
+              return {
+                id: String(m.id ?? Math.random()),
+                type: m.type as ThreadMessage['type'],
+                content,
+                tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
+                tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
+                name: m.name ? String(m.name) : undefined,
+              }
+            })
+        } catch (_) { /* silent */ }
         const parsed: TraceData = {
           total_calls: allRuns.length,
           agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
           timeline,
           artifacts: [],
-          screenshots: evidenceUrls
+          screenshots: evidenceUrls,
+          messages,
+          thread_id: threadId,
         }
         setData(parsed)
         setLoading(false)
@@ -526,6 +562,64 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
               </CardContent>
             </Card>
           </Section>
+
+          {/* 对话流 */}
+          {data.messages && data.messages.length > 0 && (
+            <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${data.thread_id ? data.thread_id.slice(0, 8) + '…' : ''} · ${data.messages.length} 条消息`}>
+              <div className="space-y-2">
+                {data.messages.map((msg) => {
+                  if (msg.type === 'human') return (
+                    <Card key={msg.id} className="border-l-2" style={{ borderLeftColor: 'var(--onit-blue)' }}>
+                      <CardContent className="pt-3 pb-3">
+                        <Badge variant="secondary" className="text-xs mb-1.5">用户</Badge>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      </CardContent>
+                    </Card>
+                  )
+                  if (msg.type === 'tool') {
+                    const isErr = msg.content.includes('"ok": false') || msg.content.toLowerCase().includes('error')
+                    return (
+                      <div key={msg.id} className="pl-5 flex items-start gap-2">
+                        <ChevronRight className="w-3.5 h-3.5 mt-1 text-muted-foreground/40 shrink-0" />
+                        <div className="flex-1 rounded-md border border-border/40 bg-muted/30 px-3 py-2">
+                          <Badge variant="outline" className="text-xs font-mono mb-1" style={{ color: isErr ? 'var(--onit-red)' : 'var(--onit-green)', borderColor: isErr ? 'var(--onit-red)' : 'var(--onit-green)' }}>
+                            {isErr ? '✗' : '✓'} {msg.name ?? 'tool'}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground font-mono break-all">{msg.content.slice(0, 300)}{msg.content.length > 300 ? '…' : ''}</p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  if (msg.type === 'ai') {
+                    const hasTools = msg.tool_calls && msg.tool_calls.length > 0
+                    const isSubAgent = msg.tool_calls?.some(tc => tc.name === 'task')
+                    return (
+                      <Card key={msg.id} className={isSubAgent ? 'border-l-2' : ''} style={isSubAgent ? { borderLeftColor: 'var(--onit-green)' } : {}}>
+                        <CardContent className="pt-3 pb-3">
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <Badge variant="outline" className="text-xs">@Lumen</Badge>
+                            {hasTools && <Badge variant="secondary" className="text-xs">{msg.tool_calls!.length} 个工具调用</Badge>}
+                            {isSubAgent && <Badge className="text-xs" style={{ background: 'var(--onit-green-muted)', color: 'var(--onit-green)' }}>派遣子 Agent</Badge>}
+                          </div>
+                          {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{msg.content.slice(0, 800)}{msg.content.length > 800 ? '…' : ''}</p>}
+                          {hasTools && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {msg.tool_calls!.map(tc => (
+                                <Badge key={tc.id} variant="outline" className="text-xs font-mono text-muted-foreground">
+                                  {tc.name === 'task' ? '🚀 ' : '⚙️ '}{tc.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )
+                  }
+                  return null
+                })}
+              </div>
+            </Section>
+          )}
 
           {/* 产出物 */}
           <Section icon={Terminal} title="产出物" subtitle="E2B 执行结果、写入文件等">
