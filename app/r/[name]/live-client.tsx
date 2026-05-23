@@ -21,9 +21,8 @@ import {
 // 它作为 Agent & Human 的 SSOT 唯一真相，以结果和成功为导向，给每个任务明确的状态。
 // triage → todo → ready → running → blocked → done。
 // 在这个基础上，参考 @Hermes Kanban。
-// 我们给 Building 的每个任务，配有一个长期运行的循环，每 60 秒扫一次，
-// 根据不同的任务状态，自动检查对应的 ONIT Agent、进入运行队列。
-// 看板不只是展示，而是活着的调度引擎。
+// @Lumen 在 Thread 内直接 task() 派遣子 Agent，看板通过 SSE 实时镜像 Thread 状态。
+// 看板不只是展示，而是 Thread 的实时镜像。
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
@@ -108,7 +107,7 @@ interface MilestoneData {
   tasks_done: number
   owner: string
   tasks?: MilestoneTask[]
-  // 调度字段（dispatcher 写入）
+  // 执行字段（LangSmith webhook 回调写入）
   assignee?: string          // e.g. "@Lumen"
   run_id?: string            // LangGraph run_id
   thread_id?: string         // LangGraph thread_id
@@ -233,7 +232,6 @@ export interface LiveClientProps {
 // ─── helpers ─────────────────────────────────────────────────────────────────
 // 状态机：triage→todo→ready→running→blocked→done
 // 数据来源：tenants.metadata.milestones[].status（Supabase Realtime 实时推送）
-// Human 把里程碑改成 ready，Dispatcher 才会在下一个 60s tick 派发
 function milestoneStatusLabel(s: string) {
   if (s === 'done') return '已完成'
   if (s === 'running') return '执行中'
