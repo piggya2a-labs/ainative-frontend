@@ -11,7 +11,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/sonner'
 import { usePostHog } from 'posthog-js/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useStream } from '@langchain/langgraph-sdk/react'
 import { createClient } from '@/lib/supabase-client'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
@@ -279,120 +280,16 @@ function toLines(val: string | string[] | undefined): string[] {
   return val.split('\n').filter(Boolean)
 }
 
-// ─── KR3: useThreadStream — SSE 实时订阅 Thread，替代 fetchTrace 轮询 ───────────────────────
-// 订阅 /api/langgraph-stream?thread_id=xxx，Agent 每跑一步看板自动更新
-interface InterruptItem {
-  value: unknown
-  resumable: boolean
-  ns?: string[]
-  when?: string
-}
-function useThreadStream(threadId: string | undefined, streamKey?: number) {
-  const [messages, setMessages] = useState<ThreadMessage[]>([])
-  const [interrupts, setInterrupts] = useState<InterruptItem[]>([])
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [streamError, setStreamError] = useState<string | null>(null)
-  // Thread 级别状态：idle / busy / interrupted / error（LangGraph 原生）
-  const [threadStatus, setThreadStatus] = useState<'idle' | 'busy' | 'interrupted' | 'error' | null>(null)
-
-  useEffect(() => {
-    if (!threadId) return
-    setIsStreaming(true)
-    setStreamError(null)
-
-    const es = new EventSource(`/api/langgraph-stream?thread_id=${encodeURIComponent(threadId)}`)
-
-    es.onmessage = (e) => {
-      try {
-        const payload = JSON.parse(e.data)
-        // snapshot 事件：初始加载或无 running run 时
-        if (payload.type === 'snapshot') {
-          if (Array.isArray(payload.messages)) {
-            const msgs = payload.messages
-              .filter((m: Record<string, unknown>) => m.type !== 'system')
-              .map((m: Record<string, unknown>) => ({
-                id: String(m.id ?? Math.random()),
-                type: m.type as ThreadMessage['type'],
-                content: Array.isArray(m.content)
-                  ? (m.content as Array<{ type?: string; text?: string }>)
-                      .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
-                  : String(m.content ?? ''),
-                tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
-                tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
-                name: m.name ? String(m.name) : undefined,
-              }))
-            setMessages(msgs)
-          }
-          if (payload.has_interrupt && Array.isArray(payload.interrupts)) {
-            setInterrupts(payload.interrupts as InterruptItem[])
-          } else {
-            setInterrupts([])
-          }
-          // 从 run_status 推断 thread 状态
-          const rs = payload.run_status as string | undefined
-          if (rs === 'pending' || rs === 'running') setThreadStatus('busy')
-          else if (rs === 'error') setThreadStatus('error')
-          else if (payload.has_interrupt) setThreadStatus('interrupted')
-          else setThreadStatus('idle')
-          setIsStreaming(false)
-          es.close()
-          return
-        }
-        // LangGraph SSE 流事件：values / messages / metadata / interrupts
-        if (payload.type === 'values' && payload.values?.messages) {
-          const rawMsgs: Array<Record<string, unknown>> = payload.values.messages
-          const msgs = rawMsgs
-            .filter((m) => m.type !== 'system')
-            .map((m) => ({
-              id: String(m.id ?? Math.random()),
-              type: m.type as ThreadMessage['type'],
-              content: Array.isArray(m.content)
-                ? (m.content as Array<{ type?: string; text?: string }>)
-                    .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
-                : String(m.content ?? ''),
-              tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
-              tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
-              name: m.name ? String(m.name) : undefined,
-            }))
-          setMessages(msgs)
-        }
-        // interrupt 事件：Agent 暂停等待人类确认
-        if (payload.type === 'interrupt' || payload.type === 'interrupts') {
-          const items = Array.isArray(payload.interrupts) ? payload.interrupts : [payload]
-          setInterrupts(items as InterruptItem[])
-        }
-        // end 事件：run 完成
-        if (payload.type === 'end') {
-          setIsStreaming(false)
-          setInterrupts([])
-          setThreadStatus('idle')
-          es.close()
-        }
-        // metadata 事件：run 开始，thread 变为 busy
-        if (payload.type === 'metadata') {
-          setThreadStatus('busy')
-        }
-      } catch (_) { /* ignore parse errors */ }
-    }
-
-    es.onerror = () => {
-      setStreamError('实时订阅断开，请刷新页面')
-      setIsStreaming(false)
-      es.close()
-    }
-
-    return () => { es.close() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, streamKey])
-
-  return { messages, interrupts, isStreaming, streamError, threadStatus }
-}
+// ─── KR3/KR4: 官方 @langchain/langgraph-sdk useStream 替代手写 SSE ──────────────────────
+// 通过 /api/lg-proxy 透传，API Key 保留在服务端
+// useStream 原生处理：interrupt 检测、SSE 时序、checkpoint history、stop/resume
+// 无需手写 EventSource，无需 snapshot 事件解析，无需 streamKey 时序 workaround
 
 // ─── KR4: HumanGate — 看板内的 interrupt 确认 UI ───────────────────────────────────
-function HumanGate({ threadId, interrupts, onResume }: {
-  threadId: string
-  interrupts: InterruptItem[]
-  onResume: () => void
+// onSubmit 直接是 useStream 返回的 submit 函数（官方 SDK 原生 resume）
+function HumanGate({ interrupts, onSubmit }: {
+  interrupts: Array<{ value?: unknown; resumable?: boolean }>
+  onSubmit: (values: null, options: { command: { resume: unknown } }) => Promise<void>
 }) {
   const [submitting, setSubmitting] = useState(false)
   const [resumeText, setResumeText] = useState('')
@@ -400,12 +297,7 @@ function HumanGate({ threadId, interrupts, onResume }: {
   const handleResume = async (value: unknown) => {
     setSubmitting(true)
     try {
-      await fetch('/api/langgraph-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, resume_value: value }),
-      })
-      onResume()
+      await onSubmit(null, { command: { resume: value } })
     } finally {
       setSubmitting(false)
     }
@@ -467,66 +359,55 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   const [data, setData] = useState<TraceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  // KR3: 实时 thread_id（从初始 snapshot 拉取）
+  // LangGraph thread_id（从 fetchTrace 设置）
   const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
-  // KR4: interrupt 后重新订阅（必须在 useThreadStream 之前声明）
-  const [streamKey, setStreamKey] = useState(0)
-  // fetchKey 独立控制 fetchTrace 重运行（与 streamKey 解耦）
+  // fetchKey 控制 fetchTrace 重运行
   const [fetchKey, setFetchKey] = useState(0)
-  // KR3: SSE 实时订阅
-  const { messages: liveMessages, interrupts, isStreaming, streamError, threadStatus } = useThreadStream(liveThreadId, streamKey)
-  // Checkpoint 历史
-  const [checkpoints, setCheckpoints] = useState<Array<{ checkpoint_id: string; created_at: string; metadata?: { step?: number; source?: string; writes?: Record<string, unknown> } }>>([])
+
+  // ─── 官方 useStream hook ───────────────────────────────────────────────────────────────────────
+  // 通过 /api/lg-proxy 透传，API Key 保留在服务端
+  const stream = useStream<Record<string, unknown>>({
+    apiUrl: '/api/lg-proxy',
+    assistantId: 'meta_manage_agent',
+    threadId: liveThreadId ?? undefined,
+    reconnectOnMount: true,
+  })
+
+  // 从 useStream 解构常用字段
+  const liveMessages = stream.messages ?? []
+  const interrupts = stream.interrupts ?? []
+  const isStreaming = stream.isLoading
+  const threadStatus: 'busy' | 'error' | 'interrupted' | 'idle' | null = stream.isLoading ? 'busy'
+    : stream.error ? 'error'
+    : interrupts.length > 0 ? 'interrupted'
+    : liveThreadId ? 'idle'
+    : null
+
+  // Checkpoint 历史（直接从 stream.history 读取）
   const [checkpointsOpen, setCheckpointsOpen] = useState(false)
+  const checkpoints = (stream.history ?? []).filter((cp) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cpMeta = (cp as any).metadata
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cpNext = (cp as any).next
+    return cpMeta?.source === 'loop' && Array.isArray(cpNext) && cpNext.length > 0
+  })
+
   const [cancellingRunId, setCancellingRunId] = useState<string | null>(null)
 
-  // 取消正在跑的 run
-  const cancelRun = async (runId: string) => {
-    if (!liveThreadId) return
+  // 取消正在跑的 run（直接用 stream.stop()）
+  const cancelRun = useCallback(async (runId: string) => {
     setCancellingRunId(runId)
     try {
-      await fetch('/api/langgraph-trace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: `/threads/${liveThreadId}/runs/${runId}/cancel` }),
-      })
+      await stream.stop()
       toast('Run 已取消', { description: `run_id: ${runId.slice(0, 8)}…`, duration: 3000 })
-      setStreamKey(k => k + 1)
     } catch {
       toast('取消失败', { description: '请稍后重试', duration: 3000 })
     } finally {
       setCancellingRunId(null)
     }
-  }
-
-  // 拉取 checkpoint 历史
-  const fetchCheckpoints = async () => {
-    if (!liveThreadId) return
-    try {
-      const res = await fetch('/api/langgraph-trace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: `/threads/${liveThreadId}/history?limit=50` }),
-      })
-      const data = await res.json()
-      // LangGraph history API 返回的格式：checkpoint_id 在 config.configurable.checkpoint_id 里
-      // 需要映射到顶层字段以匹配渲染逻辑
-      if (Array.isArray(data)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const normalized = data.map((cp: any) => ({
-          checkpoint_id: cp.config?.configurable?.checkpoint_id ?? cp.checkpoint_id ?? '',
-          created_at: cp.created_at ?? '',
-          metadata: cp.metadata,
-          next: cp.next ?? [],
-        }))
-        // 只保留 source=loop 且 next 不为空的 checkpoint（可以真正恢复的中间状态）
-        const restorable = normalized.filter((cp) =>
-          cp.metadata?.source === 'loop' && cp.next.length > 0
-        )
-        setCheckpoints(restorable.length > 0 ? restorable : normalized.slice(0, 5))
-      }
-    } catch { /* ignore */ }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stream])
 
   // 时间旅行：从指定 checkpoint 恢复
   const [restoringCheckpointId, setRestoringCheckpointId] = useState<string | null>(null)
@@ -697,12 +578,10 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         const evidenceUrls: string[] = (meta?.milestones ?? []).flatMap(
           (m: MilestoneData & { evidence?: string[] }) => m.evidence ?? []
         )
-        // KR3: 设置 liveThreadId 启动 SSE 订阅
+        // 设置 liveThreadId，触发 useStream 订阅
         const latestThread = threads[0]
         const threadId = latestThread?.thread_id ?? ''
         setLiveThreadId(threadId)
-        // 每次 fetchTrace 完成后强制 SSE 重新订阅（即使 threadId 没变）
-        setStreamKey(k => k + 1)
 
         const parsed: TraceData = {
           total_calls: allRuns.length,
@@ -962,10 +841,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
           {/* Checkpoint 时间线（LangGraph 原生，折叠展示） */}
           {liveThreadId && (
             <Section icon={History} title="Checkpoint 历史" subtitle="LangGraph 每步写入一个 checkpoint，可用于时间旅行和回滚">
-              <Collapsible open={checkpointsOpen} onOpenChange={(open) => {
-                setCheckpointsOpen(open)
-                if (open && checkpoints.length === 0) fetchCheckpoints()
-              }}>
+              <Collapsible open={checkpointsOpen} onOpenChange={setCheckpointsOpen}>
                 <Card>
                   <CollapsibleTrigger className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors">
                     <span className="text-xs text-muted-foreground">
@@ -982,27 +858,35 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                         </div>
                       ) : (
                         <div className="divide-y divide-border/30">
-                          {checkpoints.map((cp, i) => (
-                            <div key={cp.checkpoint_id} className="flex items-start gap-3 px-4 py-2.5">
+                          {checkpoints.map((cp, i) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const cpAny = cp as any
+                            const cpId: string = cpAny.config?.configurable?.checkpoint_id ?? cpAny.checkpoint_id ?? ''
+                            const cpMeta = cpAny.metadata ?? {}
+                            const cpCreatedAt: string = cpAny.created_at ?? ''
+                            return (
+                            <div key={cpId || i} className="flex items-start gap-3 px-4 py-2.5">
                               <span className="text-xs font-mono text-muted-foreground/40 shrink-0 pt-0.5 w-5 text-right">{i + 1}</span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                                    {cp.checkpoint_id.slice(0, 8)}…
+                                    {cpId ? cpId.slice(0, 8) + '…' : '未知'}
                                   </code>
-                                  {cp.metadata?.step != null && (
-                                    <Badge variant="outline" className="text-xs">step {cp.metadata.step}</Badge>
+                                  {cpMeta.step != null && (
+                                    <Badge variant="outline" className="text-xs">step {cpMeta.step}</Badge>
                                   )}
-                                  {cp.metadata?.source && (
-                                    <Badge variant="secondary" className="text-xs font-mono">{cp.metadata.source}</Badge>
+                                  {cpMeta.source && (
+                                    <Badge variant="secondary" className="text-xs font-mono">{cpMeta.source}</Badge>
                                   )}
                                 </div>
-                                <span className="text-xs text-muted-foreground/50 font-mono mt-0.5 block">
-                                  {new Date(cp.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                </span>
-                                {cp.metadata?.writes && Object.keys(cp.metadata.writes).length > 0 && (
+                                {cpCreatedAt && (
+                                  <span className="text-xs text-muted-foreground/50 font-mono mt-0.5 block">
+                                    {new Date(cpCreatedAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                  </span>
+                                )}
+                                {cpMeta.writes && Object.keys(cpMeta.writes).length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
-                                    {Object.keys(cp.metadata.writes).map(k => (
+                                    {Object.keys(cpMeta.writes).map((k: string) => (
                                       <Badge key={k} variant="outline" className="text-xs font-mono text-muted-foreground">{k}</Badge>
                                     ))}
                                   </div>
@@ -1014,19 +898,20 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                                         variant="ghost"
                                         size="sm"
                                         className="mt-1.5 h-6 text-xs text-muted-foreground hover:text-foreground px-2"
-                                        disabled={restoringCheckpointId === cp.checkpoint_id}
-                                        onClick={() => restoreCheckpoint(cp.checkpoint_id)}
+                                        disabled={restoringCheckpointId === cpId}
+                                        onClick={() => cpId && restoreCheckpoint(cpId)}
                                       >
-                                        {restoringCheckpointId === cp.checkpoint_id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <History className="w-3 h-3 mr-1" />}
+                                        {restoringCheckpointId === cpId ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <History className="w-3 h-3 mr-1" />}
                                         从此恢复
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>时间旅行：将 Thread 状态回滚到此 checkpoint，然后重新订阅 SSE</TooltipContent>
+                                    <TooltipContent>时间旅行：将 Thread 状态回滚到此 checkpoint，然后重新运行</TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
                             </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       )}
                     </div>
@@ -1037,24 +922,24 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
           )}
 
           {/* KR4: Human Gate — interrupt 确认 UI */}
-          {interrupts.length > 0 && liveThreadId && (
+          {interrupts.length > 0 && (
             <HumanGate
-              threadId={liveThreadId}
               interrupts={interrupts}
-              onResume={() => setStreamKey(k => k + 1)}
+              onSubmit={stream.submit}
             />
           )}
 
           {/* KR3: 实时对话流（SSE 订阅，替代静态 data.messages） */}
           {(liveMessages.length > 0 || (data.messages && data.messages.length > 0)) && (
             <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${liveThreadId ? liveThreadId.slice(0, 8) + '…' : (data.thread_id ? data.thread_id.slice(0, 8) + '…' : '')} · ${(liveMessages.length || data.messages?.length || 0)} 条消息${isStreaming ? ' · 实时订阅中…' : ''}`}>
-              {streamError && (
+              {stream.error != null && (
                 <div className="rounded-md border border-amber-400/30 bg-amber-50/20 px-3 py-2 text-xs text-amber-600 mb-2">
-                  {streamError}
+                  {stream.error instanceof Error ? stream.error.message : String(stream.error)}
                 </div>
               )}
               <div className="space-y-2">
-                {(liveMessages.length > 0 ? liveMessages : (data.messages ?? [])).map((msg) => {
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(liveMessages.length > 0 ? (liveMessages as any[]) : (data.messages ?? [])).map((msg: any) => {
                   if (msg.type === 'human') return (
                     <Card key={msg.id} className="border-l-2" style={{ borderLeftColor: 'var(--onit-blue)' }}>
                       <CardContent className="pt-3 pb-3">
@@ -1079,7 +964,8 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                   }
                   if (msg.type === 'ai') {
                     const hasTools = msg.tool_calls && msg.tool_calls.length > 0
-                    const isSubAgent = msg.tool_calls?.some(tc => tc.name === 'task')
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const isSubAgent = msg.tool_calls?.some((tc: any) => tc.name === 'task')
                     return (
                       <Card key={msg.id} className={isSubAgent ? 'border-l-2' : ''} style={isSubAgent ? { borderLeftColor: 'var(--onit-green)' } : {}}>
                         <CardContent className="pt-3 pb-3">
@@ -1091,7 +977,8 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                           {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{msg.content.slice(0, 800)}{msg.content.length > 800 ? '…' : ''}</p>}
                           {hasTools && (
                             <div className="flex flex-wrap gap-1.5">
-                              {msg.tool_calls!.map(tc => (
+                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {msg.tool_calls!.map((tc: any) => (
                                 <Badge key={tc.id} variant="outline" className="text-xs font-mono text-muted-foreground">
                                   {tc.name === 'task' ? '🚀 ' : '⚙️ '}{tc.name}
                                 </Badge>
