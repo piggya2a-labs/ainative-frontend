@@ -510,6 +510,110 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
     } catch { /* ignore */ }
   }
 
+  // 时间旅行：从指定 checkpoint 恢复
+  const [restoringCheckpointId, setRestoringCheckpointId] = useState<string | null>(null)
+  const restoreCheckpoint = async (checkpointId: string) => {
+    if (!liveThreadId) return
+    setRestoringCheckpointId(checkpointId)
+    try {
+      await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: `/threads/${liveThreadId}/state`,
+          method: 'POST',
+          body: { checkpoint_id: checkpointId, values: null },
+        }),
+      })
+      toast('时间旅行成功', { description: `已从 checkpoint ${checkpointId.slice(0, 8)}… 恢复`, duration: 3000 })
+      setStreamKey(k => k + 1)
+    } catch {
+      toast('恢复失败', { description: '请稍后重试', duration: 3000 })
+    } finally {
+      setRestoringCheckpointId(null)
+    }
+  }
+
+  // Fork Thread（threads.copy）
+  const [forking, setForking] = useState(false)
+  const forkThread = async () => {
+    if (!liveThreadId) return
+    setForking(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${liveThreadId}/copy` }),
+      })
+      const result = await res.json()
+      const newId = result?.thread_id ?? result?.id ?? ''
+      toast('Fork 成功', { description: `新 Thread: ${newId.slice(0, 12)}…`, duration: 4000 })
+    } catch {
+      toast('Fork 失败', { description: '请稍后重试', duration: 3000 })
+    } finally {
+      setForking(false)
+    }
+  }
+
+  // LangGraph Store
+  const [storeOpen, setStoreOpen] = useState(false)
+  const [storeItems, setStoreItems] = useState<Array<{ namespace: string[]; key: string; value: Record<string, unknown>; updated_at?: string }>>([])
+  const [storeLoading, setStoreLoading] = useState(false)
+  const fetchStore = async () => {
+    setStoreLoading(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: '/store/items/search',
+          body: { namespace_prefix: [], limit: 50 },
+        }),
+      })
+      const data = await res.json()
+      if (Array.isArray(data?.items)) setStoreItems(data.items)
+      else if (Array.isArray(data)) setStoreItems(data)
+    } catch { /* ignore */ } finally {
+      setStoreLoading(false)
+    }
+  }
+
+  // LangGraph Crons
+  const [cronsOpen, setCronsOpen] = useState(false)
+  const [crons, setCrons] = useState<Array<{ cron_id: string; assistant_id: string; schedule: string; enabled: boolean; next_run_date?: string }>>([])
+  const [cronsLoading, setCronsLoading] = useState(false)
+  const [deletingCronId, setDeletingCronId] = useState<string | null>(null)
+  const fetchCrons = async () => {
+    setCronsLoading(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: '/crons' }),
+      })
+      const data = await res.json()
+      if (Array.isArray(data)) setCrons(data)
+    } catch { /* ignore */ } finally {
+      setCronsLoading(false)
+    }
+  }
+  const deleteCron = async (cronId: string) => {
+    setDeletingCronId(cronId)
+    try {
+      await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/crons/${cronId}`, method: 'DELETE' }),
+      })
+      toast('Cron 已删除', { duration: 3000 })
+      fetchCrons()
+    } catch {
+      toast('删除失败', { duration: 3000 })
+    } finally {
+      setDeletingCronId(null)
+    }
+  }
+
   const fetchTrace = () => {
     setLoading(true)
     // 通过 Next.js API route 查 LangGraph（服务端安全读取 API key）
@@ -873,6 +977,23 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                                     ))}
                                   </div>
                                 )}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="mt-1.5 h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                                        disabled={restoringCheckpointId === cp.checkpoint_id}
+                                        onClick={() => restoreCheckpoint(cp.checkpoint_id)}
+                                      >
+                                        {restoringCheckpointId === cp.checkpoint_id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <History className="w-3 h-3 mr-1" />}
+                                        从此恢复
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>时间旅行：将 Thread 状态回滚到此 checkpoint，然后重新订阅 SSE</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             </div>
                           ))}
@@ -984,6 +1105,126 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
               </div>
             )}
           </Section>
+
+          {/* LangGraph Store — 跨 Thread 持久化 KV */}
+          <Section icon={Layers} title="Store（跨 Thread 知识库）" subtitle="LangGraph 原生持久化 KV，子 Agent 产出可跨 MCSP 复用">
+            <Collapsible open={storeOpen} onOpenChange={(v) => { setStoreOpen(v); if (v && storeItems.length === 0) fetchStore() }}>
+              <CollapsibleTrigger className="w-full">
+                <Button variant="outline" size="sm" className="w-full justify-between pointer-events-none">
+                  <span className="flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5" />
+                    {storeOpen ? '收起 Store' : '展开 Store'}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${storeOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="mt-2">
+                  <CardContent className="pt-3 pb-3">
+                    {storeLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />加载中…</div>
+                    ) : storeItems.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/50 italic py-2">Store 为空（尚无跨 Thread 共享数据）</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {storeItems.map((item, i) => (
+                          <div key={i} className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-xs font-mono">{item.namespace.join('/')}</Badge>
+                              <code className="text-xs text-muted-foreground">{item.key}</code>
+                              {item.updated_at && <span className="text-xs text-muted-foreground/50 ml-auto">{new Date(item.updated_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+                            </div>
+                            <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap break-all max-h-24 overflow-y-auto">{JSON.stringify(item.value, null, 2).slice(0, 400)}</pre>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          </Section>
+
+          {/* LangGraph Crons — 原生定时任务 */}
+          <Section icon={Clock} title="Cron Jobs" subtitle="LangGraph 原生定时任务，可替代 pg_cron">
+            <Collapsible open={cronsOpen} onOpenChange={(v) => { setCronsOpen(v); if (v && crons.length === 0) fetchCrons() }}>
+              <CollapsibleTrigger className="w-full">
+                <Button variant="outline" size="sm" className="w-full justify-between pointer-events-none">
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    {cronsOpen ? '收起 Crons' : '展开 Crons'}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${cronsOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="mt-2">
+                  <CardContent className="pt-3 pb-3">
+                    {cronsLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />加载中…</div>
+                    ) : crons.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/50 italic py-2">暂无 Cron Job（当前使用 Supabase pg_cron）</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {crons.map((cron) => (
+                          <div key={cron.cron_id} className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={cron.enabled ? 'default' : 'secondary'} className="text-xs">{cron.enabled ? '开启' : '关闭'}</Badge>
+                              <code className="text-xs font-mono text-muted-foreground flex-1">{cron.schedule}</code>
+                              <Badge variant="outline" className="text-xs font-mono">{cron.assistant_id.slice(0, 8)}…</Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                      disabled={deletingCronId === cron.cron_id}
+                                      onClick={() => deleteCron(cron.cron_id)}
+                                    >
+                                      {deletingCronId === cron.cron_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <StopCircle className="w-3 h-3" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>删除此 Cron Job</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            {cron.next_run_date && <p className="text-xs text-muted-foreground/50 mt-1">下次运行：{new Date(cron.next_run_date).toLocaleString('zh-CN')}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          </Section>
+
+          {/* Fork Thread */}
+          {liveThreadId && (
+            <Section icon={GitBranch} title="Thread 操作" subtitle="Fork 当前 Thread 创建平行实验分支">
+              <div className="flex items-center gap-3">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={forking}
+                        onClick={forkThread}
+                        className="flex items-center gap-2"
+                      >
+                        {forking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitBranch className="w-3.5 h-3.5" />}
+                        Fork Thread
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>复制当前 Thread 状态，创建平行实验分支，不破坏主线</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <p className="text-xs text-muted-foreground">当前 Thread: <code className="font-mono">{liveThreadId.slice(0, 12)}…</code></p>
+              </div>
+            </Section>
+          )}
 
           {/* 截图 */}
           <Section icon={Image} title="截图" subtitle="Agent 执行 steel_screenshot 时的截图">
