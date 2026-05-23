@@ -1,24 +1,27 @@
 'use client'
 import { Streamdown } from 'streamdown'
+import { cjk } from '@streamdown/cjk'
 import 'streamdown/styles.css'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { AgentChat } from '@/components/agent-chat'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/sonner'
 import { usePostHog } from 'posthog-js/react'
-import { useEffect, useState, useCallback } from 'react'
-import { useStream } from '@langchain/langgraph-sdk/react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
   Calendar, Clock, ArrowRight, Flag, Layers, FileText, Info,
   Lock, Zap, Activity, MessageCircle, Key, Download, Loader2,
-  Terminal, Image, RefreshCw, ChevronRight, ChevronDown, StopCircle, History
+  Terminal, Image, RefreshCw, ChevronRight, ChevronDown, StopCircle, History,
+  MessageSquare, RotateCcw
 } from 'lucide-react'
 
 // ─── ONIT LIVE BOARD 设计理念（founder_intent, 2026-05-21）─────────────────────
@@ -31,14 +34,15 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── 完全复用 how-we-work 的 Section wrapper ─────────────────────────────────
-function Section({ icon: Icon, title, subtitle, children }: {
+function Section({ icon: Icon, title, subtitle, children, id }: {
   icon: React.ElementType
   title: string
   subtitle?: string
   children: React.ReactNode
+  id?: string
 }) {
   return (
-    <div className="space-y-3">
+    <div id={id} className="space-y-3 scroll-mt-24">
       <div className="flex items-start gap-2">
         <Icon className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
         <div>
@@ -68,6 +72,7 @@ const AGENT_NAMES: Record<string, string> = {
   '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
   '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
   'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
+  '8f5c1cb6-54eb-51e5-a574-bdc04d56ed0a': '@Lumen', // meta_manage_agent default
 }
 function agentName(id: string): string {
   return AGENT_NAMES[id] ?? id.slice(0, 8)
@@ -89,12 +94,13 @@ function Pending() {
 }
 
 // ─── Markdown 渲染辅助（用于自由文本字段）────────────────────────────────────────
-function Md({ children, className }: { children?: string | null; className?: string }) {
+// Streamdown 原生接管样式和动画，不再手写 Tailwind 覆盖
+function Md({ children, isAnimating = false }: { children?: string | null; isAnimating?: boolean }) {
   if (!children) return null
   return (
-    <div className={`text-sm [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mt-0.5 [&_img]:rounded-md [&_img]:max-w-full [&_img]:mt-2 [&_a]:text-onit-blue [&_a]:underline [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground ${className ?? ''}`}>
-      <Streamdown>{children}</Streamdown>
-    </div>
+    <Streamdown animated isAnimating={isAnimating} plugins={{ cjk }}>
+      {children}
+    </Streamdown>
   )
 }
 
@@ -280,82 +286,122 @@ function toLines(val: string | string[] | undefined): string[] {
   return val.split('\n').filter(Boolean)
 }
 
-// ─── KR3/KR4: 官方 @langchain/langgraph-sdk useStream 替代手写 SSE ──────────────────────
-// 通过 /api/lg-proxy 透传，API Key 保留在服务端
-// useStream 原生处理：interrupt 检测、SSE 时序、checkpoint history、stop/resume
-// 无需手写 EventSource，无需 snapshot 事件解析，无需 streamKey 时序 workaround
 
-// ─── KR4: HumanGate — 看板内的 interrupt 确认 UI ───────────────────────────────────
-// onSubmit 直接是 useStream 返回的 submit 函数（官方 SDK 原生 resume）
-function HumanGate({ interrupts, onSubmit }: {
-  interrupts: Array<{ value?: unknown; resumable?: boolean }>
-  onSubmit: (values: null, options: { command: { resume: unknown } }) => Promise<void>
-}) {
-  const [submitting, setSubmitting] = useState(false)
-  const [resumeText, setResumeText] = useState('')
+// ─── MilestoneRunStats：里程碑执行轨迹佐证（轻量，按 run_id 查询）────────────
+function MilestoneRunStats({ runId, dispatchedAt, milestoneName }: { runId: string; dispatchedAt?: string; milestoneName: string }) {
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
 
-  const handleResume = async (value: unknown) => {
-    setSubmitting(true)
+  const load = async () => {
+    if (stats) return
+    setLoading(true)
     try {
-      await onSubmit(null, { command: { resume: value } })
-    } finally {
-      setSubmitting(false)
+      const res = await fetch(`/api/run-stats?run_id=${runId}`)
+      const data = await res.json()
+      if (!data.error) setStats(data)
+    } catch { /* ignore */ } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="rounded-lg border-2 border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20 p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-        <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">等待人类确认</span>
-        <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600">Human Gate</Badge>
-      </div>
-      {interrupts.map((item, i) => (
-        <div key={i} className="space-y-3">
-          {item.value != null && (
-            <div className="rounded-md bg-background/80 border border-border/50 p-3">
-              <p className="text-xs text-muted-foreground mb-1">需要确认的内容：</p>
-              <p className="text-sm leading-relaxed">
-                {typeof item.value === 'string' ? item.value : JSON.stringify(item.value, null, 2)}
-              </p>
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+        <Activity className="w-3.5 h-3.5" />
+        执行轨迹
+      </h3>
+      <Collapsible open={open} onOpenChange={(v) => { setOpen(v); if (v) load() }}>
+        <div className="rounded-lg border border-border/50">
+          <CollapsibleTrigger className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-muted/40 transition-colors">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Terminal className="w-3.5 h-3.5" />
+              <span className="font-mono">run:{runId.slice(0, 12)}…</span>
+              {dispatchedAt && (
+                <span>· {dispatchedAt.slice(0, 16).replace('T', ' ')}</span>
+              )}
+              {stats && (
+                <>
+                  {stats.total_tokens != null && (
+                    <span className="text-muted-foreground/60">· {(stats.total_tokens as number).toLocaleString()} tokens</span>
+                  )}
+                  {stats.tool_call_count != null && (
+                    <span className="text-muted-foreground/60">· {String(stats.tool_call_count)} 次工具调用</span>
+                  )}
+                  {stats.total_cost != null && (stats.total_cost as number) > 0 && (
+                    <span className="text-emerald-600/70 font-mono">· ${(stats.total_cost as number).toFixed(4)}</span>
+                  )}
+                </>
+              )}
             </div>
-          )}
-          {item.resumable && (
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="回复内容（可留空直接确认）"
-                value={resumeText}
-                onChange={e => setResumeText(e.target.value)}
-                className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-1 focus:ring-amber-400"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleResume(resumeText || true)}
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
-                >
-                  {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                  确认，Agent 继续跑
-                </button>
-                <button
-                  onClick={() => handleResume(false)}
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
-                >
-                  拒绝
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${runId}`}
+                target="_blank" rel="noreferrer"
+                className="text-xs font-medium hover:underline"
+                onClick={e => e.stopPropagation()}
+              >
+                LangSmith →
+              </a>
+              <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
             </div>
-          )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t border-border/50 px-3 py-3">
+              {loading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  正在从 LangSmith 拉取…
+                </div>
+              ) : !stats ? (
+                <p className="text-xs text-muted-foreground/50 italic py-2">暂无数据</p>
+              ) : (() => {
+                const s = stats as { total_tokens?: number; tool_call_count?: number; llm_rounds?: number; duration_ms?: number; tool_names?: string[]; model?: string; total_cost?: number }
+                const toolNames = Array.isArray(s.tool_names) ? s.tool_names : []
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { label: 'Tokens', value: s.total_tokens != null ? s.total_tokens.toLocaleString() : '—' },
+                        { label: '工具调用', value: s.tool_call_count != null ? String(s.tool_call_count) : '—' },
+                        { label: '思考轮次', value: s.llm_rounds != null ? String(s.llm_rounds) : '—' },
+                        { label: '耗时', value: s.duration_ms != null ? `${(s.duration_ms / 1000).toFixed(1)}s` : '—' },
+                      ].map(item => (
+                        <div key={item.label} className="rounded-md bg-muted/50 px-3 py-2">
+                          <p className="text-xs text-muted-foreground">{item.label}</p>
+                          <p className="text-sm font-semibold mt-0.5">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {toolNames.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">调用的工具</p>
+                        <div className="flex flex-wrap gap-1">
+                          {toolNames.map(t => (
+                            <span key={t} className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground/70">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {s.model && (
+                      <p className="text-xs text-muted-foreground">
+                        模型：<span className="font-mono text-blue-500/70">{s.model.replace('anthropic/', '')}</span>
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          </CollapsibleContent>
         </div>
-      ))}
+      </Collapsible>
     </div>
   )
 }
 
+
 // ─── Trace Tab ───────────────────────────────────────────────────────────────
-function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetadata }) {
+function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string; meta: TenantMetadata; isWriting?: boolean }) {
   const [data, setData] = useState<TraceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -364,50 +410,76 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   // fetchKey 控制 fetchTrace 重运行
   const [fetchKey, setFetchKey] = useState(0)
 
-  // ─── 官方 useStream hook ───────────────────────────────────────────────────────────────────────
-  // 通过 /api/lg（官方 langgraph-nextjs-api-passthrough）透传，API Key 保留在服务端
-  const stream = useStream<Record<string, unknown>>({
-    apiUrl: '/api/lg',
-    assistantId: 'meta_manage_agent',
-    threadId: liveThreadId ?? undefined,
-    reconnectOnMount: true,
-  })
+  // Thread 实时状态（busy/idle/interrupted）——每 5 秒轮询一次
+  const [threadStatus, setThreadStatus] = useState<'busy' | 'idle' | 'interrupted' | null>(null)
+  useEffect(() => {
+    if (!liveThreadId) return
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/langgraph-trace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: `/threads/${liveThreadId}/state` }),
+        })
+        const state = await res.json()
+        const status = state?.status as string | undefined
+        if (status === 'busy') setThreadStatus('busy')
+        else if (status === 'interrupted') setThreadStatus('interrupted')
+        else setThreadStatus('idle')
+      } catch { /* ignore */ }
+    }
+    poll()
+    const timer = setInterval(poll, 5000)
+    return () => clearInterval(timer)
+  }, [liveThreadId])
 
-  // 从 useStream 解构常用字段
-  const liveMessages = stream.messages ?? []
-  const interrupts = stream.interrupts ?? []
-  const isStreaming = stream.isLoading
-  const threadStatus: 'busy' | 'error' | 'interrupted' | 'idle' | null = stream.isLoading ? 'busy'
-    : stream.error ? 'error'
-    : interrupts.length > 0 ? 'interrupted'
-    : liveThreadId ? 'idle'
-    : null
-
-  // Checkpoint 历史（直接从 stream.history 读取）
+  // Checkpoint 历史（通过服务端代理查询，不依赖浏览器 SDK）
   const [checkpointsOpen, setCheckpointsOpen] = useState(false)
-  const checkpoints = (stream.history ?? []).filter((cp) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cpMeta = (cp as any).metadata
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cpNext = (cp as any).next
-    return cpMeta?.source === 'loop' && Array.isArray(cpNext) && cpNext.length > 0
-  })
+  const [checkpoints, setCheckpoints] = useState<Array<Record<string, unknown>>>([])
+  const [checkpointsLoading, setCheckpointsLoading] = useState(false)
+  const fetchCheckpoints = async (threadId: string) => {
+    setCheckpointsLoading(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${threadId}/history` }),
+      })
+      const history = await res.json()
+      if (Array.isArray(history)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filtered = history.filter((cp: any) => {
+          const cpMeta = cp.metadata
+          const cpNext = cp.next
+          return cpMeta?.source === 'loop' && Array.isArray(cpNext) && cpNext.length > 0
+        })
+        setCheckpoints(filtered)
+      }
+    } catch { /* ignore */ } finally {
+      setCheckpointsLoading(false)
+    }
+  }
 
   const [cancellingRunId, setCancellingRunId] = useState<string | null>(null)
 
-  // 取消正在跑的 run（直接用 stream.stop()）
+  // 取消正在跑的 run（通过服务端代理）
   const cancelRun = useCallback(async (runId: string) => {
     setCancellingRunId(runId)
     try {
-      await stream.stop()
+      await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${liveThreadId}/runs/${runId}/cancel`, method: 'POST' }),
+      })
       toast('Run 已取消', { description: `run_id: ${runId.slice(0, 8)}…`, duration: 3000 })
+      setFetchKey(k => k + 1)
     } catch {
       toast('取消失败', { description: '请稍后重试', duration: 3000 })
     } finally {
       setCancellingRunId(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stream])
+  }, [liveThreadId])
 
   // 时间旅行：从指定 checkpoint 恢复
   const [restoringCheckpointId, setRestoringCheckpointId] = useState<string | null>(null)
@@ -578,7 +650,6 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         const evidenceUrls: string[] = (meta?.milestones ?? []).flatMap(
           (m: MilestoneData & { evidence?: string[] }) => m.evidence ?? []
         )
-        // 设置 liveThreadId，触发 useStream 订阅
         const latestThread = threads[0]
         const threadId = latestThread?.thread_id ?? ''
         setLiveThreadId(threadId)
@@ -604,45 +675,28 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="font-mono text-xs">Trace</Badge>
-            {isStreaming ? (
-              <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                实时订阅中
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-xs">LangSmith</Badge>
-            )}
+            <Badge variant="secondary" className="text-xs">LangSmith</Badge>
             {data && <Badge variant="outline" className="text-xs">{data.total_calls} 次 Run</Badge>}
-            {interrupts.length > 0 && (
-              <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                等待确认
-              </Badge>
-            )}
-            {/* Thread 状态指示器（LangGraph 原生 idle/busy/interrupted/error） */}
             {threadStatus === 'busy' && (
-              <Badge variant="secondary" className="text-xs flex items-center gap-1 text-onit-amber">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Thread 运行中
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Agent 执行中
+              </span>
             )}
             {threadStatus === 'interrupted' && (
-              <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600">
-                Thread 已暂停
-              </Badge>
-            )}
-            {threadStatus === 'error' && (
-              <Badge variant="destructive" className="text-xs">
-                Thread 错误
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 text-xs text-amber-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                等待确认
+              </span>
             )}
             {threadStatus === 'idle' && (
-              <Badge variant="outline" className="text-xs text-onit-green border-onit-green/40">
-                Thread 空闲
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                空闲
+              </span>
             )}
           </div>
           <button
@@ -768,6 +822,16 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                                 <span className="text-xs text-muted-foreground/60">
                                   {item.tool_call_count} 次工具调用
                                 </span>
+                                {item.tool_names && item.tool_names.length > 0 && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                    <span className="inline-flex flex-wrap gap-0.5">
+                                      {item.tool_names.map((t) => (
+                                        <span key={t} className="text-[10px] font-mono bg-muted px-1 py-0.5 rounded text-muted-foreground/70">{t}</span>
+                                      ))}
+                                    </span>
+                                  </>
+                                )}
                                 {item.total_cost != null && item.total_cost > 0 && (
                                   <>
                                     <span className="text-xs text-muted-foreground/40">·</span>
@@ -843,7 +907,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
           {/* Checkpoint 时间线（LangGraph 原生，折叠展示） */}
           {liveThreadId && (
             <Section icon={History} title="Checkpoint 历史" subtitle="LangGraph 每步写入一个 checkpoint，可用于时间旅行和回滚">
-              <Collapsible open={checkpointsOpen} onOpenChange={setCheckpointsOpen}>
+              <Collapsible open={checkpointsOpen} onOpenChange={(v) => { setCheckpointsOpen(v); if (v && liveThreadId && checkpoints.length === 0) fetchCheckpoints(liveThreadId) }}>
                 <Card>
                   <CollapsibleTrigger className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors">
                     <span className="text-xs text-muted-foreground">
@@ -853,11 +917,13 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="border-t border-border">
-                      {checkpoints.length === 0 ? (
+                      {checkpointsLoading ? (
                         <div className="flex items-center gap-2 px-4 py-3 text-xs text-muted-foreground/50">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           正在加载…
                         </div>
+                      ) : checkpoints.length === 0 ? (
+                        <div className="px-4 py-3 text-xs text-muted-foreground/50 italic">暂无 checkpoint（Agent 尚未运行）</div>
                       ) : (
                         <div className="divide-y divide-border/30">
                           {checkpoints.map((cp, i) => {
@@ -925,25 +991,11 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
             </Section>
           )}
 
-          {/* KR4: Human Gate — interrupt 确认 UI */}
-          {interrupts.length > 0 && (
-            <HumanGate
-              interrupts={interrupts}
-              onSubmit={stream.submit}
-            />
-          )}
-
-          {/* KR3: 实时对话流（SSE 订阅，替代静态 data.messages） */}
-          {(liveMessages.length > 0 || (data.messages && data.messages.length > 0)) && (
-            <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${liveThreadId ? liveThreadId.slice(0, 8) + '…' : (data.thread_id ? data.thread_id.slice(0, 8) + '…' : '')} · ${(liveMessages.length || data.messages?.length || 0)} 条消息${isStreaming ? ' · 实时订阅中…' : ''}`}>
-              {stream.error != null && (
-                <div className="rounded-md border border-amber-400/30 bg-amber-50/20 px-3 py-2 text-xs text-amber-600 mb-2">
-                  {stream.error instanceof Error ? stream.error.message : String(stream.error)}
-                </div>
-              )}
+          {/* 对话流（仅展示历史消息，不需要实时 SDK） */}
+          {data.messages && data.messages.length > 0 && (
+            <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${data.thread_id ? data.thread_id.slice(0, 8) + '…' : ''} · ${data.messages.length} 条消息`}>
               <div className="space-y-2">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {(liveMessages.length > 0 ? (liveMessages as any[]) : (data.messages ?? [])).map((msg: any) => {
+                {data.messages.map((msg) => {
                   if (msg.type === 'human') return (
                     <Card key={msg.id} className="border-l-2" style={{ borderLeftColor: 'var(--onit-blue)' }}>
                       <CardContent className="pt-3 pb-3">
@@ -968,8 +1020,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                   }
                   if (msg.type === 'ai') {
                     const hasTools = msg.tool_calls && msg.tool_calls.length > 0
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const isSubAgent = msg.tool_calls?.some((tc: any) => tc.name === 'task')
+                    const isSubAgent = msg.tool_calls?.some((tc) => tc.name === 'task')
                     return (
                       <Card key={msg.id} className={isSubAgent ? 'border-l-2' : ''} style={isSubAgent ? { borderLeftColor: 'var(--onit-green)' } : {}}>
                         <CardContent className="pt-3 pb-3">
@@ -981,8 +1032,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                           {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{msg.content.slice(0, 800)}{msg.content.length > 800 ? '…' : ''}</p>}
                           {hasTools && (
                             <div className="flex flex-wrap gap-1.5">
-                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {msg.tool_calls!.map((tc: any) => (
+                              {msg.tool_calls!.map((tc) => (
                                 <Badge key={tc.id} variant="outline" className="text-xs font-mono text-muted-foreground">
                                   {tc.name === 'task' ? '🚀 ' : '⚙️ '}{tc.name}
                                 </Badge>
@@ -1177,7 +1227,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
 }
 
 // ─── MCSP Tab（复用 how-we-work MutualSuccessPlan 结构）─────────────────────
-function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
+function McspTab({ meta, runDays, isWriting = false }: { meta: TenantMetadata; runDays: number; isWriting?: boolean }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
   const asIsLines = toLines(mcsp.as_is)
@@ -1220,279 +1270,249 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
       <Separator />
 
       {/* Block 1: 目标与背景 */}
-      <Section icon={Target} title="1. 目标与背景" subtitle="我们双方对「这次合作是什么」的共同认知">
-        <Card>
-          <CardContent className="pt-4 space-y-0">
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户名称</span>
-              <span className="text-sm">{client.name}</span>
+      <Section icon={Target} title="1. 目标与背景" subtitle="我们双方对「这次合作是什么」的共同认知" id="mcsp-1">
+        <div className="divide-y divide-border/50">
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户名称</span>
+            <span className="text-sm">{client.name}</span>
+          </div>
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户成功经理</span>
+            <span className="text-sm">@{client.lumen}</span>
+          </div>
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">执行工程师</span>
+            <span className="text-sm">@{client.sega}</span>
+          </div>
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户负责人</span>
+            <span className="text-sm">{client.client_lead || <Pending />}</span>
+          </div>
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">合同开始日期</span>
+            <span className="text-sm font-mono">{client.contract_start}</span>
+          </div>
+          {mcsp.context && (
+            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+              <span className="text-xs text-muted-foreground pt-0.5 font-medium">背景说明</span>
+              <Md>{mcsp.context}</Md>
             </div>
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户成功经理</span>
-              <span className="text-sm">@{client.lumen}</span>
-            </div>
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">执行工程师</span>
-              <span className="text-sm">@{client.sega}</span>
-            </div>
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">客户负责人</span>
-              <span className="text-sm">{client.client_lead || <Pending />}</span>
-            </div>
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">合同开始日期</span>
-              <span className="text-sm font-mono">{client.contract_start}</span>
-            </div>
-            {mcsp.context && (
-              <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2 border-b border-border/50">
-                <span className="text-xs text-muted-foreground pt-0.5 font-medium">背景说明</span>
-                <Md>{mcsp.context}</Md>
-              </div>
-            )}
-            <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2">
-              <span className="text-xs text-muted-foreground pt-0.5 font-medium">合作目标</span>
-              {mcsp.goal ? <Md>{mcsp.goal}</Md> : <Pending />}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+          <div className="grid grid-cols-[160px_1fr] gap-3 items-start py-2.5">
+            <span className="text-xs text-muted-foreground pt-0.5 font-medium">合作目标</span>
+            {mcsp.goal ? <Md>{mcsp.goal}</Md> : <Pending />}
+          </div>
+        </div>
       </Section>
 
       {/* Block 2: 现状 vs 理想状态 */}
-      <Section icon={ArrowRight} title="2. 现状 → 理想状态" subtitle="起点和终点的对比，成功标准从这里推导">
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card className="border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">现状（As-Is）</CardTitle>
-              <CardDescription className="text-xs">我们现在的处境</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {mcsp.as_is
-                ? <Md>{typeof mcsp.as_is === 'string' ? mcsp.as_is : mcsp.as_is.join('\n')}</Md>
-                : <Pending />}
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">理想状态（To-Be）</CardTitle>
-              <CardDescription className="text-xs">3 个月后我们希望庆祝什么</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {mcsp.to_be
-                ? <Md>{typeof mcsp.to_be === 'string' ? mcsp.to_be : mcsp.to_be.join('\n')}</Md>
-                : <Pending />}
-            </CardContent>
-          </Card>
+      <Section icon={ArrowRight} title="2. 现状 → 理想状态" subtitle="起点和终点的对比，成功标准从这里推导" id="mcsp-2">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-sm font-semibold mb-2">现状（As-Is）</h3>
+            <p className="text-xs text-muted-foreground mb-3">我们现在的处境</p>
+            {mcsp.as_is
+              ? <Md>{typeof mcsp.as_is === 'string' ? mcsp.as_is : mcsp.as_is.join('\n')}</Md>
+              : <Pending />}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold mb-2">理想状态（To-Be）</h3>
+            <p className="text-xs text-muted-foreground mb-3">3 个月后我们希望庆祝什么</p>
+            {mcsp.to_be
+              ? <Md>{typeof mcsp.to_be === 'string' ? mcsp.to_be : mcsp.to_be.join('\n')}</Md>
+              : <Pending />}
+          </div>
         </div>
       </Section>
 
       {/* Block 3: 成功标准 */}
-      <Section icon={CheckCircle2} title="3. 成功标准（Success Criteria）" subtitle="可量化、可验证的指标——这是我们验收和续约的唯一依据">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <Callout text="基线值从现状来，目标值从理想状态来。衡量方式必须是系统可自动读取的。验收时间绑定里程碑节点。" />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px] text-xs">指标</TableHead>
-                  <TableHead className="text-xs">基线值</TableHead>
-                  <TableHead className="text-xs">目标值</TableHead>
-                  <TableHead className="text-xs">衡量方式</TableHead>
-                  <TableHead className="text-xs">验收时间</TableHead>
+      <Section icon={CheckCircle2} title="3. 成功标准（Success Criteria）" subtitle="可量化、可验证的指标——这是我们验收和续约的唯一依据" id="mcsp-3">
+        <Callout text="基线值从现状来，目标值从理想状态来。衡量方式必须是系统可自动读取的。验收时间绑定里程碑节点。" />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px] text-xs">指标</TableHead>
+              <TableHead className="text-xs">基线值</TableHead>
+              <TableHead className="text-xs">目标值</TableHead>
+              <TableHead className="text-xs">衡量方式</TableHead>
+              <TableHead className="text-xs">验收时间</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {mcsp.success_criteria && mcsp.success_criteria.length > 0 ? (
+              mcsp.success_criteria.map((sc, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm">{sc.metric}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{sc.baseline}</TableCell>
+                  <TableCell className="text-sm" style={{ color: 'var(--onit-green)' }}>{sc.target}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{sc.method}</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs font-mono">{sc.checkpoint}</Badge></TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mcsp.success_criteria && mcsp.success_criteria.length > 0 ? (
-                  mcsp.success_criteria.map((sc, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-sm">{sc.metric}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{sc.baseline}</TableCell>
-                      <TableCell className="text-sm" style={{ color: 'var(--onit-green)' }}>{sc.target}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{sc.method}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs font-mono">{sc.checkpoint}</Badge></TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow className="opacity-40">
-                    <TableCell className="text-sm italic text-muted-foreground" colSpan={5}>待填写</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))
+            ) : (
+              <TableRow className="opacity-40">
+                <TableCell className="text-sm italic text-muted-foreground" colSpan={5}>待填写</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </Section>
 
       {/* Block 4: 角色与职责 */}
-      <Section icon={Users} title="4. 角色与职责（RACI）" subtitle="明确我们每个人对这个项目负什么责">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">角色</TableHead>
-                  <TableHead className="text-xs">姓名</TableHead>
-                  <TableHead className="text-xs">在这个项目里负责什么</TableHead>
-                  <TableHead className="text-xs">联系方式</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  ['客户成功经理 @Lumen', `@${client.lumen}`, '整体进度跟踪、周会主持、风险上报——单一责任人', client.telegram_handle ? `@${client.telegram_handle}` : '—'],
-                  ['执行工程师 @Sega', `@${client.sega}`, 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
-                  ['客户负责人', client.client_lead || '待填写', '推动项目、协调资源、最终验收签字', '—'],
-                ].map(([role, name, scope, contact], i) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-sm font-medium">{role}</TableCell>
-                    <TableCell className="text-sm">{name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{scope}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{contact}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      <Section icon={Users} title="4. 角色与职责（RACI）" subtitle="明确我们每个人对这个项目负什么责" id="mcsp-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">角色</TableHead>
+              <TableHead className="text-xs">姓名</TableHead>
+              <TableHead className="text-xs">在这个项目里负责什么</TableHead>
+              <TableHead className="text-xs">联系方式</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              ['客户成功经理 @Lumen', `@${client.lumen}`, '整体进度跟踪、周会主持、风险上报——单一责任人', client.telegram_handle ? `@${client.telegram_handle}` : '—'],
+              ['执行工程师 @Sega', `@${client.sega}`, 'Agent 配置、集成调试——技术问题的唯一出口', '—'],
+              ['客户负责人', client.client_lead || '待填写', '推动项目、协调资源、最终验收签字', '—'],
+            ].map(([role, name, scope, contact], i) => (
+              <TableRow key={i}>
+                <TableCell className="text-sm font-medium">{role}</TableCell>
+                <TableCell className="text-sm">{name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{scope}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{contact}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Section>
 
       {/* Block 5: 里程碑 */}
-      <Section icon={Flag} title="5. 里程碑（Milestones）" subtitle="ONIT WhileLoop 的四个节点——找到、设计、试运行、验证通过">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px] text-xs">阶段</TableHead>
-                  <TableHead className="text-xs">名称</TableHead>
-                  <TableHead className="text-xs">目标日期</TableHead>
-                  <TableHead className="text-xs">执行 Agent</TableHead>
-                  <TableHead className="text-xs">状态</TableHead>
-                  <TableHead className="text-xs">Run ID</TableHead>
-                  <TableHead className="text-xs">双方签认</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {milestones
-                  .slice()
-                  .sort((a, b) => a.order - b.order)
-                  .map((m) => {
-                    const isCurrent = m.id === meta.current_milestone
-                    const signed = m.id === 'M1' ? mcsp.signed_m1 : m.id === 'M3' ? mcsp.signed_m3 : m.status === 'done'
-                    return (
-                      <TableRow key={m.id} className={isCurrent ? 'bg-muted/30' : ''}>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
-                          {isCurrent && <Badge variant="secondary" className="text-xs ml-1">当前</Badge>}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">{m.name}</TableCell>
-                        <TableCell className="text-sm font-mono text-muted-foreground">
-                          {m.completed_at ?? m.target_date ?? '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {m.assignee
-                            ? <Badge variant="secondary" className="text-xs font-mono">{m.assignee}</Badge>
-                            : <span className="text-muted-foreground/40">—</span>}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="text-xs"
-                            style={{ color: milestoneStatusColor(m.status), borderColor: milestoneStatusColor(m.status) }}
-                          >
-                            {milestoneStatusLabel(m.status)}
-                          </Badge>
-                          {m.blocked_reason && (
-                            <p className="text-xs text-red-500 mt-1 max-w-[160px] truncate" title={m.blocked_reason}>⚠ {m.blocked_reason}</p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {m.run_id
-                            ? <a href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${m.run_id}`} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">{m.run_id.slice(0, 8)}…</a>
-                            : <span className="text-muted-foreground/40">—</span>}
-                        </TableCell>
-                        <TableCell>
-                          {signed
-                            ? <span className="text-xs" style={{ color: 'var(--onit-green)' }}>✓ 已签认</span>
-                            : <span className="text-xs text-muted-foreground">待签认</span>
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      <Section icon={Flag} title="5. 里程碑（Milestones）" subtitle="ONIT WhileLoop 的四个节点——找到、设计、试运行、验证通过" id="mcsp-5">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[80px] text-xs">阶段</TableHead>
+              <TableHead className="text-xs">名称</TableHead>
+              <TableHead className="text-xs">目标日期</TableHead>
+              <TableHead className="text-xs">执行 Agent</TableHead>
+              <TableHead className="text-xs">状态</TableHead>
+              <TableHead className="text-xs">Run ID</TableHead>
+              <TableHead className="text-xs">双方签认</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {milestones
+              .slice()
+              .sort((a, b) => a.order - b.order)
+              .map((m) => {
+                const isCurrent = m.id === meta.current_milestone
+                const signed = m.id === 'M1' ? mcsp.signed_m1 : m.id === 'M3' ? mcsp.signed_m3 : m.status === 'done'
+                return (
+                  <TableRow key={m.id} className={isCurrent ? 'bg-muted/30' : ''}>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
+                      {isCurrent && <Badge variant="secondary" className="text-xs ml-1">当前</Badge>}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">{m.name}</TableCell>
+                    <TableCell className="text-sm font-mono text-muted-foreground">
+                      {m.completed_at ?? m.target_date ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {m.assignee
+                        ? <Badge variant="secondary" className="text-xs font-mono">{m.assignee}</Badge>
+                        : <span className="text-muted-foreground/40">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="text-xs"
+                        style={{ color: milestoneStatusColor(m.status), borderColor: milestoneStatusColor(m.status) }}
+                      >
+                        {milestoneStatusLabel(m.status)}
+                      </Badge>
+                      {m.blocked_reason && (
+                        <p className="text-xs text-red-500 mt-1 max-w-[160px] truncate" title={m.blocked_reason}>⚠ {m.blocked_reason}</p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {m.run_id
+                        ? <a href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${m.run_id}`} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">{m.run_id.slice(0, 8)}…</a>
+                        : <span className="text-muted-foreground/40">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {signed
+                        ? <span className="text-xs" style={{ color: 'var(--onit-green)' }}>✓ 已签认</span>
+                        : <span className="text-xs text-muted-foreground">待签认</span>
+                      }
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+          </TableBody>
+        </Table>
       </Section>
 
       {/* Block 6: 风险登记 */}
-      <Section icon={AlertTriangle} title="6. 风险登记（Risk Register）" subtitle="提前写下可能让我们卡住的事">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <Callout text={`证据链完整度：${mcsp.evidence_count} 条。成功标准待验收：${mcsp.success_criteria?.length ?? 0} 项。`} />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">风险描述</TableHead>
-                  <TableHead className="text-xs">等级</TableHead>
-                  <TableHead className="text-xs">缓解措施</TableHead>
-                  <TableHead className="text-xs">Owner</TableHead>
+      <Section icon={AlertTriangle} title="6. 风险登记（Risk Register）" subtitle="提前写下可能让我们卡住的事" id="mcsp-6">
+        <Callout text={`证据链完整度：${mcsp.evidence_count} 条。成功标准待验收：${mcsp.success_criteria?.length ?? 0} 项。`} />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">风险描述</TableHead>
+              <TableHead className="text-xs">等级</TableHead>
+              <TableHead className="text-xs">缓解措施</TableHead>
+              <TableHead className="text-xs">Owner</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {mcsp.risks && mcsp.risks.length > 0 ? (
+              mcsp.risks.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm">{r.risk}</TableCell>
+                  <TableCell>
+                    <Badge variant={riskLevelVariant(r.level)} className="text-xs">
+                      {riskLevelLabel(r.level)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.mitigation || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.owner || '—'}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mcsp.risks && mcsp.risks.length > 0 ? (
-                  mcsp.risks.map((r, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-sm">{r.risk}</TableCell>
-                      <TableCell>
-                        <Badge variant={riskLevelVariant(r.level)} className="text-xs">
-                          {riskLevelLabel(r.level)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.mitigation || '—'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.owner || '—'}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow className="opacity-40">
-                    <TableCell className="text-sm italic text-muted-foreground" colSpan={4}>待填写</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))
+            ) : (
+              <TableRow className="opacity-40">
+                <TableCell className="text-sm italic text-muted-foreground" colSpan={4}>待填写</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </Section>
 
       {/* Block 7: 交接与 Cadence */}
-      <Section icon={GitBranch} title="7. 交接 & 节奏（Handoff & Cadence）" subtitle="这份文档怎么活着">
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">同步节奏</CardTitle>
-              <CardDescription className="text-xs">定期见面是我们保持对齐的方式</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {mcsp.cadence && mcsp.cadence.length > 0 ? (
-                mcsp.cadence.map((c, i) => (
-                  <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+      <Section icon={GitBranch} title="7. 交接 & 节奏（Handoff & Cadence）" subtitle="这份文档怎么活着" id="mcsp-7">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-sm font-semibold mb-2">同步节奏</h3>
+            <p className="text-xs text-muted-foreground mb-3">定期见面是我们保持对齐的方式</p>
+            {mcsp.cadence && mcsp.cadence.length > 0 ? (
+              <div className="divide-y divide-border/40">
+                {mcsp.cadence.map((c, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2">
                     <div className="flex-1">
                       <div className="text-sm font-medium">{c.type}</div>
                       <div className="text-xs text-muted-foreground">{c.frequency} · {c.owner}</div>
                     </div>
                     <Badge variant="outline" className="text-xs shrink-0">{c.duration}</Badge>
                   </div>
-                ))
-              ) : (
-                <div className="py-2 text-sm text-muted-foreground/50 italic">待填写</div>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">什么时候我们视为完成</CardTitle>
-              <CardDescription className="text-xs">续约谈判的起点，也是这份计划的终点</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground/50 italic">待填写</p>
+            )}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold mb-2">什么时候我们视为完成</h3>
+            <p className="text-xs text-muted-foreground mb-3">续约谈判的起点，也是这份计划的终点</p>
+            <ul className="space-y-2">
               {[
                 `M0-M3 里程碑全部完成（当前 ${doneMilestones}/4）`,
                 '成功标准中所有指标达到目标值',
@@ -1500,49 +1520,45 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
                 '续约/扩容/结束决策已明确并记录',
                 'Agent 运行数据已归档，链接写入本文档',
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-2 py-1.5">
+                <li key={i} className="flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
                   <span className="text-sm text-muted-foreground">{item}</span>
-                </div>
+                </li>
               ))}
-            </CardContent>
-          </Card>
+            </ul>
+          </div>
         </div>
       </Section>
 
       {/* Block 8: 凭证清单 */}
-      <Section icon={Key} title="8. 凭证清单（Credentials）" subtitle="集成所需的账号、API Key 和权限清单">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <Callout text="凭证由 @Lumen 在 Telegram 对话中更新，不在此处直接填写明文。仅记录名称和状态。" />
-            {mcsp.credentials && mcsp.credentials.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">名称</TableHead>
-                    <TableHead className="text-xs">类型</TableHead>
-                    <TableHead className="text-xs">备注</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mcsp.credentials.map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-sm font-medium">{c.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{c.type}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{c.note || '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="py-2 text-sm text-muted-foreground/50 italic">待填写</div>
-            )}
-          </CardContent>
-        </Card>
+      <Section icon={Key} title="8. 凭证清单（Credentials）" subtitle="集成所需的账号、API Key 和权限清单" id="mcsp-8">
+        <Callout text="凭证由 @Lumen 在 Telegram 对话中更新，不在此处直接填写明文。仅记录名称和状态。" />
+        {mcsp.credentials && mcsp.credentials.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">名称</TableHead>
+                <TableHead className="text-xs">类型</TableHead>
+                <TableHead className="text-xs">备注</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mcsp.credentials.map((c, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm font-medium">{c.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{c.type}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{c.note || '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground/50 italic">待填写</p>
+        )}
       </Section>
 
-      {/* @Eva 审计结论 */}
-      <Section icon={AlertTriangle} title="@Eva 审计结论" subtitle="M3 阶段由 @Eva 执行，结论实时更新">
+      {/* @Eva 审计结论：独立数据单元，保留 Card */}
+      <Section icon={AlertTriangle} title="@Eva 审计结论" subtitle="M3 阶段由 @Eva 执行，结论实时更新" id="mcsp-eva">
         <Card>
           <CardContent className="pt-4 space-y-4">
             <div className="flex items-center gap-3">
@@ -1561,6 +1577,12 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
             ) : (
               <Callout text="审计将在 M3 阶段由 @Eva 执行，结论会实时更新到此处。" />
             )}
+            {audit.eva_note && (
+              <div className="rounded-lg border border-amber-200/50 bg-amber-50/30 dark:bg-amber-950/20 px-3 py-2 space-y-1">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">@Eva 备注</p>
+                <Md isAnimating={isWriting}>{audit.eva_note}</Md>
+              </div>
+            )}
             {audit.next_action && (
               <div className="flex items-start gap-2">
                 <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
@@ -1575,11 +1597,12 @@ function McspTab({ meta, runDays }: { meta: TenantMetadata; runDays: number }) {
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
+function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
   meta: TenantMetadata
   runDays: number
   tenantSlug: string
   tenantId: string
+  isWriting?: boolean
 }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
@@ -1591,14 +1614,61 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
   // Agent 注册表
   const [agentRegistry, setAgentRegistry] = useState<Array<{ id: string; name: string; langsmith_handle: string | null; enabled: boolean; url?: string; description?: string }> | null>(null)
   useEffect(() => {
-    fetch('/api/agent-registry').then(r => r.json()).then(d => setAgentRegistry(d.agents ?? [])).catch(() => {})
+    fetch('/api/agent-registry').then(r => r.json()).then(d => setAgentRegistry(d.agents ?? [])).catch(() => setAgentRegistry([]))
   }, [])
 
-  // 调度日志
+  // 调度日志（pg_cron 历史，已归档，不再渲染）
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dispatcherLog, setDispatcherLog] = useState<Array<{ runid: number; status: string; start_time: string; end_time: string; return_message: string }> | null>(null)
+
+  // LangGraph runs（真实执行轨迹，含 thread 状态和 tool_calls 数量）
+  const [lgRuns, setLgRuns] = useState<Array<{
+    run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string
+    thread_id: string; thread_status: string; interrupt_reason?: string; tool_calls_count?: number
+  }> | null>(null)
   useEffect(() => {
-    fetch('/api/dispatcher-log').then(r => r.json()).then(d => setDispatcherLog(d.logs ?? [])).catch(() => {})
-  }, [])
+    const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, body })
+    }).then(r => r.json())
+    const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
+    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+      .then(async (threads: Array<{ thread_id: string; status: string; interrupts?: unknown[] }>) => {
+        if (!Array.isArray(threads) || !threads.length) { setLgRuns([]); return }
+        const allRuns: Array<{
+          run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string
+          thread_id: string; thread_status: string; interrupt_reason?: string; tool_calls_count?: number
+        }> = []
+        await Promise.all(threads.slice(0, 5).map(async t => {
+          const [runs, state] = await Promise.all([
+            lgGet(`/threads/${t.thread_id}/runs`) as Promise<Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }>>,
+            lgGet(`/threads/${t.thread_id}/state`) as Promise<{ values?: { messages?: Array<{ type: string; tool_calls?: unknown[] }> }; interrupts?: Array<{ value?: unknown }> }>,
+          ])
+          // 统计真实 tool_calls 数量（从 messages 里的 ai 类型消息统计）
+          const msgs = state?.values?.messages ?? []
+          const toolCallsCount = msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
+          // interrupt 原因（如果有）
+          const interrupts = state?.interrupts ?? []
+          const interruptReason = interrupts.length > 0
+            ? String((interrupts[0] as { value?: unknown }).value ?? '').slice(0, 80)
+            : undefined
+          if (Array.isArray(runs)) {
+            runs.forEach(r => allRuns.push({
+              ...r,
+              thread_id: t.thread_id,
+              thread_status: t.status ?? 'idle',
+              interrupt_reason: interruptReason,
+              tool_calls_count: toolCallsCount,
+            }))
+          }
+        }))
+        // 按时间倒序排列，最新在前
+        allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        setLgRuns(allRuns.slice(0, 20))
+      })
+      .catch(() => setLgRuns([]))
+  }, [tenantSlug])
 
   // PostHog 客户活跃度
   const [posthogActivity, setPosthogActivity] = useState<Record<string, number> | null>(null)
@@ -1618,29 +1688,37 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path, body })
     }).then(r => r.json())
+    const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
     // agentName() 来自顶层 AGENT_NAMES 常量
     lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
       .then(async (threads: Array<{ thread_id: string }>) => {
         if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }); return }
         const allRuns: Array<{ assistant_id: string; status: string }> = []
+        let totalToolCalls = 0
         await Promise.all(threads.slice(0, 5).map(async t => {
-          const runs = await lg(`/threads/${t.thread_id}/runs`) as Array<{ assistant_id: string; status: string }>
+          const [runs, state] = await Promise.all([
+            lg(`/threads/${t.thread_id}/runs`) as Promise<Array<{ assistant_id: string; status: string }>>,
+            lgGet(`/threads/${t.thread_id}/state`) as Promise<{ values?: { messages?: Array<{ type: string; tool_calls?: unknown[] }> } }>,
+          ])
           if (Array.isArray(runs)) allRuns.push(...runs)
+          // 统计真实 tool_calls 数量（从 messages 里的 ai 类型消息统计）
+          const msgs = state?.values?.messages ?? []
+          totalToolCalls += msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
         }))
         const successCount = allRuns.filter(r => r.status === 'success').length
         const passRate = allRuns.length > 0 ? Math.round((successCount / allRuns.length) * 100) : null
         setTraceStats({
-          total_calls: allRuns.length,
+          total_calls: totalToolCalls, // 真实工具调用次数，不是 runs 数量
           agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
           success_count: successCount,
           pass_rate: passRate,
         })
       })
-      .catch(() => {})
+      .catch(() => setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }))
   }, [tenantSlug])
 
   return (
-    <div className="space-y-8">
+    <div id="section-omt" className="space-y-8 scroll-mt-24">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -1798,8 +1876,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
 
       {/* 进度条区（#9-13）*/}
       <Section icon={Layers} title="任务完成进度" subtitle="OMT 任务完成率 + MCSP 填写率 + Agent 占比">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
+        <div className="space-y-4">
             {/* OMT 任务完成率（按 milestones 数组，排除 M3）*/}
             {milestones
               .slice()
@@ -1851,8 +1928,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       </Section>
 
       {/* 实施阶段进度（#14-17 状态 + 任务列表）*/}
@@ -1865,12 +1941,12 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
               const isCurrent = m.id === meta.current_milestone
               const progress = Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)
               return (
-                <Card key={m.id} className={isCurrent ? 'ring-1 ring-border' : ''}>
-                  <CardHeader className="pb-3">
+                <div key={m.id} className={`rounded-lg border border-border/60 px-4 py-3 ${isCurrent ? 'ring-1 ring-border' : ''}`}>
+                  <div className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
-                        <CardTitle className="text-sm font-semibold">{m.name}</CardTitle>
+                        <span className="text-sm font-semibold">{m.name}</span>
                         {isCurrent && <Badge variant="secondary" className="text-xs">当前</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
@@ -1926,15 +2002,15 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
                       </div>
                     </div>
                   {m.blocked_reason && (
-                    <div className="px-4 pb-2">
+                    <div className="pb-2">
                       <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 rounded px-2 py-1">
                         ⚠️ {m.blocked_reason}
                       </p>
                     </div>
                   )}
-                  </CardHeader>
+                  </div>
                   {m.tasks && m.tasks.length > 0 && (
-                    <CardContent className="pt-0">
+                    <div className="pt-0">
                       <div className="space-y-1.5">
                         {m.tasks.map((task, i) => {
                           // support both old done:bool and new status:string
@@ -1962,9 +2038,9 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
                           )
                         })}
                       </div>
-                    </CardContent>
+                    </div>
                   )}
-                </Card>
+                </div>
               )
             })}
         </div>
@@ -1972,48 +2048,47 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
 
       {/* 当前卡点 & 下一步行动 */}
       <Section icon={AlertTriangle} title="当前卡点 & 下一步行动" subtitle="现在有什么在拖慢我们？每个卡点必须有下一步行动和 Owner">
-        <Card>
-          <CardContent className="pt-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">卡点描述</TableHead>
-                  <TableHead className="text-xs">影响阶段</TableHead>
-                  <TableHead className="text-xs">下一步行动</TableHead>
-                  <TableHead className="text-xs">Owner</TableHead>
-                  <TableHead className="text-xs">状态</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {audit.next_action ? (
-                  <TableRow>
-                    <TableCell className="text-sm">{audit.next_action}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs font-mono">{meta.current_milestone}</Badge></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{audit.next_action}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">@{client.lumen}</TableCell>
-                    <TableCell><Badge variant="secondary" className="text-xs">处理中</Badge></TableCell>
-                  </TableRow>
-                ) : (
-                  <TableRow className="border-dashed">
-                    <TableCell className="text-sm text-muted-foreground/40 italic" colSpan={5}>
-                      暂无卡点 — 我们现在进展顺利
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">卡点描述</TableHead>
+              <TableHead className="text-xs">影响阶段</TableHead>
+              <TableHead className="text-xs">下一步行动</TableHead>
+              <TableHead className="text-xs">Owner</TableHead>
+              <TableHead className="text-xs">状态</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {audit.next_action ? (
+              <TableRow>
+                <TableCell className="text-sm">{audit.next_action}</TableCell>
+                <TableCell><Badge variant="outline" className="text-xs font-mono">{meta.current_milestone}</Badge></TableCell>
+                <TableCell className="text-sm text-muted-foreground">{audit.next_action}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">@{client.lumen}</TableCell>
+                <TableCell><Badge variant="secondary" className="text-xs">处理中</Badge></TableCell>
+              </TableRow>
+            ) : (
+              <TableRow className="border-dashed">
+                <TableCell className="text-sm text-muted-foreground/40 italic" colSpan={5}>
+                  暂无卡点 — 我们现在进展顺利
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </Section>
 
-      {/* 客户活跃度（PostHog 补充指标）*/}
-      <Section icon={Activity} title="客户活跃度" subtitle="PostHog 事件统计，事件已在客户端埋点，服务端查询接入后开放">
+      {/* 平台活跃度（PostHog 全平台指标）*/}
+      <Section icon={Activity} title="平台活跃度" subtitle="PostHog 实时统计，全平台事件数据（30天）">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: '看板互动次数', icon: Activity, key: 'live_report_tab_switch', source: 'PostHog live_report_tab_switch' },
-            { label: '连接 Agent 次数', icon: GitBranch, key: 'marketplace_agent_connect_success', source: 'PostHog marketplace_agent_connect_click' },
-            { label: '点击 Telegram 次数', icon: MessageCircle, key: 'dashboard_telegram_cta_click', source: 'PostHog dashboard_telegram_cta_click' },
-            { label: '创建 API Key 次数', icon: Lock, key: 'api_key_create', source: 'PostHog api_key_create' },
+            { label: '今日 DAU', icon: Activity, key: 'dau_today', source: 'PostHog $pageview 今日去重用户' },
+            { label: '昨日 DAU', icon: Activity, key: 'dau_yesterday', source: 'PostHog $pageview 昨日去重用户' },
+            { label: '注册用户（30d）', icon: GitBranch, key: 'auth_success_30d', source: 'PostHog auth_success 去重用户' },
+            { label: '看板互动（30d）', icon: MessageCircle, key: 'live_report_tab_switch_30d', source: 'PostHog live_report_tab_switch' },
+            { label: 'Agent 连接点击（30d）', icon: GitBranch, key: 'marketplace_agent_connect_30d', source: 'PostHog marketplace_agent_connect_click' },
+            { label: 'MCP 发现成功（30d）', icon: Lock, key: 'marketplace_mcp_discover_30d', source: 'PostHog marketplace_mcp_discover_success' },
+            { label: '页面浏览量（30d）', icon: Activity, key: 'pageview_30d', source: 'PostHog $pageview' },
           ].map(({ label, icon: Icon, key, source }) => {
             const count = posthogActivity?.[key]
             const isLoading = posthogActivity === null
@@ -2046,9 +2121,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
 
       {/* 更新日志 */}
       <Section icon={FileText} title="更新日志（Update Log）" subtitle="每次有进展，@Lumen 或 Agent 追加一行——只加不改">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="space-y-3">
+        <div className="space-y-3">
               {meta.update_log && meta.update_log.length > 0 ? (
                 meta.update_log.slice().reverse().map((log, i) => (
                   <div key={i} className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
@@ -2073,100 +2146,120 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
                 ))
               ) : (
                 <div className="py-2 text-sm text-muted-foreground/40 italic">暂无更新日志</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </Section>
 
       {/* Agent 注册表 */}
       <Section icon={Users} title="Agent 注册表" subtitle="当前系统注册的核心 Agent，来自 agent_market 表">
-        <Card>
-          <CardContent className="pt-4">
-            {agentRegistry === null ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
-            ) : agentRegistry.length === 0 ? (
-              <div className="text-sm text-muted-foreground/40 italic">暂无已注册的系统 Agent</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Agent</TableHead>
-                    <TableHead className="text-xs">描述</TableHead>
-                    <TableHead className="text-xs">LangSmith Handle</TableHead>
-                    <TableHead className="text-xs">状态</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agentRegistry.map(agent => (
-                    <TableRow key={agent.id}>
-                      <TableCell>
-                        <div className="font-medium text-sm">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{agent.id}</div>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[200px]">{agent.description ?? '—'}</TableCell>
-                      <TableCell>
-                        {agent.langsmith_handle
-                          ? <Badge variant="outline" className="text-xs font-mono">{agent.langsmith_handle}</Badge>
-                          : <span className="text-muted-foreground/40">—</span>}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={agent.enabled ? 'default' : 'secondary'} className="text-xs">
-                          {agent.enabled ? '已启用' : '已禁用'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        {agentRegistry === null ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+        ) : agentRegistry.length === 0 ? (
+          <div className="text-sm text-muted-foreground/40 italic">暂无已注册的系统 Agent</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Agent</TableHead>
+                <TableHead className="text-xs">描述</TableHead>
+                <TableHead className="text-xs">LangSmith Handle</TableHead>
+                <TableHead className="text-xs">状态</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {agentRegistry.map(agent => (
+                <TableRow key={agent.id}>
+                  <TableCell>
+                    <div className="font-medium text-sm">{agent.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{agent.id}</div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-[200px]">{agent.description ?? '—'}</TableCell>
+                  <TableCell>
+                    {agent.langsmith_handle
+                      ? <Badge variant="outline" className="text-xs font-mono">{agent.langsmith_handle}</Badge>
+                      : <span className="text-muted-foreground/40">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={agent.enabled ? 'default' : 'secondary'} className="text-xs">
+                      {agent.enabled ? '已启用' : '已禁用'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
       </Section>
 
       {/* Agent 运行日志 */}
-      <Section icon={Terminal} title="Agent 运行日志" subtitle="Dispatcher 历史记录（已归档，新架构由 Thread 直接派遣）">
-        <Card>
-          <CardContent className="pt-4">
-            {dispatcherLog === null ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
-            ) : dispatcherLog.length === 0 ? (
-              <div className="text-sm text-muted-foreground/40 italic">暂无调度记录</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">开始时间</TableHead>
-                    <TableHead className="text-xs">耗时</TableHead>
-                    <TableHead className="text-xs">状态</TableHead>
-                    <TableHead className="text-xs">返回</TableHead>
+      <Section icon={Terminal} title="Agent 运行日志" subtitle="LangGraph runs 实时执行轨迹，含真实工具调用次数（按 tenant_slug 过滤）">
+        {lgRuns === null ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+        ) : lgRuns.length === 0 ? (
+          <div className="text-sm text-muted-foreground/40 italic">暂无执行记录</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">时间</TableHead>
+                <TableHead className="text-xs">Agent</TableHead>
+                <TableHead className="text-xs">耗时</TableHead>
+                <TableHead className="text-xs">工具调用</TableHead>
+                <TableHead className="text-xs">Thread 状态</TableHead>
+                <TableHead className="text-xs">Run 状态</TableHead>
+                <TableHead className="text-xs">Run ID</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lgRuns.map(run => {
+                const ms = run.updated_at && run.created_at
+                  ? Math.round((new Date(run.updated_at).getTime() - new Date(run.created_at).getTime()))
+                  : null
+                const runStatusVariant = run.status === 'success' ? 'default' : run.status === 'error' ? 'destructive' : 'secondary'
+                const runStatusLabel = run.status === 'success' ? '成功' : run.status === 'error' ? '失败' : run.status === 'pending' ? '进行中' : run.status
+                const threadStatusVariant = run.thread_status === 'interrupted' ? 'destructive' : run.thread_status === 'busy' ? 'secondary' : 'outline'
+                const threadStatusLabel = run.thread_status === 'interrupted' ? '已中断' : run.thread_status === 'busy' ? '运行中' : run.thread_status === 'idle' ? '空闲' : run.thread_status
+                return (
+                  <TableRow key={run.run_id}>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {run.created_at ? new Date(run.created_at).toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' }).slice(0, 16) : '—'}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium">{agentName(run.assistant_id)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{ms !== null ? `${(ms / 1000).toFixed(1)}s` : '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {run.tool_calls_count != null && run.tool_calls_count > 0 ? (
+                        <span className="font-mono">{run.tool_calls_count} 次</span>
+                      ) : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant={threadStatusVariant} className="text-xs cursor-default">{threadStatusLabel}</Badge>
+                          </TooltipTrigger>
+                          {run.interrupt_reason && (
+                            <TooltipContent className="max-w-xs text-xs">
+                              <p>中断原因: {run.interrupt_reason}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={runStatusVariant} className="text-xs">{runStatusLabel}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      <a href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${run.run_id}`}
+                        target="_blank" rel="noreferrer" className="hover:underline">
+                        {run.run_id.slice(0, 8)}…
+                      </a>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dispatcherLog.map(log => {
-                    const ms = log.end_time && log.start_time
-                      ? Math.round((new Date(log.end_time).getTime() - new Date(log.start_time).getTime()))
-                      : null
-                    return (
-                      <TableRow key={log.runid}>
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {log.start_time ? new Date(log.start_time).toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' }).slice(0, 16) : '—'}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{ms !== null ? `${ms}ms` : '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant={log.status === 'succeeded' ? 'default' : 'destructive'} className="text-xs">
-                            {log.status === 'succeeded' ? '成功' : log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{log.return_message ?? '—'}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
       </Section>
     </div>
   )
@@ -2176,6 +2269,8 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
 export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays }: LiveClientProps) {
   const posthog = usePostHog()
   const [meta, setMeta] = useState<TenantMetadata>(initialMeta)
+  // isWriting: Agent 刚写入 Supabase，触发 Streamdown 动画，2 秒后归 false
+  const [isWriting, setIsWriting] = useState(false)
 
   // ─── Supabase Realtime: 订阅 tenants postgres_changes，状态变化毫秒级推送 ─────────
   useEffect(() => {
@@ -2189,6 +2284,9 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
           const newMeta = payload.new?.metadata
           if (newMeta && typeof newMeta === 'object') {
             setMeta(newMeta as TenantMetadata)
+            // Agent 写入时触发 Streamdown 动画
+            setIsWriting(true)
+            setTimeout(() => setIsWriting(false), 2000)
           }
         }
       )
@@ -2207,8 +2305,76 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
     })
   }, [posthog, tenantId, tenantName, meta.current_milestone, meta.audit.health])
 
+  // Scrollspy：当前可见的 Section id
+  const [activeSection, setActiveSection] = useState<string>('section-overview')
+  // 签认状态（乐观更新）
+  const [signing, setSigning] = useState<'M1' | 'M3' | null>(null)
+  const handleSign = async (milestone: 'M1' | 'M3') => {
+    setSigning(milestone)
+    try {
+      const res = await fetch('/api/tenants/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: tenantId, milestone }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      toast(`${milestone} 签认成功`, { description: '已记录，@Lumen 将收到通知', duration: 3000 })
+      posthog?.capture('live_board_sign', { milestone, tenant_id: tenantId })
+    } catch (e) {
+      toast('签认失败', { description: String(e), duration: 3000 })
+    } finally {
+      setSigning(null)
+    }
+  }
+
+  // 当前里程碑（用于导航高亮）
+  const currentMilestoneId = meta.current_milestone
+  // 按 order 排序的里程碑列表
+  const sortedMilestones = [...meta.milestones].sort((a, b) => a.order - b.order)
+
+  // Scrollspy：IntersectionObserver 监听各 Section，滚动时自动高亮对应导航项
+  useEffect(() => {
+    const sectionIds = [
+      'section-overview',
+      'mcsp-1', 'mcsp-2', 'mcsp-3', 'mcsp-4', 'mcsp-5', 'mcsp-6', 'mcsp-7', 'mcsp-8', 'mcsp-eva',
+      'section-omt',
+      ...sortedMilestones.map(m => `section-${m.id}`),
+    ]
+    const observers: IntersectionObserver[] = []
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(id) },
+        { rootMargin: '-10% 0px -60% 0px', threshold: 0 }
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+    return () => observers.forEach(o => o.disconnect())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedMilestones.length])
+
+  // 平滑滚动到指定 Section
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    posthog?.capture('live_board_nav', { section: id, tenant_id: tenantId })
+  }
+
+  // 里程碑状态点颜色
+  const milestoneStatusDot = (status: string) => {
+    if (status === 'done') return 'bg-emerald-500'
+    if (status === 'running') return 'bg-blue-500 animate-pulse'
+    if (status === 'blocked') return 'bg-red-500'
+    if (status === 'ready') return 'bg-amber-400'
+    return 'bg-muted-foreground/30'
+  }
+
+  // @Lumen 的 LangGraph assistant_id（L2-coordinator-agent）
+  const lumenAssistantId = '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8'
+
   return (
-    <main className="flex-1 max-w-5xl mx-auto px-4 pt-12 pb-16 w-full">
+    <main className="flex-1 max-w-6xl mx-auto px-4 pt-12 pb-16 w-full">
       {/* Page header */}
       <div className="mb-8 space-y-2">
         <div className="flex items-center gap-2">
@@ -2222,46 +2388,274 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
             {healthLabel(meta.audit.health)}
           </Badge>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{meta.client.name} 共同成功计划</h1>
-        <p className="text-muted-foreground text-sm max-w-2xl">
-          {meta.client.name} × ONIT — 实时里程碑追踪，由 @{meta.client.lumen} 维护。
-          MCSP 是完整操作系统，OMT 是每天看的施工进度牌。
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{meta.client.name} 共同成功计划</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {meta.client.name} × ONIT · 由 @{meta.client.lumen} 维护 · 实时同步，无需刷新
+            </p>
+          </div>
+          {/* @Lumen 对话入口（右上角）*/}
+          <Sheet>
+            <SheetTrigger render={
+              <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                <MessageSquare className="w-3.5 h-3.5" />
+                问 @Lumen
+              </Button>
+            } />
+            <SheetContent side="right" className="w-[420px] sm:w-[480px] flex flex-col">
+              <SheetHeader className="pb-4">
+                <SheetTitle>与 @{meta.client.lumen} 对话</SheetTitle>
+                <p className="text-xs text-muted-foreground">直接告诉 @Lumen 你的问题，无需跳转 Telegram</p>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                <AgentChat assistantId={lumenAssistantId} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
-      <Tabs defaultValue="mcsp" onValueChange={(v) => posthog?.capture('live_report_tab_switch', { tab: v, tenant_id: tenantId })}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="mcsp" className="gap-2">
-            <Target className="w-3.5 h-3.5" />
-            共同成功计划
-          </TabsTrigger>
-          <TabsTrigger value="omt" className="gap-2">
-            <Layers className="w-3.5 h-3.5" />
-            实施进度表
-          </TabsTrigger>
-          <TabsTrigger value="trace" className="gap-2">
-            <Terminal className="w-3.5 h-3.5" />
-            执行轨迹
-          </TabsTrigger>
-        </TabsList>
+      {/* 主体：左侧 TOC 导航（Scrollspy）+ 右侧连续长页 */}
+      <div className="flex gap-8">
+        {/* 左侧 TOC：固定导航，滚动时自动高亮当前 Section */}
+        <aside className="hidden md:block w-52 shrink-0">
+          <div className="sticky top-24 space-y-0.5 overflow-y-auto max-h-[calc(100vh-7rem)]">
+            {/* 共同成功计划 MCSP：一级入口 + 二级子导航 */}
+            <button
+              onClick={() => scrollTo('section-overview')}
+              className={`flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                ['section-overview','mcsp-1','mcsp-2','mcsp-3','mcsp-4','mcsp-5','mcsp-6','mcsp-7','mcsp-8','mcsp-eva','section-omt'].includes(activeSection)
+                  ? 'text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Target className="w-3.5 h-3.5 shrink-0" />
+              <span>共同成功计划 MCSP</span>
+            </button>
 
-        <TabsContent value="mcsp">
-          <McspTab meta={meta} runDays={runDays} />
-        </TabsContent>
+            {/* MCSP 二级子导航 */}
+            {([
+              { id: 'mcsp-1', label: '1. 目标与背景' },
+              { id: 'mcsp-2', label: '2. 现状 → 理想' },
+              { id: 'mcsp-3', label: '3. 成功标准' },
+              { id: 'mcsp-4', label: '4. RACI' },
+              { id: 'mcsp-5', label: '5. 里程碑' },
+              { id: 'mcsp-6', label: '6. 风险' },
+              { id: 'mcsp-7', label: '7. 节奏' },
+              { id: 'mcsp-8', label: '8. 凭证' },
+              { id: 'mcsp-eva', label: '@Eva 审计' },
+              { id: 'section-omt', label: '实施进度表 OMT' },
+            ] as const).map(item => (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className={`flex items-center gap-2 w-full text-left pl-7 pr-3 py-1 rounded-md text-xs transition-colors ${
+                  activeSection === item.id
+                    ? 'text-foreground font-medium bg-muted'
+                    : 'text-muted-foreground/70 hover:text-foreground'
+                }`}
+              >
+                <span className="w-1 h-1 rounded-full bg-current shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </button>
+            ))}
 
-        <TabsContent value="omt">
-          <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} tenantId={tenantId} />
-        </TabsContent>
+            <div className="pt-3 pb-1 px-3">
+              <span className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">Milestones</span>
+            </div>
 
-        <TabsContent value="trace">
-          <TraceTab tenantSlug={tenantSlug} meta={meta} />
-        </TabsContent>
-      </Tabs>
+            {/* 里程碑 TOC */}
+            {sortedMilestones.map((m, idx) => {
+              const sectionId = `section-${m.id}`
+              const isActive = activeSection === sectionId
+              const isCurrent = m.id === currentMilestoneId
+              return (
+                <div key={m.id} className="relative">
+                  {/* 连接线 */}
+                  {idx < sortedMilestones.length - 1 && (
+                    <div className="absolute left-[22px] top-[32px] w-px h-[calc(100%+2px)] bg-border/50" />
+                  )}
+                  <button
+                    onClick={() => scrollTo(sectionId)}
+                    className={`relative flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? 'text-foreground font-medium bg-muted'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${milestoneStatusDot(m.status)}`} />
+                    <span className="flex-1 truncate text-xs">
+                      <span className="font-mono mr-1">{m.id}</span>
+                      {m.name}
+                    </span>
+                    {isCurrent && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                    )}
+                  </button>
+                </div>
+              )
+            })}
 
-      {/* 验收状态 + SKILL.md 下载
-          ⚠️ 防回退：验收状态由 meta.audit.conclusion 驱动，有内容 = 已验收。
-          SKILL.md 下载按鈕现为占位（disabled），待 /api/tenants/skill-export 接口就绪后启用。*/}
-      <div className="mt-8 rounded-lg border border-border/50 p-4 flex items-center justify-between gap-4">
+
+          </div>
+        </aside>
+
+        {/* 右侧连续长页：所有 Section 全部连续渲染 */}
+        <div className="flex-1 min-w-0 space-y-16">
+
+          {/* Section 1：项目概览 */}
+          <section id="section-overview" className="scroll-mt-24">
+            <McspTab meta={meta} runDays={runDays} isWriting={isWriting} />
+            <div className="mt-8">
+              <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} tenantId={tenantId} isWriting={isWriting} />
+            </div>
+          </section>
+
+          {/* Section 2+：里程碑（每个里程碑是一个独立 Section）*/}
+          {sortedMilestones.map(m => (
+            <section key={m.id} id={`section-${m.id}`} className="scroll-mt-24 space-y-6">
+              {/* 里程碑头部 */}
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">{m.id}</Badge>
+                      <Badge
+                        variant={m.status === 'done' ? 'default' : m.status === 'running' ? 'secondary' : 'outline'}
+                        className="text-xs"
+                      >
+                        {milestoneStatusLabel(m.status)}
+                      </Badge>
+                      {m.id === currentMilestoneId && (
+                        <Badge variant="secondary" className="text-xs">当前阶段</Badge>
+                      )}
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight">{m.name}</h2>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      {m.assignee && (
+                        <span>执行 Agent：<span className="font-mono">{m.assignee}</span></span>
+                      )}
+                      {m.target_date && <span>目标日期：{m.target_date}</span>}
+                      {m.completed_at && <span>完成于：{m.completed_at.slice(0, 10)}</span>}
+                      {(m.failure_count ?? 0) > 0 && (
+                        <Badge variant="destructive" className="text-xs">失败 {m.failure_count} 次</Badge>
+                      )}
+                    </div>
+                  </div>
+                  {/* 签认按鈕（M1/M3）*/}
+                  {(m.id === 'M1' || m.id === 'M3') && (
+                    <div className="shrink-0">
+                      {(m.id === 'M1' ? meta.mcsp.signed_m1 : meta.mcsp.signed_m3) ? (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--onit-green)' }}>
+                          <CheckCircle2 className="w-4 h-4" />已签认
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm" variant="outline"
+                          disabled={signing === m.id || m.status !== 'done'}
+                          onClick={() => handleSign(m.id as 'M1' | 'M3')}
+                          className="gap-1.5"
+                        >
+                          {signing === m.id
+                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />签认中…</>
+                            : <><CheckCircle2 className="w-3.5 h-3.5" />签认 {m.id}</>
+                          }
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 进度条 */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>任务进度</span>
+                    <span>{m.tasks_done}/{m.tasks_total}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.round((m.tasks_done / Math.max(m.tasks_total, 1)) * 100)}%`,
+                        backgroundColor: m.status === 'done' ? 'var(--onit-green)' : 'var(--foreground)',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* blocked Alert */}
+                {m.status === 'blocked' && m.blocked_reason && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">阶段阻塞</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">{m.blocked_reason}</p>
+                      <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">@{meta.client.lumen} 已收到通知，正在处理中</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* 任务清单 */}
+              {m.tasks && m.tasks.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold">任务清单</h3>
+                  <div className="space-y-1.5">
+                    {m.tasks.map((task, i) => {
+                      const isDone = task.status === 'done' || task.done === true
+                      const isRunning = task.status === 'in_progress' || task.status === 'running'
+                      const isBlocked = task.status === 'blocked'
+                      return (
+                        <div key={i} className="flex items-center gap-2.5 py-1">
+                          <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                            isDone ? 'bg-foreground border-foreground' : isBlocked ? 'bg-red-500 border-red-500' : isRunning ? 'bg-blue-500 border-blue-500' : 'border-border'
+                          }`}>
+                            {isDone && (
+                              <svg className="w-2.5 h-2.5 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className={`text-sm flex-1 ${isDone ? 'line-through text-muted-foreground' : ''}`}>
+                            {task.name}
+                            {isRunning && <span className="ml-1.5 text-xs text-blue-500">进行中</span>}
+                            {isBlocked && <span className="ml-1.5 text-xs text-red-500">卡住了</span>}
+                          </span>
+                          <span className="text-xs text-muted-foreground shrink-0">{task.owner}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 执行轨迹（该里程碑的佐证）*/}
+              {m.run_id && (
+                <MilestoneRunStats runId={m.run_id} dispatchedAt={m.dispatched_at} milestoneName={m.name} />
+              )}
+
+              {/* @Lumen 对话区（里程碑上下文）*/}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  问 @{meta.client.lumen} 关于 {m.id}
+                </h3>
+                <AgentChat
+                  assistantId={lumenAssistantId}
+                  placeholder={`关于 ${m.name}，有什么问题或想法？`}
+                />
+              </div>
+            </section>
+          ))}
+
+        </div>
+      </div>
+
+      {/* 验收状态 + SKILL.md 下载 */}
+      <div className="mt-12 rounded-lg border border-border/50 p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {meta.audit.conclusion ? (
             <>
@@ -2281,12 +2675,6 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
             </>
           )}
         </div>
-        {/* ⚠️ 占位按鈕：SKILL.md 下载，待接逻辑后启用。
-            ONIT WhileLoop 的设计目的是让一个事情、一个想法，甚至是乱七八糟的资料或者只言片语，
-            变成一个 AI Native 的 workflow / pipe / ReAct / Close Loop。
-            SKILL.md 作为一个完成的标志，意味着就此事、我们做到了、验收了、交付了，
-            后续不论你要在未来的 ONIT 里重复运行，还是要在你自己决定的任何地方运行，都可以。
-            启用条件：meta.audit.conclusion 有内容 且 /api/tenants/skill-export 接口就绪。*/}
         <button
           disabled
           title="验收完成后可下载 SKILL.md"
@@ -2295,23 +2683,6 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
           <Download className="w-3.5 h-3.5" />
           SKILL.md
         </button>
-      </div>
-
-      {/* Footer CTA */}
-      <div className="mt-4 rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">有问题或想推进下一步？</p>
-          <p className="text-xs text-muted-foreground mt-0.5">切换到「执行轨迹」 Tab，如有 interrupt 可在看板里直接确认，无需跳转 Telegram</p>
-        </div>
-        <a
-          href="https://t.me/lumen_onit"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => posthog?.capture('live_report_telegram_click', { tenant_id: tenantId })}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
-        >
-          备用：Telegram @Lumen →
-        </a>
       </div>
 
       <div className="text-center text-xs text-muted-foreground mt-6 pb-4">
