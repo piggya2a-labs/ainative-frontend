@@ -123,15 +123,16 @@ function inferMethod(path: string, httpMethod: string): string {
   if (path.endsWith('/prune')) return 'POST'
   if (path.endsWith('/state') && httpMethod === 'POST') return 'POST'  // update_state
 
-  // 读操作路径
+  // 读操作路径（去掉 query string 再匹配，支持 /history?limit=50 这种带参数的路径）
+  const pathBase = path.split('?')[0]
   if (
-    path.endsWith('/runs') ||
-    path.endsWith('/state') ||
-    path.endsWith('/history') ||
-    path === '/assistants' ||
-    path === '/crons' ||
-    path.match(/^\/assistants\/[^/]+$/) ||
-    path.match(/^\/crons\/[^/]+$/)
+    pathBase.endsWith('/runs') ||
+    pathBase.endsWith('/state') ||
+    pathBase.endsWith('/history') ||
+    pathBase === '/assistants' ||
+    pathBase === '/crons' ||
+    pathBase.match(/^\/assistants\/[^/]+$/) ||
+    pathBase.match(/^\/crons\/[^/]+$/)
   ) return 'GET'
 
   // store 操作
