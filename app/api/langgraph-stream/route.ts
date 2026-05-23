@@ -45,16 +45,26 @@ export async function GET(req: NextRequest) {
       { headers: { 'x-api-key': LG_KEY } }
     )
     const state = stateRes.ok ? await stateRes.json() : {}
-    const interrupts = state?.next ?? []
-    const hasInterrupt = interrupts.length > 0
+    const nextNodes: string[] = state?.next ?? []
+    const hasInterrupt = nextNodes.length > 0
+
+    // 从 tasks 里提取 interrupt items（__interrupt__ 调用产生的）
+    const taskInterrupts: unknown[] = state?.tasks?.flatMap((t: { interrupts?: unknown[] }) => t.interrupts ?? []) ?? []
+    // 如果是 interrupt_before 暂停（nextNodes 有值但 taskInterrupts 为空），构造默认 interrupt item
+    const interruptItems = taskInterrupts.length > 0
+      ? taskInterrupts
+      : hasInterrupt
+        ? [{ value: `Agent 已暂停，等待确认后继续执行节点：${nextNodes.join(', ')}`, resumable: true }]
+        : []
 
     const payload = JSON.stringify({
       type: 'snapshot',
       thread_id: threadId,
       has_interrupt: hasInterrupt,
-      interrupts: state?.tasks?.flatMap((t: { interrupts?: unknown[] }) => t.interrupts ?? []) ?? [],
+      interrupts: interruptItems,
       messages: state?.values?.messages ?? [],
-      run_status: latestRun?.status ?? 'idle',
+      // 当 thread 有 interrupt 时，run_status 应该是 interrupted，不管 run 本身是否 success
+      run_status: hasInterrupt ? 'interrupted' : (latestRun?.status ?? 'idle'),
     })
 
     return new Response(
