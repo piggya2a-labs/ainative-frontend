@@ -277,11 +277,186 @@ function toLines(val: string | string[] | undefined): string[] {
   return val.split('\n').filter(Boolean)
 }
 
+// ─── KR3: useThreadStream — SSE 实时订阅 Thread，替代 fetchTrace 轮询 ───────────────────────
+// 订阅 /api/langgraph-stream?thread_id=xxx，Agent 每跑一步看板自动更新
+interface InterruptItem {
+  value: unknown
+  resumable: boolean
+  ns?: string[]
+  when?: string
+}
+function useThreadStream(threadId: string | undefined) {
+  const [messages, setMessages] = useState<ThreadMessage[]>([])
+  const [interrupts, setInterrupts] = useState<InterruptItem[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamError, setStreamError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!threadId) return
+    setIsStreaming(true)
+    setStreamError(null)
+
+    const es = new EventSource(`/api/langgraph-stream?thread_id=${encodeURIComponent(threadId)}`)
+
+    es.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data)
+        // snapshot 事件：初始加载或无 running run 时
+        if (payload.type === 'snapshot') {
+          if (Array.isArray(payload.messages)) {
+            const msgs = payload.messages
+              .filter((m: Record<string, unknown>) => m.type !== 'system')
+              .map((m: Record<string, unknown>) => ({
+                id: String(m.id ?? Math.random()),
+                type: m.type as ThreadMessage['type'],
+                content: Array.isArray(m.content)
+                  ? (m.content as Array<{ type?: string; text?: string }>)
+                      .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
+                  : String(m.content ?? ''),
+                tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
+                tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
+                name: m.name ? String(m.name) : undefined,
+              }))
+            setMessages(msgs)
+          }
+          if (payload.has_interrupt && Array.isArray(payload.interrupts)) {
+            setInterrupts(payload.interrupts as InterruptItem[])
+          } else {
+            setInterrupts([])
+          }
+          setIsStreaming(false)
+          es.close()
+          return
+        }
+        // LangGraph SSE 流事件：values / messages / metadata / interrupts
+        if (payload.type === 'values' && payload.values?.messages) {
+          const rawMsgs: Array<Record<string, unknown>> = payload.values.messages
+          const msgs = rawMsgs
+            .filter((m) => m.type !== 'system')
+            .map((m) => ({
+              id: String(m.id ?? Math.random()),
+              type: m.type as ThreadMessage['type'],
+              content: Array.isArray(m.content)
+                ? (m.content as Array<{ type?: string; text?: string }>)
+                    .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
+                : String(m.content ?? ''),
+              tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
+              tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
+              name: m.name ? String(m.name) : undefined,
+            }))
+          setMessages(msgs)
+        }
+        // interrupt 事件：Agent 暂停等待人类确认
+        if (payload.type === 'interrupt' || payload.type === 'interrupts') {
+          const items = Array.isArray(payload.interrupts) ? payload.interrupts : [payload]
+          setInterrupts(items as InterruptItem[])
+        }
+        // end 事件：run 完成
+        if (payload.type === 'end') {
+          setIsStreaming(false)
+          setInterrupts([])
+          es.close()
+        }
+      } catch (_) { /* ignore parse errors */ }
+    }
+
+    es.onerror = () => {
+      setStreamError('实时订阅断开，请刷新页面')
+      setIsStreaming(false)
+      es.close()
+    }
+
+    return () => { es.close() }
+  }, [threadId])
+
+  return { messages, interrupts, isStreaming, streamError }
+}
+
+// ─── KR4: HumanGate — 看板内的 interrupt 确认 UI ───────────────────────────────────
+function HumanGate({ threadId, interrupts, onResume }: {
+  threadId: string
+  interrupts: InterruptItem[]
+  onResume: () => void
+}) {
+  const [submitting, setSubmitting] = useState(false)
+  const [resumeText, setResumeText] = useState('')
+
+  const handleResume = async (value: unknown) => {
+    setSubmitting(true)
+    try {
+      await fetch('/api/langgraph-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: threadId, resume_value: value }),
+      })
+      onResume()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="rounded-lg border-2 border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20 p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+        <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">等待人类确认</span>
+        <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600">Human Gate</Badge>
+      </div>
+      {interrupts.map((item, i) => (
+        <div key={i} className="space-y-3">
+          {item.value != null && (
+            <div className="rounded-md bg-background/80 border border-border/50 p-3">
+              <p className="text-xs text-muted-foreground mb-1">需要确认的内容：</p>
+              <p className="text-sm leading-relaxed">
+                {typeof item.value === 'string' ? item.value : JSON.stringify(item.value, null, 2)}
+              </p>
+            </div>
+          )}
+          {item.resumable && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="回复内容（可留空直接确认）"
+                value={resumeText}
+                onChange={e => setResumeText(e.target.value)}
+                className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleResume(resumeText || true)}
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                  确认，Agent 继续跑
+                </button>
+                <button
+                  onClick={() => handleResume(false)}
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                >
+                  拒绝
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Trace Tab ───────────────────────────────────────────────────────────────
 function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetadata }) {
   const [data, setData] = useState<TraceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // KR3: 实时 thread_id（从初始 snapshot 拉取）
+  const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
+  // KR3: SSE 实时订阅
+  const { messages: liveMessages, interrupts, isStreaming, streamError } = useThreadStream(liveThreadId)
+  // KR4: interrupt 后重新订阅
+  const [streamKey, setStreamKey] = useState(0)
 
   const fetchTrace = () => {
     setLoading(true)
@@ -335,41 +510,20 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         })
 
         // 从所有里程碑的 evidence 字段收集截图 URL
-        // 数据来自 whileloop.py lumen_update_milestone 的 evidence_urls 参数
         const evidenceUrls: string[] = (meta?.milestones ?? []).flatMap(
           (m: MilestoneData & { evidence?: string[] }) => m.evidence ?? []
         )
-        // 拉最新 thread 的 messages
+        // KR3: 设置 liveThreadId 启动 SSE 订阅
         const latestThread = threads[0]
-        let messages: ThreadMessage[] = []
         const threadId = latestThread?.thread_id ?? ''
-        try {
-          const state = await lg(`/threads/${latestThread.thread_id}/state`)
-          const rawMsgs: Array<Record<string, unknown>> = state?.values?.messages ?? []
-          messages = rawMsgs
-            .filter((m) => m.type !== 'system')
-            .map((m) => {
-              const content = Array.isArray(m.content)
-                ? (m.content as Array<{ type?: string; text?: string }>)
-                    .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
-                : String(m.content ?? '')
-              return {
-                id: String(m.id ?? Math.random()),
-                type: m.type as ThreadMessage['type'],
-                content,
-                tool_calls: (m.tool_calls as ThreadMessage['tool_calls']) ?? undefined,
-                tool_call_id: m.tool_call_id ? String(m.tool_call_id) : undefined,
-                name: m.name ? String(m.name) : undefined,
-              }
-            })
-        } catch (_) { /* silent */ }
+        setLiveThreadId(threadId)
+
         const parsed: TraceData = {
           total_calls: allRuns.length,
           agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
           timeline,
           artifacts: [],
           screenshots: evidenceUrls,
-          messages,
           thread_id: threadId,
         }
         setData(parsed)
@@ -379,7 +533,7 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchTrace() }, [tenantSlug])
+  useEffect(() => { fetchTrace() }, [tenantSlug, streamKey])
 
   return (
     <div className="space-y-8">
@@ -388,8 +542,21 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="font-mono text-xs">Trace</Badge>
-            <Badge variant="secondary" className="text-xs">LangSmith</Badge>
-            {data && <Badge variant="outline" className="text-xs">{data.total_calls} 次工具调用</Badge>}
+            {isStreaming ? (
+              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                实时订阅中
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">LangSmith</Badge>
+            )}
+            {data && <Badge variant="outline" className="text-xs">{data.total_calls} 次 Run</Badge>}
+            {interrupts.length > 0 && (
+              <Badge variant="outline" className="text-xs border-amber-400/60 text-amber-600 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                等待确认
+              </Badge>
+            )}
           </div>
           <button
             onClick={fetchTrace}
@@ -401,8 +568,8 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
         </div>
         <h2 className="text-2xl font-bold tracking-tight">执行轨迹</h2>
         <p className="text-sm text-muted-foreground max-w-2xl">
-          从 LangSmith 实时拉取 Agent 执行过程——工具调用时间线、产出物、截图。
-          锚点：<code className="text-xs font-mono bg-muted px-1 rounded">{tenantSlug}</code>
+          Thread 实时镜像——Agent 每跑一步自动更新，不需刷新。如有 interrupt，在此直接确认。
+          Thread：<code className="text-xs font-mono bg-muted px-1 rounded">{liveThreadId ? liveThreadId.slice(0, 12) + '…' : tenantSlug}</code>
         </p>
       </div>
 
@@ -563,11 +730,25 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
             </Card>
           </Section>
 
-          {/* 对话流 */}
-          {data.messages && data.messages.length > 0 && (
-            <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${data.thread_id ? data.thread_id.slice(0, 8) + '…' : ''} · ${data.messages.length} 条消息`}>
+          {/* KR4: Human Gate — interrupt 确认 UI */}
+          {interrupts.length > 0 && liveThreadId && (
+            <HumanGate
+              threadId={liveThreadId}
+              interrupts={interrupts}
+              onResume={() => setStreamKey(k => k + 1)}
+            />
+          )}
+
+          {/* KR3: 实时对话流（SSE 订阅，替代静态 data.messages） */}
+          {(liveMessages.length > 0 || (data.messages && data.messages.length > 0)) && (
+            <Section icon={MessageCircle} title="对话流" subtitle={`Thread ${liveThreadId ? liveThreadId.slice(0, 8) + '…' : (data.thread_id ? data.thread_id.slice(0, 8) + '…' : '')} · ${(liveMessages.length || data.messages?.length || 0)} 条消息${isStreaming ? ' · 实时订阅中…' : ''}`}>
+              {streamError && (
+                <div className="rounded-md border border-amber-400/30 bg-amber-50/20 px-3 py-2 text-xs text-amber-600 mb-2">
+                  {streamError}
+                </div>
+              )}
               <div className="space-y-2">
-                {data.messages.map((msg) => {
+                {(liveMessages.length > 0 ? liveMessages : (data.messages ?? [])).map((msg) => {
                   if (msg.type === 'human') return (
                     <Card key={msg.id} className="border-l-2" style={{ borderLeftColor: 'var(--onit-blue)' }}>
                       <CardContent className="pt-3 pb-3">
@@ -1153,7 +1334,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
         <div className="grid grid-cols-3 gap-3 pt-2">
           {[
             { label: '数据来源', desc: 'tenants.metadata.milestones — Supabase Realtime 毫秒级推送，无轮询' },
-            { label: '调度机制', desc: 'pg_cron 每 60 秒扫一次，只处理 Human 显式标为 ready 的里程碑，不会自动触发 LLM' },
+            { label: '调度机制', desc: '@Lumen 在 Thread 内直接 task() 派遣子 Agent，同一个 Thread 共享上下文，不再需要 Dispatcher 轮询' },
             { label: '执行轨迹', desc: 'LangSmith runs（按 tenant_slug 过滤）— Agent 执行完成后 Automation Rule 自动回调' },
           ].map(({ label, desc }) => (
             <div key={label} className="rounded-lg border border-border/50 p-3 space-y-1">
@@ -1622,8 +1803,8 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId }: {
         </Card>
       </Section>
 
-      {/* 调度日志 */}
-      <Section icon={Terminal} title="调度日志" subtitle="pg_cron 每 5 分钟跑一次，最近 10 条记录">
+      {/* Agent 运行日志 */}
+      <Section icon={Terminal} title="Agent 运行日志" subtitle="Dispatcher 历史记录（已归档，新架构由 Thread 直接派遣）">
         <Card>
           <CardContent className="pt-4">
             {dispatcherLog === null ? (
@@ -1799,7 +1980,7 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
       <div className="mt-4 rounded-lg bg-muted/50 border border-border/50 p-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">有问题或想推进下一步？</p>
-          <p className="text-xs text-muted-foreground mt-0.5">在 Telegram 找 @Lumen，或直接联系你的客户成功经理</p>
+          <p className="text-xs text-muted-foreground mt-0.5">切换到「执行轨迹」 Tab，如有 interrupt 可在看板里直接确认，无需跳转 Telegram</p>
         </div>
         <a
           href="https://t.me/lumen_onit"
@@ -1808,7 +1989,7 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
           onClick={() => posthog?.capture('live_report_telegram_click', { tenant_id: tenantId })}
           className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
         >
-          和 @Lumen 对话 →
+          备用：Telegram @Lumen →
         </a>
       </div>
 
