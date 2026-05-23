@@ -365,9 +365,9 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   const [fetchKey, setFetchKey] = useState(0)
 
   // ─── 官方 useStream hook ───────────────────────────────────────────────────────────────────────
-  // 通过 /api/lg-proxy 透传，API Key 保留在服务端
+  // 通过 /api/lg（官方 langgraph-nextjs-api-passthrough）透传，API Key 保留在服务端
   const stream = useStream<Record<string, unknown>>({
-    apiUrl: '/api/lg-proxy',
+    apiUrl: '/api/lg',
     assistantId: 'meta_manage_agent',
     threadId: liveThreadId ?? undefined,
     reconnectOnMount: true,
@@ -813,18 +813,20 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                         {(item.status === 'pending' || item.status === 'running') && (
                           <TooltipProvider>
                             <Tooltip>
-                              <TooltipTrigger>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                                  onClick={() => cancelRun(item.id)}
-                                  disabled={cancellingRunId === item.id}
-                                >
-                                  {cancellingRunId === item.id
-                                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                                    : <StopCircle className="w-3 h-3" />}
-                                </Button>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                                    onClick={() => cancelRun(item.id)}
+                                    disabled={cancellingRunId === item.id}
+                                  />
+                                }
+                              >
+                                {cancellingRunId === item.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <StopCircle className="w-3 h-3" />}
                               </TooltipTrigger>
                               <TooltipContent>取消此 Run（interrupt 模式，保留 checkpoint）</TooltipContent>
                             </Tooltip>
@@ -893,17 +895,19 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                                 )}
                                 <TooltipProvider>
                                   <Tooltip>
-                                    <TooltipTrigger>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="mt-1.5 h-6 text-xs text-muted-foreground hover:text-foreground px-2"
-                                        disabled={restoringCheckpointId === cpId}
-                                        onClick={() => cpId && restoreCheckpoint(cpId)}
-                                      >
-                                        {restoringCheckpointId === cpId ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <History className="w-3 h-3 mr-1" />}
-                                        从此恢复
-                                      </Button>
+                                    <TooltipTrigger
+                                      render={
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="mt-1.5 h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                                          disabled={restoringCheckpointId === cpId}
+                                          onClick={() => cpId && restoreCheckpoint(cpId)}
+                                        />
+                                      }
+                                    >
+                                      {restoringCheckpointId === cpId ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <History className="w-3 h-3 mr-1" />}
+                                      从此恢复
                                     </TooltipTrigger>
                                     <TooltipContent>时间旅行：将 Thread 状态回滚到此 checkpoint，然后重新运行</TooltipContent>
                                   </Tooltip>
@@ -1091,16 +1095,18 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
                               <Badge variant="outline" className="text-xs font-mono">{cron.assistant_id.slice(0, 8)}…</Badge>
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                      disabled={deletingCronId === cron.cron_id}
-                                      onClick={() => deleteCron(cron.cron_id)}
-                                    >
-                                      {deletingCronId === cron.cron_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <StopCircle className="w-3 h-3" />}
-                                    </Button>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                        disabled={deletingCronId === cron.cron_id}
+                                        onClick={() => deleteCron(cron.cron_id)}
+                                      />
+                                    }
+                                  >
+                                    {deletingCronId === cron.cron_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <StopCircle className="w-3 h-3" />}
                                   </TooltipTrigger>
                                   <TooltipContent>删除此 Cron Job</TooltipContent>
                                 </Tooltip>
@@ -1123,17 +1129,19 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
               <div className="flex items-center gap-3">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={forking}
-                        onClick={forkThread}
-                        className="flex items-center gap-2"
-                      >
-                        {forking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitBranch className="w-3.5 h-3.5" />}
-                        Fork Thread
-                      </Button>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={forking}
+                          onClick={forkThread}
+                          className="flex items-center gap-2"
+                        />
+                      }
+                    >
+                      {forking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitBranch className="w-3.5 h-3.5" />}
+                      Fork Thread
                     </TooltipTrigger>
                     <TooltipContent>复制当前 Thread 状态，创建平行实验分支，不破坏主线</TooltipContent>
                   </Tooltip>
