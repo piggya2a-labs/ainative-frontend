@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { usePostHog } from 'posthog-js/react'
 import { createClient } from '@/lib/supabase-client'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const posthog = usePostHog()
 
@@ -37,7 +38,8 @@ export default function LoginPage() {
         posthog?.capture('auth_error', { mode: 'signup', error: error.message })
       } else {
         posthog?.capture('auth_success', { mode: 'signup' })
-        router.push('/dashboard')
+        const redirectTo = searchParams.get('redirect') || '/dashboard'
+        router.push(redirectTo)
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -46,7 +48,8 @@ export default function LoginPage() {
         posthog?.capture('auth_error', { mode: 'login', error: error.message })
       } else {
         posthog?.capture('auth_success', { mode: 'login' })
-        router.push('/dashboard')
+        const redirectTo = searchParams.get('redirect') || '/dashboard'
+        router.push(redirectTo)
       }
     }
 
