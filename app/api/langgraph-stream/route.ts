@@ -36,8 +36,9 @@ export async function GET(req: NextRequest) {
   const runs: Array<{ run_id: string; status: string }> = await runsRes.json()
   const latestRun = runs[0]
 
-  // 如果没有 running run，返回 thread state 的 interrupt 检查
-  if (!latestRun || latestRun.status !== 'pending') {
+  // 如果没有 active run（pending 或 running），返回 thread state 的 interrupt 检查
+  const isActive = latestRun && (latestRun.status === 'pending' || latestRun.status === 'running')
+  if (!isActive) {
     // 查 thread state 看是否有 pending interrupt
     const stateRes = await fetch(
       `${LG_URL}/threads/${threadId}/state`,
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // 有 running run：代理 stream
+  // 有 active run（pending/running）：代理 stream
   const streamRes = await fetch(
     `${LG_URL}/threads/${threadId}/runs/${latestRun.run_id}/stream`,
     {

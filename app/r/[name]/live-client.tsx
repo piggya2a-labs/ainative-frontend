@@ -287,7 +287,7 @@ interface InterruptItem {
   ns?: string[]
   when?: string
 }
-function useThreadStream(threadId: string | undefined) {
+function useThreadStream(threadId: string | undefined, streamKey?: number) {
   const [messages, setMessages] = useState<ThreadMessage[]>([])
   const [interrupts, setInterrupts] = useState<InterruptItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
@@ -382,7 +382,8 @@ function useThreadStream(threadId: string | undefined) {
     }
 
     return () => { es.close() }
-  }, [threadId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId, streamKey])
 
   return { messages, interrupts, isStreaming, streamError, threadStatus }
 }
@@ -468,10 +469,10 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
   const [error, setError] = useState<string | null>(null)
   // KR3: 实时 thread_id（从初始 snapshot 拉取）
   const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
-  // KR3: SSE 实时订阅
-  const { messages: liveMessages, interrupts, isStreaming, streamError, threadStatus } = useThreadStream(liveThreadId)
-  // KR4: interrupt 后重新订阅
+  // KR4: interrupt 后重新订阅（必须在 useThreadStream 之前声明）
   const [streamKey, setStreamKey] = useState(0)
+  // KR3: SSE 实时订阅
+  const { messages: liveMessages, interrupts, isStreaming, streamError, threadStatus } = useThreadStream(liveThreadId, streamKey)
   // Checkpoint 历史
   const [checkpoints, setCheckpoints] = useState<Array<{ checkpoint_id: string; created_at: string; metadata?: { step?: number; source?: string; writes?: Record<string, unknown> } }>>([])
   const [checkpointsOpen, setCheckpointsOpen] = useState(false)
@@ -516,16 +517,20 @@ function TraceTab({ tenantSlug, meta }: { tenantSlug: string; meta: TenantMetada
     if (!liveThreadId) return
     setRestoringCheckpointId(checkpointId)
     try {
-      await fetch('/api/langgraph-trace', {
+      const res = await fetch('/api/langgraph-trace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           path: `/threads/${liveThreadId}/state`,
           method: 'POST',
-          body: { checkpoint_id: checkpointId, values: null },
+          body: { checkpoint_id: checkpointId, values: {} },
         }),
       })
-      toast('时间旅行成功', { description: `已从 checkpoint ${checkpointId.slice(0, 8)}… 恢复`, duration: 3000 })
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(errText)
+      }
+      toast('时间旅行成功', { description: `已从 checkpoint ${checkpointId.slice(0, 8)}… 恢复，重新订阅中…`, duration: 3000 })
       setStreamKey(k => k + 1)
     } catch {
       toast('恢复失败', { description: '请稍后重试', duration: 3000 })
