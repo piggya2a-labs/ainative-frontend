@@ -5,3 +5,5 @@ allowBuilds:
   protobufjs: set this to true or false
   sharp: set this to true or false
   unrs-resolver: set this to true or false
+minimumReleaseAgeExclude:
+  - '@langchain/langgraph-sdk@1.9.6'

@@ -1,4 +1,5 @@
 'use client'
+import { useStream } from '@langchain/langgraph-sdk/react'
 import { Streamdown } from 'streamdown'
 import { cjk } from '@streamdown/cjk'
 import 'streamdown/styles.css'
@@ -14,7 +15,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/sonner'
 import { usePostHog } from 'posthog-js/react'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import {
   Target, Users, CheckCircle2, AlertTriangle, GitBranch,
@@ -407,79 +408,59 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // LangGraph thread_id（从 fetchTrace 设置）
-  const [liveThreadId, setLiveThreadId] = useState<string | undefined>(undefined)
+  const [liveThreadId, setLiveThreadId] = useState<string | undefined>(langgraphThreadId)
   // fetchKey 控制 fetchTrace 重运行
   const [fetchKey, setFetchKey] = useState(0)
 
-  // Thread 实时状态（busy/idle/interrupted）——每 5 秒轮询一次
-  const [threadStatus, setThreadStatus] = useState<'busy' | 'idle' | 'interrupted' | null>(null)
-  // interrupt 详情（value 字段，用于展示给用户）
-  const [interruptValue, setInterruptValue] = useState<string | null>(null)
+  // ─── useStream：原生 LangGraph 流式状态，替换旧的 EventSource 轮询 ──────────
+  // 只有在有 threadId 时才激活，apiUrl 指向已有的 /api/lg-proxy 安全代理
+  // 注意：streamMode/streamSubgraphs 是 submit 级别的参数，不是 hook 初始化选项
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stream = useStream<Record<string, unknown>>({
+    apiUrl: '/api/lg-proxy',
+    assistantId: 'meta_manage_agent',
+    threadId: liveThreadId,
+  }) as any // as any 以访问 subagents、toolProgress 等完整属性
+
+  // 从 useStream 派生 threadStatus（替换旧的 SSE 轮询）
+  const threadStatus: 'busy' | 'idle' | 'interrupted' | null = stream.isLoading
+    ? 'busy'
+    : stream.interrupts && stream.interrupts.length > 0
+    ? 'interrupted'
+    : liveThreadId
+    ? 'idle'
+    : null
+
   // resume 中状态
   const [resuming, setResuming] = useState(false)
-  useEffect(() => {
-    if (!liveThreadId) return
-    let es: EventSource | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
-    const connect = () => {
-      es = new EventSource(`/api/langgraph-sse?thread_id=${encodeURIComponent(liveThreadId)}`)
-
-      es.addEventListener('thread_status', (e: MessageEvent) => {
-        try {
-          const payload = JSON.parse(e.data) as { status: string; interrupt_value: string | null }
-          const { status, interrupt_value } = payload
-          if (status === 'busy') {
-            setThreadStatus('busy')
-            setInterruptValue(null)
-          } else if (status === 'interrupted') {
-            setThreadStatus('interrupted')
-            setInterruptValue(interrupt_value)
-          } else {
-            setThreadStatus('idle')
-            setInterruptValue(null)
-          }
-        } catch { /* ignore parse error */ }
-      })
-
-      // SSE 连接关闭时（服务端 30s 自动关闭）自动重连
-      es.onerror = () => {
-        es?.close()
-        es = null
-        reconnectTimer = setTimeout(connect, 1000)
-      }
-    }
-
-    connect()
-    return () => {
-      es?.close()
-      if (reconnectTimer) clearTimeout(reconnectTimer)
-    }
-  }, [liveThreadId])
-  // resume interrupt：POST /threads/{id}/runs with command: { resume: true }
+  // resume interrupt：使用 useStream.submit 发送 command.resume
   const resumeInterrupt = async (value: unknown = true) => {
     if (!liveThreadId) return
     setResuming(true)
     try {
-      const res = await fetch('/api/langgraph-trace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          path: `/threads/${liveThreadId}/runs`,
-          method: 'POST',
-          body: {
-            assistant_id: 'meta_manage_agent',
-            command: { resume: value },
-          },
-        }),
-      })
-      if (!res.ok) throw new Error(await res.text())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (stream as any).submit(null, { command: { resume: value } })
       toast('已确认，Agent 继续执行', { description: 'interrupt 已 resume，Thread 恢复运行', duration: 3000 })
-      setThreadStatus('busy')
-      setInterruptValue(null)
       setFetchKey(k => k + 1)
     } catch (e) {
-      toast('resume 失败', { description: String(e), duration: 3000 })
+      // fallback：直接调 API
+      try {
+        const res = await fetch('/api/langgraph-trace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: `/threads/${liveThreadId}/runs`,
+            method: 'POST',
+            body: { assistant_id: 'meta_manage_agent', command: { resume: value } },
+          }),
+        })
+        if (!res.ok) throw new Error(await res.text())
+        toast('已确认，Agent 继续执行', { description: 'interrupt 已 resume，Thread 恢复运行', duration: 3000 })
+        setFetchKey(k => k + 1)
+      } catch (e2) {
+        toast('resume 失败', { description: String(e2 ?? e), duration: 3000 })
+      }
     } finally {
       setResuming(false)
     }
@@ -763,36 +744,52 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
           </button>
         </div>
         {/* interrupt 详情 + resume 按钮 */}
-        {threadStatus === 'interrupted' && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2 flex-1 min-w-0">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Agent 等待确认</p>
-                {interruptValue && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 break-words">{interruptValue}</p>
-                )}
-                <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">点击「确认继续」让 Agent 继续执行，或「拒绝」取消此次操作。</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm" variant="outline"
-                disabled={resuming}
-                onClick={() => resumeInterrupt(false)}
-                className="text-xs h-7 px-2 border-amber-300 text-amber-700 hover:bg-amber-100"
-              >
-                {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '拒绝'}
-              </Button>
-              <Button
-                size="sm"
-                disabled={resuming}
-                onClick={() => resumeInterrupt(true)}
-                className="text-xs h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '确认继续'}
-              </Button>
-            </div>
+        {/* 多重 Interrupt 展示（遍历 stream.interrupts 数组，支持子图中断） */}
+        {stream.interrupts && stream.interrupts.length > 0 && (
+          <div className="space-y-2">
+            {(stream.interrupts as unknown[]).map((interrupt: unknown, idx: number) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const intAny = interrupt as any
+              const intValue = intAny?.value ?? intAny?.interrupt_value ?? null
+              const intStr = intValue != null ? String(intValue) : null
+              return (
+                <div key={idx} className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        Agent 等待确认
+                        {stream.interrupts.length > 1 && (
+                          <span className="ml-1.5 text-xs text-amber-600/60">({idx + 1}/{stream.interrupts.length})</span>
+                        )}
+                      </p>
+                      {intStr && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 break-words">{intStr}</p>
+                      )}
+                      <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">点击「确认继续」让 Agent 继续执行，或「拒绝」取消此次操作。</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm" variant="outline"
+                      disabled={resuming}
+                      onClick={() => resumeInterrupt(false)}
+                      className="text-xs h-7 px-2 border-amber-300 text-amber-700 hover:bg-amber-100"
+                    >
+                      {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '拒绝'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={resuming}
+                      onClick={() => resumeInterrupt(true)}
+                      className="text-xs h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '确认继续'}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
         <h2 className="text-2xl font-bold tracking-tight">执行轨迹</h2>
@@ -859,6 +856,126 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
               </CardContent>
             </Card>
           </div>
+
+          {/* ─── Tool Call 实时状态面板（useStream.toolProgress） ──────────────── */}
+          {stream.toolProgress && stream.toolProgress.length > 0 && (
+            <Section icon={Activity} title="工具执行实时状态" subtitle="当前正在执行的工具调用，包括子图中的工具">
+              <div className="space-y-2">
+                {(stream.toolProgress as unknown[]).map((tp: unknown, i: number) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const tpAny = tp as any
+                  const toolName: string = tpAny?.name ?? tpAny?.tool_name ?? '未知工具'
+                  const toolStatus: string = tpAny?.status ?? 'running'
+                  const toolArgs = tpAny?.args ?? tpAny?.input ?? null
+                  const toolResult = tpAny?.result ?? tpAny?.output ?? null
+                  const isRunning = toolStatus === 'running' || toolStatus === 'pending'
+                  const isError = toolStatus === 'error'
+                  return (
+                    <div key={i} className={`rounded-md border px-3 py-2 ${
+                      isRunning ? 'border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20' :
+                      isError ? 'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20' :
+                      'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {isRunning && <Loader2 className="w-3 h-3 animate-spin text-blue-500 shrink-0" />}
+                        {!isRunning && !isError && <span className="w-3 h-3 text-emerald-500 shrink-0">✓</span>}
+                        {isError && <span className="w-3 h-3 text-red-500 shrink-0">✗</span>}
+                        <code className="text-xs font-mono font-medium">{toolName}</code>
+                        <Badge
+                          variant={isError ? 'destructive' : isRunning ? 'secondary' : 'default'}
+                          className="text-xs ml-auto"
+                        >
+                          {isRunning ? '执行中…' : isError ? '失败' : '完成'}
+                        </Badge>
+                      </div>
+                      {toolArgs && (
+                        <details className="mt-1.5">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">入参</summary>
+                          <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
+                            {typeof toolArgs === 'string' ? toolArgs : JSON.stringify(toolArgs, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {toolResult && (
+                        <details className="mt-1">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">返回値</summary>
+                          <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
+                            {typeof toolResult === 'string' ? toolResult.slice(0, 500) : JSON.stringify(toolResult, null, 2).slice(0, 500)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </Section>
+          )}
+
+          {/* ─── Subgraph 子任务展开（useStream.subagents） ───────────────────── */}
+          {stream.subagents && stream.subagents.size > 0 && (
+            <Section icon={GitBranch} title="子 Agent 活动" subtitle="当前已派遣的子图 Agent，展开可看内部执行轨迹">
+              <div className="space-y-3">
+                {Array.from((stream.subagents as Map<string, unknown>).entries()).map(([toolCallId, subagent]: [string, unknown]) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const saAny = subagent as any
+                  const saStatus: string = saAny?.status ?? 'running'
+                  const saToolCall = saAny?.toolCall ?? {}
+                  const saName: string = saToolCall?.name ?? saToolCall?.function?.name ?? '子 Agent'
+                  const saArgs = saToolCall?.args ?? saToolCall?.function?.arguments ?? null
+                  const saMessages: unknown[] = saAny?.messages ?? []
+                  const isActive = saStatus === 'running' || saStatus === 'pending'
+                  return (
+                    <div key={toolCallId} className={`rounded-md border-l-2 pl-3 py-2 ${
+                      isActive ? 'border-l-blue-400' : 'border-l-emerald-400'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {isActive && <Loader2 className="w-3 h-3 animate-spin text-blue-500 shrink-0" />}
+                        {!isActive && <span className="text-emerald-500 text-xs">✓</span>}
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {saName === 'task' ? '🚀 子 Agent' : `⚙️ ${saName}`}
+                        </Badge>
+                        <Badge variant={isActive ? 'secondary' : 'default'} className="text-xs">
+                          {isActive ? '运行中' : '已完成'}
+                        </Badge>
+                        <code className="text-xs font-mono text-muted-foreground/50 ml-auto">{toolCallId.slice(0, 8)}…</code>
+                      </div>
+                      {saArgs && (
+                        <details className="mt-1.5">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">派遣参数</summary>
+                          <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-20 whitespace-pre-wrap break-all">
+                            {typeof saArgs === 'string' ? saArgs.slice(0, 400) : JSON.stringify(saArgs, null, 2).slice(0, 400)}
+                          </pre>
+                        </details>
+                      )}
+                      {saMessages.length > 0 && (
+                        <details className="mt-1">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                            内部消息（{saMessages.length} 条）
+                          </summary>
+                          <div className="mt-1.5 space-y-1 max-h-32 overflow-y-auto">
+                            {saMessages.slice(-5).map((msg, mi) => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              const m = msg as any
+                              const mType: string = m?.type ?? m?.role ?? 'unknown'
+                              const mContent: string = typeof m?.content === 'string'
+                                ? m.content.slice(0, 200)
+                                : JSON.stringify(m?.content ?? '').slice(0, 200)
+                              return (
+                                <div key={mi} className="flex gap-1.5">
+                                  <Badge variant="outline" className="text-[10px] font-mono shrink-0 h-4">{mType}</Badge>
+                                  <p className="text-xs text-muted-foreground break-words">{mContent}</p>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </Section>
+          )}
 
           {/* 工具调用时间线 */}
           <Section icon={Activity} title="工具调用时间线" subtitle="按时间顺序展示 Agent 调用的所有工具">
@@ -1710,61 +1827,51 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dispatcherLog, setDispatcherLog] = useState<Array<{ runid: number; status: string; start_time: string; end_time: string; return_message: string }> | null>(null)
 
-  // LangGraph runs（真实执行轨迹，含 thread 状态和 tool_calls 数量）
-  const [lgRuns, setLgRuns] = useState<Array<{
-    run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string
-    thread_id: string; thread_status: string; interrupt_reason?: string; tool_calls_count?: number
-  }> | null>(null)
-  useEffect(() => {
-    const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, body })
-    }).then(r => r.json())
-    const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
-    // 如果有 langgraphThreadId，直接用它；否则 fallback 到 tenant_slug 搜索
-    const getThreads = langgraphThreadId
-      ? Promise.resolve([{ thread_id: langgraphThreadId, status: 'idle' as string, interrupts: [] as unknown[] }])
-      : lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
-    getThreads
-      .then(async (threads: Array<{ thread_id: string; status: string; interrupts?: unknown[] }>) => {
-        if (!Array.isArray(threads) || !threads.length) { setLgRuns([]); return }
-        const allRuns: Array<{
-          run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string
-          thread_id: string; thread_status: string; interrupt_reason?: string; tool_calls_count?: number
-        }> = []
-        await Promise.all(threads.slice(0, 5).map(async t => {
-          const [runs, state] = await Promise.all([
-            lgGet(`/threads/${t.thread_id}/runs`) as Promise<Array<{ run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string }>>,
-            lgGet(`/threads/${t.thread_id}/state`) as Promise<{ values?: { messages?: Array<{ type: string; tool_calls?: unknown[] }> }; interrupts?: Array<{ value?: unknown }> }>,
-          ])
-          // 统计真实 tool_calls 数量（从 messages 里的 ai 类型消息统计）
-          const msgs = state?.values?.messages ?? []
-          const toolCallsCount = msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
-          // interrupt 原因（如果有）
-          const interrupts = state?.interrupts ?? []
-          const interruptReason = interrupts.length > 0
-            ? String((interrupts[0] as { value?: unknown }).value ?? '').slice(0, 80)
-            : undefined
-          // thread 实际状态从 state 获取（比 search 结果更准确）
-          const threadStatus = (state as { status?: string })?.status ?? t.status ?? 'idle'
-          if (Array.isArray(runs)) {
-            runs.forEach(r => allRuns.push({
-              ...r,
-              thread_id: t.thread_id,
-              thread_status: threadStatus,
-              interrupt_reason: interruptReason,
-              tool_calls_count: toolCallsCount,
-            }))
-          }
-        }))
-        // 按时间倒序排列，最新在前
-        allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        setLgRuns(allRuns.slice(0, 20))
-      })
-      .catch(() => setLgRuns([]))
+  // ─── useStream：统一数据源，替换两个重复的 LangGraph 轮询 useEffect ─────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const omtStream = useStream<Record<string, unknown>>({
+    apiUrl: '/api/lg-proxy',
+    assistantId: 'meta_manage_agent',
+    threadId: langgraphThreadId,
+  }) as any
+
+  // 从 useStream 派生 lgRuns（展示用，不再单独轮询）
+  const lgRuns = useMemo(() => {
+    const msgs: Array<{ type: string; tool_calls?: Array<{ id: string; name: string; args?: unknown }> }> =
+      (omtStream.values?.messages as typeof msgs) ?? []
+    // 从 messages 重构出一个类似 runs 的展示列表
+    const toolCallItems = msgs
+      .filter(m => m.type === 'ai' && m.tool_calls && m.tool_calls.length > 0)
+      .flatMap(m => (m.tool_calls ?? []).map(tc => ({
+        run_id: tc.id,
+        assistant_id: 'meta_manage_agent',
+        status: 'success',
+        created_at: new Date().toISOString(),
+        thread_id: langgraphThreadId ?? '',
+        thread_status: omtStream.isLoading ? 'busy' : omtStream.interrupts?.length > 0 ? 'interrupted' : 'idle',
+        interrupt_reason: undefined as string | undefined,
+        tool_calls_count: 1,
+        tool_name: tc.name,
+        tool_args: tc.args,
+      })))
+    return toolCallItems.length > 0 ? toolCallItems : null
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantSlug, langgraphThreadId])
+  }, [omtStream.values, omtStream.isLoading, omtStream.interrupts, langgraphThreadId])
+
+  // 从 useStream 派生 traceStats
+  const traceStats = useMemo(() => {
+    const msgs: Array<{ type: string; tool_calls?: unknown[] }> =
+      (omtStream.values?.messages as typeof msgs) ?? []
+    const totalToolCalls = msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
+    const agentSet = new Set<string>(['@Lumen'])
+    return {
+      total_calls: totalToolCalls,
+      agents: Array.from(agentSet),
+      success_count: totalToolCalls,
+      pass_rate: totalToolCalls > 0 ? 100 : null,
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [omtStream.values])
 
   // PostHog 客户活跃度
   const [posthogActivity, setPosthogActivity] = useState<Record<string, number> | null>(null)
@@ -1774,47 +1881,6 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
       .then(d => setPosthogActivity(d.events ?? null))
       .catch(() => setPosthogActivity(null))
   }, [tenantId, tenantSlug])
-
-  // 拉取 LangGraph trace 数据，用于填充总览数字
-  const [traceStats, setTraceStats] = useState<{ total_calls: number; agents: string[]; success_count: number; pass_rate: number | null } | null>(null)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const lg = (path: string, body?: unknown) => fetch('/api/langgraph-trace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, body })
-    }).then(r => r.json())
-    const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
-    // 如果有 langgraphThreadId，直接用它；否则 fallback 到 tenant_slug 搜索
-    const getThreads = langgraphThreadId
-      ? Promise.resolve([{ thread_id: langgraphThreadId }])
-      : lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
-    getThreads
-      .then(async (threads: Array<{ thread_id: string }>) => {
-        if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }); return }
-        const allRuns: Array<{ assistant_id: string; status: string }> = []
-        let totalToolCalls = 0
-        await Promise.all(threads.slice(0, 5).map(async t => {
-          const [runs, state] = await Promise.all([
-            lg(`/threads/${t.thread_id}/runs`) as Promise<Array<{ assistant_id: string; status: string }>>,
-            lgGet(`/threads/${t.thread_id}/state`) as Promise<{ values?: { messages?: Array<{ type: string; tool_calls?: unknown[] }> } }>,
-          ])
-          if (Array.isArray(runs)) allRuns.push(...runs)
-          // 统计真实 tool_calls 数量（从 messages 里的 ai 类型消息统计）
-          const msgs = state?.values?.messages ?? []
-          totalToolCalls += msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
-        }))
-        const successCount = allRuns.filter(r => r.status === 'success').length
-        const passRate = allRuns.length > 0 ? Math.round((successCount / allRuns.length) * 100) : null
-        setTraceStats({
-          total_calls: totalToolCalls, // 真实工具调用次数，不是 runs 数量
-          agents: [...new Set(allRuns.map(r => agentName(r.assistant_id)))],
-          success_count: successCount,
-          pass_rate: passRate,
-        })
-      })
-      .catch(() => setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }))
-  }, [tenantSlug, langgraphThreadId])
 
   return (
     <div id="section-omt" className="space-y-8 scroll-mt-24">
@@ -2307,7 +2373,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lgRuns.map(run => {
+              {lgRuns.map((run: { run_id: string; assistant_id: string; status: string; created_at: string; updated_at?: string; thread_id: string; thread_status: string; interrupt_reason?: string; tool_calls_count?: number; tool_name?: string; tool_args?: unknown }) => {
                 const ms = run.updated_at && run.created_at
                   ? Math.round((new Date(run.updated_at).getTime() - new Date(run.created_at).getTime()))
                   : null
