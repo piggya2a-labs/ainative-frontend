@@ -2,169 +2,143 @@
 /**
  * AgentChat 组件
  *
- * 纯展示层：
- * - 发消息 → POST /api/agent-chat（API Route 负责认证和 LangGraph 转发）
- * - 读 SSE 流 → 实时渲染 AI 回复（Streamdown animated）
- * - 支持 LangGraph values 事件格式：event=values, data={messages:[...]}
+ * 完全基于官方 @langchain/langgraph-sdk/react 的 useStream Hook：
+ * - 发消息 → stream.submit({ messages: [...] })
+ * - 历史消息 → stream.messages（useStream 在 mount 时自动加载历史）
+ * - 流式渲染 → stream.isLoading + stream.messages
+ * - 图片渲染 → 检测 tool message content 里的 image_url 字段直接渲染 <img>
+ * - 零手写 SSE 解析
  */
-import { useState, useRef, useEffect } from 'react'
+import { useStream } from '@langchain/langgraph-sdk/react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Streamdown } from 'streamdown'
 import { cjk } from '@streamdown/cjk'
 import 'streamdown/styles.css'
-
 import { Send, Loader2 } from 'lucide-react'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  streaming?: boolean
-}
+import { useRef, useState, useEffect } from 'react'
 
 interface AgentChatProps {
-  /** LangGraph assistant_id */
+  /** LangGraph assistant_id（UUID） */
   assistantId: string
-  /** 可选：已有的 thread_id（不传则自动生成确定性 thread） */
+  /** 已有的 thread_id，传入后 useStream 自动加载历史消息 */
   threadId?: string
   placeholder?: string
 }
 
-export function AgentChat({ assistantId, threadId, placeholder = '输入消息，Enter 发送，Shift+Enter 换行' }: AgentChatProps) {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [streaming, setStreaming] = useState(false)
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const historyLoadedRef = useRef(false)
-
-  // B-04 修复：mount 时从 LangGraph Thread state 加载历史消息
-  useEffect(() => {
-    if (!threadId || historyLoadedRef.current) return
-    historyLoadedRef.current = true
-    setHistoryLoading(true)
-    fetch('/api/langgraph-trace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: `/threads/${threadId}/state` }),
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        const msgs: Array<{ role?: string; type?: string; content?: unknown }> =
-          data?.values?.messages ?? []
-        if (msgs.length > 0) {
-          const parsed: Message[] = msgs
-            .filter(m => m.role === 'user' || m.role === 'assistant' || m.type === 'human' || m.type === 'ai')
-            .map(m => ({
-              role: ((m.role === 'user' || m.type === 'human') ? 'user' : 'assistant') as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content
-                : Array.isArray(m.content)
-                  ? (m.content as Array<{ type?: string; text?: string }>)
-                      .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
-                  : String(m.content ?? ''),
-            }))
-            .filter(m => m.content.trim())
-          if (parsed.length > 0) setMessages(parsed)
+// 从 tool message 的 content 里提取截图 URL（steel 返回 JSON 字符串）
+function extractImageUrl(content: unknown): string | null {
+  if (!content) return null
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed?.image_url && typeof parsed.image_url === 'string') return parsed.image_url
+      if (parsed?.url && typeof parsed.url === 'string' && /\.(png|jpg|jpeg|webp|gif)/i.test(parsed.url)) return parsed.url
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item?.image_url) return item.image_url
         }
-      })
-      .catch(() => { /* 静默失败，不影响正常使用 */ })
-      .finally(() => setHistoryLoading(false))
-  }, [threadId])
+      }
+    } catch { /* not JSON */ }
+    return null
+  }
+  if (Array.isArray(content)) {
+    for (const block of content as Array<Record<string, unknown>>) {
+      if (block?.type === 'image_url' && (block?.image_url as Record<string, unknown>)?.url) {
+        return (block.image_url as Record<string, unknown>).url as string
+      }
+    }
+  }
+  if (typeof content === 'object') {
+    const c = content as Record<string, unknown>
+    if (c.image_url && typeof c.image_url === 'string') return c.image_url
+  }
+  return null
+}
 
+// 渲染单条消息内容
+function MessageContent({
+  msg,
+  isStreaming,
+}: {
+  msg: Record<string, unknown>
+  isStreaming: boolean
+}) {
+  const role = (msg.role ?? msg.type ?? '') as string
+  const content = msg.content
+
+  // 工具消息：尝试提取图片
+  if (role === 'tool') {
+    const imgUrl = extractImageUrl(content)
+    if (imgUrl) {
+      return (
+        <div className="space-y-1">
+          <img
+            src={imgUrl}
+            alt="截图"
+            className="max-w-full rounded border border-border/50 cursor-pointer"
+            style={{ maxHeight: 240 }}
+            onClick={() => window.open(imgUrl, '_blank')}
+          />
+          <p className="text-xs text-muted-foreground/50">点击查看原图</p>
+        </div>
+      )
+    }
+    const text = typeof content === 'string' ? content : JSON.stringify(content)
+    return (
+      <code className="text-xs font-mono text-muted-foreground/70 whitespace-pre-wrap break-all">
+        {text.length > 300 ? text.slice(0, 300) + '…' : text}
+      </code>
+    )
+  }
+
+  // AI 消息：流式 Markdown 渲染
+  if (role === 'assistant' || role === 'ai') {
+    const text = typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? (content as Array<{ type?: string; text?: string }>)
+            .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
+        : String(content ?? '')
+    if (isStreaming && !text) {
+      return <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+    }
+    return (
+      <Streamdown animated isAnimating={isStreaming} plugins={{ cjk }}>
+        {text}
+      </Streamdown>
+    )
+  }
+
+  // 用户消息
+  const text = typeof content === 'string' ? content : JSON.stringify(content)
+  return <span className="whitespace-pre-wrap">{text}</span>
+}
+
+export function AgentChat({ assistantId, threadId, placeholder = '输入消息，Enter 发送，Shift+Enter 换行' }: AgentChatProps) {
+  const [input, setInput] = useState('')
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // 官方 useStream：自动加载历史消息（threadId 传入时），自动流式更新
+  // 注：streamMode 是 SubmitOptions 的参数，不是 UseStreamOptions 的参数，在 submit() 时传入
+  const stream = useStream<{ messages: Array<Record<string, unknown>> }>({
+    apiUrl: '/api/lg-proxy',
+    assistantId,
+    threadId,
+  })
+
+  // 滚动到底部
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [stream.messages])
 
   async function sendMessage() {
     const text = input.trim()
-    if (!text || streaming) return
-
-    setMessages(prev => [...prev, { role: 'user', content: text }])
+    if (!text || stream.isLoading) return
     setInput('')
-    setStreaming(true)
-    setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true }])
-
-    try {
-      const resp = await fetch('/api/agent-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assistant_id: assistantId,
-          message: text,
-          thread_id: threadId,
-        }),
-      })
-
-      if (!resp.ok || !resp.body) {
-        const err = await resp.text()
-        setMessages(prev => {
-          const next = [...prev]
-          next[next.length - 1] = { role: 'assistant', content: `错误：${err}`, streaming: false }
-          return next
-        })
-        return
-      }
-
-      // 读 LangGraph SSE 流
-      // 格式：event: values\ndata: {"messages": [...]}
-      const reader = resp.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let eventType = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            eventType = line.slice(6).trim()
-          } else if (line.startsWith('data:') && eventType === 'values') {
-            try {
-              const payload = JSON.parse(line.slice(5).trim())
-              // LangGraph values 事件：messages 数组，取最后一条 AI 消息
-              const msgs: Array<{ role?: string; type?: string; content?: string }> =
-                payload?.messages ?? []
-              const lastAi = [...msgs].reverse().find(
-                m => m.role === 'assistant' || m.type === 'ai'
-              )
-              if (lastAi?.content) {
-                setMessages(prev => {
-                  const next = [...prev]
-                  next[next.length - 1] = {
-                    role: 'assistant',
-                    content: lastAi.content!,
-                    streaming: true,
-                  }
-                  return next
-                })
-              }
-            } catch { /* ignore parse errors */ }
-            eventType = ''
-          }
-        }
-      }
-
-      // 流结束，去掉 streaming 标记
-      setMessages(prev => {
-        const next = [...prev]
-        if (next.length > 0) {
-          next[next.length - 1] = { ...next[next.length - 1], streaming: false }
-        }
-        return next
-      })
-    } catch (e) {
-      setMessages(prev => {
-        const next = [...prev]
-        next[next.length - 1] = { role: 'assistant', content: `连接失败：${String(e)}`, streaming: false }
-        return next
-      })
-    } finally {
-      setStreaming(false)
-    }
+    await stream.submit({
+      messages: [{ role: 'user', content: text }],
+    })
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -174,47 +148,56 @@ export function AgentChat({ assistantId, threadId, placeholder = '输入消息�
     }
   }
 
+  // 过滤掉 system 消息，只显示 human/user、ai/assistant、tool 消息
+  const visibleMessages = (stream.messages as Array<Record<string, unknown>>).filter(m => {
+    const role = (m.role ?? m.type ?? '') as string
+    return ['human', 'user', 'ai', 'assistant', 'tool'].includes(role)
+  })
+
   return (
     <div className="flex flex-col h-full min-h-[200px]">
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto space-y-3 pb-2 pr-1">
-        {historyLoading && (
+        {stream.isThreadLoading && (
           <div className="flex items-center justify-center gap-2 pt-6">
             <span className="w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
             <p className="text-xs text-muted-foreground/50 italic">加载历史消息…</p>
           </div>
         )}
-        {!historyLoading && messages.length === 0 && (
+        {!stream.isThreadLoading && visibleMessages.length === 0 && (
           <p className="text-xs text-muted-foreground/50 italic text-center pt-6">
             发送消息开始对话
           </p>
         )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {visibleMessages.map((msg, i) => {
+          const role = (msg.role ?? msg.type ?? 'assistant') as string
+          const isUser = role === 'human' || role === 'user'
+          const isTool = role === 'tool'
+          const isLastMsg = i === visibleMessages.length - 1
+          const isStreaming = stream.isLoading && isLastMsg && !isUser
+
+          return (
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
-              }`}
+              key={(msg.id as string) ?? i}
+              className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
-              {msg.role === 'assistant' ? (
-                msg.streaming && !msg.content ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                ) : (
-                  <Streamdown animated isAnimating={msg.streaming} plugins={{ cjk }}>
-                    {msg.content}
-                  </Streamdown>
-                )
-              ) : (
-                <span className="whitespace-pre-wrap">{msg.content}</span>
+              {isTool && (
+                <span className="text-xs text-muted-foreground/40 self-start pt-1 shrink-0">🔧</span>
               )}
+              <div
+                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                  isUser
+                    ? 'bg-primary text-primary-foreground'
+                    : isTool
+                      ? 'bg-muted/50 border border-border/30 text-foreground'
+                      : 'bg-muted text-foreground'
+                }`}
+              >
+                <MessageContent msg={msg} isStreaming={isStreaming} />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 
@@ -227,15 +210,15 @@ export function AgentChat({ assistantId, threadId, placeholder = '输入消息�
           placeholder={placeholder}
           rows={2}
           className="resize-none text-sm"
-          disabled={streaming}
+          disabled={stream.isLoading}
         />
         <Button
           size="sm"
           onClick={sendMessage}
-          disabled={streaming || !input.trim()}
+          disabled={stream.isLoading || !input.trim()}
           className="self-end"
         >
-          {streaming ? (
+          {stream.isLoading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <Send className="w-3.5 h-3.5" />
@@ -245,3 +228,5 @@ export function AgentChat({ assistantId, threadId, placeholder = '输入消息�
     </div>
   )
 }
+
+export default AgentChat

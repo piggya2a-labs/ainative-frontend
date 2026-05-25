@@ -563,10 +563,11 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
       const history = await res.json()
       if (Array.isArray(history)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // 显示所有有意义的 checkpoint（loop = 节点执行后，input = 用户输入后）
+        // 不过滤 next.length > 0，因为最终 checkpoint 的 next 是空数组但最有价值
         const filtered = history.filter((cp: any) => {
-          const cpMeta = cp.metadata
-          const cpNext = cp.next
-          return cpMeta?.source === 'loop' && Array.isArray(cpNext) && cpNext.length > 0
+          const source = cp.metadata?.source
+          return source === 'loop' || source === 'input'
         })
         setCheckpoints(filtered)
       }
@@ -1986,21 +1987,33 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
 
   const dispatchAgent = async () => {
     if (!dispatchTarget || !dispatchTask.trim() || !langgraphThreadId) return
+
+    // BUG-NEW-01 修复：验证 assistant_id 非空
+    const assistantId = dispatchTarget.id
+    if (!assistantId || assistantId === '—' || assistantId.trim() === '') {
+      setDispatchResult('失败：该 Agent 尚未配置 LangGraph Assistant ID，请先在 Agent 设置里完善配置')
+      return
+    }
+
     setDispatching(true)
     setDispatchResult(null)
     try {
-      // 通过 AgentChat 相同的 /api/agent-chat 路由向对应 Agent 发送任务
-      const resp = await fetch('/api/agent-chat', {
+      // 用官方 LangGraph Client runs.create() 替换手写 SSE 解析
+      // 通过 /api/lg-proxy 代理转发，安全隐藏 API Key
+      const resp = await fetch(`/api/lg-proxy/threads/${langgraphThreadId}/runs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          assistant_id: dispatchTarget.id,
-          message: dispatchTask.trim(),
-          thread_id: langgraphThreadId, // 共用同一个 Thread
+          assistant_id: assistantId,
+          input: { messages: [{ role: 'user', content: dispatchTask.trim() }] },
+          stream_mode: ['values'],
         }),
       })
-      if (!resp.ok) throw new Error(await resp.text())
-      // 读取 SSE 流，只取最后一条 AI 消息作为结果
+      if (!resp.ok) {
+        const errText = await resp.text()
+        throw new Error(errText)
+      }
+      // 读取 SSE 流，取最后一条 AI 消息
       const reader = resp.body?.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -2015,12 +2028,18 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
           buffer = lines.pop() ?? ''
           for (const line of lines) {
             if (line.startsWith('event:')) { eventType = line.slice(6).trim() }
-            else if (line.startsWith('data:') && eventType === 'values') {
+            else if (line.startsWith('data:') && (eventType === 'values' || eventType === 'messages')) {
               try {
                 const payload = JSON.parse(line.slice(5).trim())
-                const msgs: Array<{ role?: string; type?: string; content?: string }> = payload?.messages ?? []
-                const lastAi = [...msgs].reverse().find(m => m.role === 'assistant' || m.type === 'ai')
-                if (lastAi?.content) lastContent = lastAi.content
+                // values 事件：messages 数组
+                const msgs: Array<{ role?: string; type?: string; content?: unknown }> =
+                  Array.isArray(payload) ? payload : (payload?.messages ?? [])
+                const lastAi = [...msgs].reverse().find(
+                  m => m.role === 'assistant' || m.type === 'ai'
+                )
+                if (lastAi?.content && typeof lastAi.content === 'string') {
+                  lastContent = lastAi.content
+                }
               } catch { /* ignore */ }
               eventType = ''
             }
@@ -2122,10 +2141,16 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
     prevBusy.current = isBusy
   }, [omtStream.isLoading, fetchLgRuns])
 
-  // traceStats 从真实 runs 计算
+  // traceStats：工具调用数从 omtStream.history（官方 SDK 原生）直接统计，不再依赖手写 run-stats
   const traceStats = useMemo(() => {
     if (!lgRuns) return null
-    const totalCalls = lgRuns.reduce((acc, r) => acc + (r.tool_calls_count ?? 0), 0)
+    // 从 useStream.history 的最新 checkpoint 的 messages 里统计 tool messages
+    // omtStream.history 是 ThreadState[]，每个有 values.messages
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const latestState = (omtStream as any).history?.[0]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allMsgs: any[] = latestState?.values?.messages ?? []
+    const totalCalls = allMsgs.filter((m: any) => m.type === 'tool' || m.role === 'tool').length
     const agentIds = new Set(lgRuns.map(r => r.assistant_id))
     const agents = Array.from(agentIds).map(id => agentName(id))
     const successCount = lgRuns.filter(r => r.status === 'success').length
