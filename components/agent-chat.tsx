@@ -34,7 +34,42 @@ export function AgentChat({ assistantId, threadId, placeholder = '输入消息�
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const historyLoadedRef = useRef(false)
+
+  // B-04 修复：mount 时从 LangGraph Thread state 加载历史消息
+  useEffect(() => {
+    if (!threadId || historyLoadedRef.current) return
+    historyLoadedRef.current = true
+    setHistoryLoading(true)
+    fetch('/api/langgraph-trace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: `/threads/${threadId}/state` }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const msgs: Array<{ role?: string; type?: string; content?: unknown }> =
+          data?.values?.messages ?? []
+        if (msgs.length > 0) {
+          const parsed: Message[] = msgs
+            .filter(m => m.role === 'user' || m.role === 'assistant' || m.type === 'human' || m.type === 'ai')
+            .map(m => ({
+              role: ((m.role === 'user' || m.type === 'human') ? 'user' : 'assistant') as 'user' | 'assistant',
+              content: typeof m.content === 'string' ? m.content
+                : Array.isArray(m.content)
+                  ? (m.content as Array<{ type?: string; text?: string }>)
+                      .filter(c => c.type === 'text').map(c => c.text ?? '').join('')
+                  : String(m.content ?? ''),
+            }))
+            .filter(m => m.content.trim())
+          if (parsed.length > 0) setMessages(parsed)
+        }
+      })
+      .catch(() => { /* 静默失败，不影响正常使用 */ })
+      .finally(() => setHistoryLoading(false))
+  }, [threadId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -143,7 +178,13 @@ export function AgentChat({ assistantId, threadId, placeholder = '输入消息�
     <div className="flex flex-col h-full min-h-[200px]">
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto space-y-3 pb-2 pr-1">
-        {messages.length === 0 && (
+        {historyLoading && (
+          <div className="flex items-center justify-center gap-2 pt-6">
+            <span className="w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+            <p className="text-xs text-muted-foreground/50 italic">加载历史消息…</p>
+          </div>
+        )}
+        {!historyLoading && messages.length === 0 && (
           <p className="text-xs text-muted-foreground/50 italic text-center pt-6">
             发送消息开始对话
           </p>

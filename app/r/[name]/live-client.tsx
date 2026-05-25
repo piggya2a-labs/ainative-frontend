@@ -417,11 +417,72 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
   // ─── useStream：原生 LangGraph 流式状态，替换旧的 EventSource 轮询 ──────────
   // 只有在有 threadId 时才激活，apiUrl 指向已有的 /api/lg-proxy 安全代理
   // 注意：streamMode/streamSubgraphs 是 submit 级别的参数，不是 hook 初始化选项
+
+  // B-07 修复：toolProgress 只在流活跃时有值，用 useRef 累积历史快照
+  interface ToolSnapshot {
+    name: string
+    status: 'running' | 'done' | 'error'
+    args: unknown
+    result: unknown
+    runId: string
+    ts: number
+  }
+  const toolHistoryRef = useRef<ToolSnapshot[]>([])
+  const [toolHistory, setToolHistory] = useState<ToolSnapshot[]>([])
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stream = useStream<Record<string, unknown>>({
     apiUrl: '/api/lg-proxy',
     assistantId: LUMEN_ASSISTANT_ID, // 入口 Agent @Lumen，所有租户的 Thread 都由它开始
     threadId: liveThreadId,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onLangChainEvent: (event: any) => {
+      if (event.event === 'on_tool_start') {
+        const snap: ToolSnapshot = {
+          name: event.name ?? 'unknown',
+          status: 'running',
+          args: event.data?.input ?? null,
+          result: null,
+          runId: event.run_id ?? '',
+          ts: Date.now(),
+        }
+        toolHistoryRef.current = [
+          ...toolHistoryRef.current.filter(t => t.runId !== snap.runId),
+          snap,
+        ]
+        setToolHistory([...toolHistoryRef.current])
+      } else if (event.event === 'on_tool_end') {
+        const existing = toolHistoryRef.current.find(t => t.runId === event.run_id)
+        const snap: ToolSnapshot = {
+          name: event.name ?? existing?.name ?? 'unknown',
+          status: 'done',
+          args: event.data?.input ?? existing?.args ?? null,
+          result: event.data?.output ?? null,
+          runId: event.run_id ?? '',
+          ts: Date.now(),
+        }
+        toolHistoryRef.current = [
+          ...toolHistoryRef.current.filter(t => t.runId !== snap.runId),
+          snap,
+        ]
+        setToolHistory([...toolHistoryRef.current])
+      } else if (event.event === 'on_tool_error') {
+        const existing = toolHistoryRef.current.find(t => t.runId === event.run_id)
+        const snap: ToolSnapshot = {
+          name: event.name ?? existing?.name ?? 'unknown',
+          status: 'error',
+          args: existing?.args ?? null,
+          result: event.data?.error ?? null,
+          runId: event.run_id ?? '',
+          ts: Date.now(),
+        }
+        toolHistoryRef.current = [
+          ...toolHistoryRef.current.filter(t => t.runId !== snap.runId),
+          snap,
+        ]
+        setToolHistory([...toolHistoryRef.current])
+      }
+    },
   }) as any // as any 以访问 subagents、toolProgress 等完整属性
 
   // 从 useStream 派生 threadStatus（替换旧的 SSE 轮询）
@@ -860,10 +921,15 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
           </div>
 
           {/* ─── Tool Call 实时状态面板（useStream.toolProgress） ──────────────── */}
-          {stream.toolProgress && stream.toolProgress.length > 0 && (
-            <Section icon={Activity} title="工具执行实时状态" subtitle="当前正在执行的工具调用，包括子图中的工具">
+          {/* B-07: 改用 toolHistory（持久快照），流结束后不丢失 */}
+          {(toolHistory.length > 0 || (stream.toolProgress && stream.toolProgress.length > 0)) && (
+            <Section
+              icon={Activity}
+              title="工具调用记录"
+              subtitle={`本次 Run 共 ${toolHistory.length} 次工具调用${stream.isLoading ? '，正在执行中…' : '，已全部完成'}`}
+            >
               <div className="space-y-2">
-                {(stream.toolProgress as unknown[]).map((tp: unknown, i: number) => {
+                {(toolHistory.length > 0 ? toolHistory : ((stream.toolProgress as unknown[]) ?? [])).map((tp: unknown, i: number) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const tpAny = tp as any
                   const toolName: string = tpAny?.name ?? tpAny?.tool_name ?? '未知工具'
@@ -1985,8 +2051,9 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
       })
       const data = await res.json()
       if (Array.isArray(data)) {
+        // 先设置基础数据（不含 tool_calls_count），先展示
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const runs: LgRun[] = data.map((r: any) => ({
+        const baseRuns: LgRun[] = data.map((r: any) => ({
           run_id: r.run_id ?? r.id ?? '',
           assistant_id: r.assistant_id ?? LUMEN_ASSISTANT_ID,
           status: r.status ?? 'unknown',
@@ -1995,9 +2062,33 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
           thread_id: langgraphThreadId,
           thread_status: omtStream.isLoading ? 'busy' : omtStream.interrupts?.length > 0 ? 'interrupted' : 'idle',
           interrupt_reason: r.kwargs?.config?.metadata?.interrupt_reason,
-          tool_calls_count: r.kwargs?.config?.metadata?.tool_calls_count,
+          tool_calls_count: undefined, // B-09: 将通过 /api/run-stats 获取
         }))
-        setLgRuns(runs)
+        setLgRuns(baseRuns)
+
+        // B-09 修复：对每个 run 调用 /api/run-stats 获取真实 tool_calls_count
+        // 并行拉取，最多 5 个 run（避免请求过多）
+        const runsToEnrich = baseRuns.slice(0, 5).filter(r => r.run_id)
+        if (runsToEnrich.length > 0) {
+          Promise.allSettled(
+            runsToEnrich.map(r =>
+              fetch(`/api/run-stats?run_id=${r.run_id}`)
+                .then(res => res.ok ? res.json() : null)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .then((stats: any) => ({ run_id: r.run_id, tool_calls_count: stats?.tool_call_count ?? 0 }))
+                .catch(() => ({ run_id: r.run_id, tool_calls_count: 0 }))
+            )
+          ).then(results => {
+            const statsMap = new Map<string, number>()
+            results.forEach(r => {
+              if (r.status === 'fulfilled') statsMap.set(r.value.run_id, r.value.tool_calls_count)
+            })
+            setLgRuns(prev => prev ? prev.map(run => ({
+              ...run,
+              tool_calls_count: statsMap.has(run.run_id) ? statsMap.get(run.run_id) : run.tool_calls_count,
+            })) : prev)
+          })
+        }
       }
     } catch { setLgRuns([]) } finally { setLgRunsLoading(false) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
