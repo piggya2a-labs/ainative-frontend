@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -24,6 +24,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   shield: Shield,
   zap: Zap,
   rocket: Rocket,
+  network: Network,
+  bot: Bot,
+  workflow: Workflow,
 }
 
 function StatusIcon({ status }: { status: AgentEvent['status'] }) {
@@ -84,20 +87,27 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents that Handle Your Workflows End-to-End'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || '400+ app integrations, email triage, meeting notes, and multi-step automation. Delegate complete tasks to AI agents that remember context and work across your CRM, email, databases, and calendars.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See It In Action'
-  const eyebrow = hero?.eyebrow
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy autonomous agents that integrate with your CRM, email, databases, and tools - not just assist line-by-line. ONIT agents handle complete workflows end-to-end with full context awareness and multi-step execution.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Delegating Real Work'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Agents In Action'
+  const eyebrow = hero?.eyebrow || 'AI-Native Agentic Platform'
 
-  const trustIndicators = demo?.trust_indicators ?? []
-  const trustStats = [
-    { value: agentCount > 0 ? `${agentCount}` : '—', label: demo?.agent_count_label ?? '' },
-    { value: toolCount > 0 ? `${toolCount}` : '—', label: demo?.tool_count_label ?? '' },
-    { value: demo?.sla_value ?? '', label: demo?.sla_label ?? '' },
+  const defaultTrustIndicators = [
+    { icon: 'network', text: '400+ tool integrations' },
+    { icon: 'bot', text: 'Multi-agent orchestration' },
+    { icon: 'workflow', text: 'End-to-end automation' },
   ]
 
-  const feedHeader = demo?.feed_header ?? ''
+  const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
+
+  const trustStats = [
+    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Active Agents' },
+    { value: toolCount > 0 ? `${toolCount}+` : '400+', label: demo?.tool_count_label || 'Tool Integrations' },
+    { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
+  ]
+
+  const feedHeader = demo?.feed_header || 'Live Agent Activity'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -106,9 +116,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-10">
-        {eyebrow && (
-          <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
-        )}
+        <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
         <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
         <div className="flex flex-col items-center gap-4 pt-4">
@@ -124,25 +132,23 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            No credit card required • 5-minute setup
+            No credit card required • Deploy in minutes
           </p>
           <p className="text-sm font-medium text-foreground/80 pt-2">
-            Join teams automating 10,000+ hours monthly
+            Trusted by teams delegating 10,000+ hours to AI agents monthly
           </p>
         </div>
-        {trustIndicators.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
-            {trustIndicators.map((indicator) => {
-              const Icon = ICON_MAP[indicator.icon] ?? Shield
-              return (
-                <div key={indicator.text} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Icon className="w-4 h-4 shrink-0 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-                  <span>{indicator.text}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
+          {trustIndicators.map((indicator) => {
+            const Icon = ICON_MAP[indicator.icon] ?? Shield
+            return (
+              <div key={indicator.text} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Icon className="w-4 h-4 shrink-0 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+                <span>{indicator.text}</span>
+              </div>
+            )
+          })}
+        </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-8 pt-2 w-full max-w-md">
           {trustStats.filter(s => s.label).map((stat) => (
             <div key={stat.label} className="flex flex-col items-center gap-0.5">
