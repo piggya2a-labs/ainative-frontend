@@ -872,6 +872,30 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
                   const toolResult = tpAny?.result ?? tpAny?.output ?? null
                   const isRunning = toolStatus === 'running' || toolStatus === 'pending'
                   const isError = toolStatus === 'error'
+
+                  // 截图工具：steel_screenshot / take_screenshot / screenshot
+                  const isScreenshotTool = /screenshot/i.test(toolName)
+                  // 截图 URL 可能在 result.url 或 result.screenshot_url 或 result 本身
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const screenshotUrl: string | null = isScreenshotTool
+                    ? (typeof toolResult === 'string' && toolResult.startsWith('http') ? toolResult
+                      : (toolResult as any)?.url ?? (toolResult as any)?.screenshot_url ?? null)
+                    : null
+
+                  // 代码执行工具：execute_code / run_code / python_repl
+                  const isCodeTool = /execute_code|run_code|python_repl|code_interpreter/i.test(toolName)
+                  const codeInput: string | null = isCodeTool
+                    ? (typeof toolArgs === 'string' ? toolArgs
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      : (toolArgs as any)?.code ?? (toolArgs as any)?.source ?? null)
+                    : null
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const codeOutput: string | null = isCodeTool
+                    ? (typeof toolResult === 'string' ? toolResult
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      : (toolResult as any)?.stdout ?? (toolResult as any)?.output ?? (toolResult as any)?.result ?? null)
+                    : null
+
                   return (
                     <div key={i} className={`rounded-md border px-3 py-2 ${
                       isRunning ? 'border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20' :
@@ -882,6 +906,8 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
                         {isRunning && <Loader2 className="w-3 h-3 animate-spin text-blue-500 shrink-0" />}
                         {!isRunning && !isError && <span className="w-3 h-3 text-emerald-500 shrink-0">✓</span>}
                         {isError && <span className="w-3 h-3 text-red-500 shrink-0">✗</span>}
+                        {isScreenshotTool && <Image className="w-3 h-3 text-purple-500 shrink-0" />}
+                        {isCodeTool && <Terminal className="w-3 h-3 text-orange-500 shrink-0" />}
                         <code className="text-xs font-mono font-medium">{toolName}</code>
                         <Badge
                           variant={isError ? 'destructive' : isRunning ? 'secondary' : 'default'}
@@ -890,7 +916,48 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
                           {isRunning ? '执行中…' : isError ? '失败' : '完成'}
                         </Badge>
                       </div>
-                      {toolArgs && (
+
+                      {/* B6: 截图工具——实时显示截图 */}
+                      {isScreenshotTool && screenshotUrl && (
+                        <div className="mt-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={screenshotUrl}
+                            alt="截图"
+                            className="rounded border border-border max-h-48 object-contain w-full cursor-zoom-in"
+                            referrerPolicy="no-referrer"
+                            onClick={() => window.open(screenshotUrl, '_blank')}
+                          />
+                          <p className="text-[10px] text-muted-foreground/50 mt-0.5">点击放大</p>
+                        </div>
+                      )}
+                      {isScreenshotTool && isRunning && !screenshotUrl && (
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          截图中…
+                        </div>
+                      )}
+
+                      {/* B5: 代码执行工具——代码块 + stdout */}
+                      {isCodeTool && codeInput && (
+                        <details className="mt-1.5" open>
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">代码</summary>
+                          <pre className="text-xs font-mono bg-zinc-900 text-zinc-100 rounded p-2 mt-1 overflow-x-auto max-h-40 whitespace-pre-wrap">
+                            {codeInput.slice(0, 800)}
+                          </pre>
+                        </details>
+                      )}
+                      {isCodeTool && codeOutput && (
+                        <details className="mt-1" open={!isRunning}>
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">stdout / 返回値</summary>
+                          <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-32 whitespace-pre-wrap break-all">
+                            {codeOutput.slice(0, 600)}
+                          </pre>
+                        </details>
+                      )}
+
+                      {/* 其他工具——通用入参/返回値 */}
+                      {!isScreenshotTool && !isCodeTool && toolArgs && (
                         <details className="mt-1.5">
                           <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">入参</summary>
                           <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
@@ -898,7 +965,7 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
                           </pre>
                         </details>
                       )}
-                      {toolResult && (
+                      {!isScreenshotTool && !isCodeTool && toolResult && (
                         <details className="mt-1">
                           <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">返回値</summary>
                           <pre className="text-xs font-mono bg-muted/50 rounded p-2 mt-1 overflow-x-auto max-h-24 whitespace-pre-wrap break-all">
@@ -1825,11 +1892,70 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
     fetch('/api/agent-registry').then(r => r.json()).then(d => setAgentRegistry(d.agents ?? [])).catch(() => setAgentRegistry([]))
   }, [])
 
+  // ─── B7: Agent Market 派遣 Sheet state ───────────────────────────────────────────
+  const [dispatchSheetOpen, setDispatchSheetOpen] = useState(false)
+  const [dispatchTarget, setDispatchTarget] = useState<{ id: string; name: string } | null>(null)
+  const [dispatchTask, setDispatchTask] = useState('')
+  const [dispatching, setDispatching] = useState(false)
+  const [dispatchResult, setDispatchResult] = useState<string | null>(null)
+
+  const dispatchAgent = async () => {
+    if (!dispatchTarget || !dispatchTask.trim() || !langgraphThreadId) return
+    setDispatching(true)
+    setDispatchResult(null)
+    try {
+      // 通过 AgentChat 相同的 /api/agent-chat 路由向对应 Agent 发送任务
+      const resp = await fetch('/api/agent-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assistant_id: dispatchTarget.id,
+          message: dispatchTask.trim(),
+          thread_id: langgraphThreadId, // 共用同一个 Thread
+        }),
+      })
+      if (!resp.ok) throw new Error(await resp.text())
+      // 读取 SSE 流，只取最后一条 AI 消息作为结果
+      const reader = resp.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let eventType = ''
+      let lastContent = ''
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+          for (const line of lines) {
+            if (line.startsWith('event:')) { eventType = line.slice(6).trim() }
+            else if (line.startsWith('data:') && eventType === 'values') {
+              try {
+                const payload = JSON.parse(line.slice(5).trim())
+                const msgs: Array<{ role?: string; type?: string; content?: string }> = payload?.messages ?? []
+                const lastAi = [...msgs].reverse().find(m => m.role === 'assistant' || m.type === 'ai')
+                if (lastAi?.content) lastContent = lastAi.content
+              } catch { /* ignore */ }
+              eventType = ''
+            }
+          }
+        }
+      }
+      setDispatchResult(lastContent || '派遣完成，Agent 已接收任务')
+      setDispatchTask('')
+    } catch (e) {
+      setDispatchResult(`失败：${String(e)}`)
+    } finally {
+      setDispatching(false)
+    }
+  }
+
   // 调度日志（pg_cron 历史，已归档，不再渲染）
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dispatcherLog, setDispatcherLog] = useState<Array<{ runid: number; status: string; start_time: string; end_time: string; return_message: string }> | null>(null)
 
-  // ─── useStream：统一数据源，替换两个重复的 LangGraph 轮询 useEffect ─────────────
+  // ─── useStream：监听 Thread 实时状态（thread status / interrupts）─────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const omtStream = useStream<Record<string, unknown>>({
     apiUrl: '/api/lg-proxy',
@@ -1837,43 +1963,69 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
     threadId: langgraphThreadId,
   }) as any
 
-  // 从 useStream 派生 lgRuns（展示用，不再单独轮询）
-  const lgRuns = useMemo(() => {
-    const msgs: Array<{ type: string; tool_calls?: Array<{ id: string; name: string; args?: unknown }> }> =
-      (omtStream.values?.messages as typeof msgs) ?? []
-    // 从 messages 重构出一个类似 runs 的展示列表
-    const toolCallItems = msgs
-      .filter(m => m.type === 'ai' && m.tool_calls && m.tool_calls.length > 0)
-      .flatMap(m => (m.tool_calls ?? []).map(tc => ({
-        run_id: tc.id,
-        assistant_id: LUMEN_ASSISTANT_ID,
-        status: 'success',
-        created_at: new Date().toISOString(),
-        thread_id: langgraphThreadId ?? '',
-        thread_status: omtStream.isLoading ? 'busy' : omtStream.interrupts?.length > 0 ? 'interrupted' : 'idle',
-        interrupt_reason: undefined as string | undefined,
-        tool_calls_count: 1,
-        tool_name: tc.name,
-        tool_args: tc.args,
-      })))
-    return toolCallItems.length > 0 ? toolCallItems : null
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [omtStream.values, omtStream.isLoading, omtStream.interrupts, langgraphThreadId])
+  // ─── B3 fix: 从 LangGraph GET /threads/{id}/runs 拉取真实 Runs ─────────────
+  type LgRun = {
+    run_id: string; assistant_id: string; status: string
+    created_at: string; updated_at?: string
+    thread_id: string; thread_status: string
+    interrupt_reason?: string; tool_calls_count?: number
+    tool_name?: string; tool_args?: unknown
+  }
+  const [lgRuns, setLgRuns] = useState<LgRun[] | null>(null)
+  const [lgRunsLoading, setLgRunsLoading] = useState(false)
 
-  // 从 useStream 派生 traceStats
-  const traceStats = useMemo(() => {
-    const msgs: Array<{ type: string; tool_calls?: unknown[] }> =
-      (omtStream.values?.messages as typeof msgs) ?? []
-    const totalToolCalls = msgs.reduce((acc: number, m) => acc + (m.tool_calls?.length ?? 0), 0)
-    const agentSet = new Set<string>(['@Lumen'])
-    return {
-      total_calls: totalToolCalls,
-      agents: Array.from(agentSet),
-      success_count: totalToolCalls,
-      pass_rate: totalToolCalls > 0 ? 100 : null,
-    }
+  const fetchLgRuns = useCallback(async () => {
+    if (!langgraphThreadId) return
+    setLgRunsLoading(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: `/threads/${langgraphThreadId}/runs` }),
+      })
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const runs: LgRun[] = data.map((r: any) => ({
+          run_id: r.run_id ?? r.id ?? '',
+          assistant_id: r.assistant_id ?? LUMEN_ASSISTANT_ID,
+          status: r.status ?? 'unknown',
+          created_at: r.created_at ?? '',
+          updated_at: r.updated_at,
+          thread_id: langgraphThreadId,
+          thread_status: omtStream.isLoading ? 'busy' : omtStream.interrupts?.length > 0 ? 'interrupted' : 'idle',
+          interrupt_reason: r.kwargs?.config?.metadata?.interrupt_reason,
+          tool_calls_count: r.kwargs?.config?.metadata?.tool_calls_count,
+        }))
+        setLgRuns(runs)
+      }
+    } catch { setLgRuns([]) } finally { setLgRunsLoading(false) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [omtStream.values])
+  }, [langgraphThreadId])
+
+  useEffect(() => { fetchLgRuns() }, [fetchLgRuns])
+  // 当 Thread 从 busy 变为 idle 时自动刷新 Runs
+  const prevBusy = useRef(false)
+  useEffect(() => {
+    const isBusy = !!omtStream.isLoading
+    if (prevBusy.current && !isBusy) { fetchLgRuns() }
+    prevBusy.current = isBusy
+  }, [omtStream.isLoading, fetchLgRuns])
+
+  // traceStats 从真实 runs 计算
+  const traceStats = useMemo(() => {
+    if (!lgRuns) return null
+    const totalCalls = lgRuns.reduce((acc, r) => acc + (r.tool_calls_count ?? 0), 0)
+    const agentIds = new Set(lgRuns.map(r => r.assistant_id))
+    const agents = Array.from(agentIds).map(id => agentName(id))
+    const successCount = lgRuns.filter(r => r.status === 'success').length
+    return {
+      total_calls: totalCalls,
+      agents,
+      success_count: successCount,
+      pass_rate: lgRuns.length > 0 ? Math.round((successCount / lgRuns.length) * 100) : null,
+    }
+  }, [lgRuns])
 
   // PostHog 客户活跃度
   const [posthogActivity, setPosthogActivity] = useState<Record<string, number> | null>(null)
@@ -2328,6 +2480,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
                 <TableHead className="text-xs">描述</TableHead>
                 <TableHead className="text-xs">LangSmith Handle</TableHead>
                 <TableHead className="text-xs">状态</TableHead>
+                <TableHead className="text-xs">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2348,6 +2501,23 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
                       {agent.enabled ? '已启用' : '已禁用'}
                     </Badge>
                   </TableCell>
+                  {/* B7: 派遣按鈕 */}
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 px-2 gap-1"
+                      disabled={!agent.enabled || !langgraphThreadId}
+                      onClick={() => {
+                        setDispatchTarget({ id: agent.id, name: agent.name })
+                        setDispatchResult(null)
+                        setDispatchTask('')
+                        setDispatchSheetOpen(true)
+                      }}
+                    >
+                      <Zap className="w-3 h-3" />派遣
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -2355,10 +2525,50 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
           )}
       </Section>
 
+      {/* B7: Agent Market 派遣 Sheet */}
+      <Sheet open={dispatchSheetOpen} onOpenChange={setDispatchSheetOpen}>
+        <SheetContent side="right" className="w-[420px] sm:w-[480px] flex flex-col">
+          <SheetHeader className="pb-4">
+            <SheetTitle>派遣 {dispatchTarget?.name ?? 'Agent'}</SheetTitle>
+            <p className="text-xs text-muted-foreground">直接向该 Agent 发送任务，共用当前看板 Thread，执行过程在左侧工具面板实时可见</p>
+          </SheetHeader>
+          <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">任务描述</label>
+              <textarea
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={5}
+                placeholder={`告诉 ${dispatchTarget?.name ?? 'Agent'} 要做什么…`}
+                value={dispatchTask}
+                onChange={e => setDispatchTask(e.target.value)}
+                disabled={dispatching}
+              />
+            </div>
+            <Button
+              onClick={dispatchAgent}
+              disabled={!dispatchTask.trim() || dispatching || !langgraphThreadId}
+              className="gap-2"
+            >
+              {dispatching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {dispatching ? '派遣中…' : '立即派遣'}
+            </Button>
+            {!langgraphThreadId && (
+              <p className="text-xs text-destructive">未绑定 LangGraph Thread，无法派遣</p>
+            )}
+            {dispatchResult && (
+              <div className="rounded-md border border-border bg-muted/30 p-3 flex-1 overflow-y-auto">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Agent 回复</p>
+                <p className="text-sm whitespace-pre-wrap break-words">{dispatchResult}</p>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Agent 运行日志 */}
       <Section icon={Terminal} title="Agent 运行日志" subtitle="LangGraph runs 实时执行轨迹，含真实工具调用次数（按 tenant_slug 过滤）">
-        {lgRuns === null ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />加载中…</div>
+        {lgRuns === null || lgRunsLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />拉取 LangGraph Runs…</div>
         ) : lgRuns.length === 0 ? (
           <div className="text-sm text-muted-foreground/40 italic">暂无执行记录</div>
         ) : (
@@ -2413,10 +2623,8 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
                       <Badge variant={runStatusVariant} className="text-xs">{runStatusLabel}</Badge>
                     </TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">
-                      <a href={`https://smith.langchain.com/o/piggya2a/projects/p/onit?run_id=${run.run_id}`}
-                        target="_blank" rel="noreferrer" className="hover:underline">
-                        {run.run_id.slice(0, 8)}…
-                      </a>
+                      {/* B4 fix: 不跳转 LangSmith，纯文本显示 */}
+                      <span className="select-all" title={run.run_id}>{run.run_id.slice(0, 8)}…</span>
                     </TableCell>
                   </TableRow>
                 )
@@ -2573,7 +2781,8 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
                 <p className="text-xs text-muted-foreground">直接告诉 @Lumen 你的问题，无需跳转 Telegram</p>
               </SheetHeader>
               <div className="flex-1 overflow-hidden">
-                <AgentChat assistantId={lumenAssistantId} />
+                {/* B1 fix: 传入 langgraphThreadId，对话和看板共用同一个 Thread */}
+                <AgentChat assistantId={lumenAssistantId} threadId={langgraphThreadId} />
               </div>
             </SheetContent>
           </Sheet>
