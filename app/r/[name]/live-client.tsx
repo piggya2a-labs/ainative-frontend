@@ -67,13 +67,15 @@ function Callout({ text }: { text: string }) {
 }
 
 // ─── Agent UUID → 名字映射（单一来源，来自 agent_market 表）──────────────────────
+// 入口 Agent（@Lumen）的 Assistant ID，所有租户的 Thread 都由它开始
+// 来源：process.env.LUMEN_ASSISTANT_ID，客户端组件无法读取 server-only env，所以直接内联
+const LUMEN_ASSISTANT_ID = '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8'
 const AGENT_NAMES: Record<string, string> = {
-  '73a8b433-7a94-4ff0-a4d2-5d71bb998fc8': '@Lumen',
+  [LUMEN_ASSISTANT_ID]: '@Lumen',
   'de8335f7-7798-4cb7-ac1a-52abfb27e513': '@Polly',
   '6a5945d4-6a68-4b82-8331-8574a804396c': '@Sega',
   '6c8f13b8-680d-4421-8100-5fc39cad0697': '@Dev',
   'f4790864-b52f-4ee4-9d79-a927b6967425': '@Eva',
-  '8f5c1cb6-54eb-51e5-a574-bdc04d56ed0a': '@Lumen', // meta_manage_agent default
 }
 function agentName(id: string): string {
   return AGENT_NAMES[id] ?? id.slice(0, 8)
@@ -418,7 +420,7 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stream = useStream<Record<string, unknown>>({
     apiUrl: '/api/lg-proxy',
-    assistantId: 'meta_manage_agent',
+    assistantId: LUMEN_ASSISTANT_ID, // 入口 Agent @Lumen，所有租户的 Thread 都由它开始
     threadId: liveThreadId,
   }) as any // as any 以访问 subagents、toolProgress 等完整属性
 
@@ -452,7 +454,7 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
           body: JSON.stringify({
             path: `/threads/${liveThreadId}/runs`,
             method: 'POST',
-            body: { assistant_id: 'meta_manage_agent', command: { resume: value } },
+            body: { assistant_id: LUMEN_ASSISTANT_ID, command: { resume: value } },
           }),
         })
         if (!res.ok) throw new Error(await res.text())
@@ -529,7 +531,7 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
           path: `/threads/${liveThreadId}/runs`,
           method: 'POST',
           body: {
-            assistant_id: 'meta_manage_agent',
+            assistant_id: LUMEN_ASSISTANT_ID,
             checkpoint: { checkpoint_id: checkpointId },
             input: null,
           },
@@ -1831,7 +1833,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const omtStream = useStream<Record<string, unknown>>({
     apiUrl: '/api/lg-proxy',
-    assistantId: 'meta_manage_agent',
+    assistantId: LUMEN_ASSISTANT_ID, // 入口 Agent @Lumen
     threadId: langgraphThreadId,
   }) as any
 
@@ -1844,7 +1846,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgr
       .filter(m => m.type === 'ai' && m.tool_calls && m.tool_calls.length > 0)
       .flatMap(m => (m.tool_calls ?? []).map(tc => ({
         run_id: tc.id,
-        assistant_id: 'meta_manage_agent',
+        assistant_id: LUMEN_ASSISTANT_ID,
         status: 'success',
         created_at: new Date().toISOString(),
         thread_id: langgraphThreadId ?? '',
