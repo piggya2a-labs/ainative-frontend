@@ -94,7 +94,7 @@ export default async function LiveReportPage({
   // ⚠️ 防回退：api_key 在 tenants 表，不要用 tenant_api_keys 表（已删）
   const { data: tenants, error } = await supabase
     .from('tenants')
-    .select('id, slug, name, status, metadata, created_at, api_key')
+    .select('id, slug, name, status, metadata, created_at, api_key, langgraph_thread_id')
     .eq('slug', name)
     .limit(1)
 
@@ -182,6 +182,7 @@ export default async function LiveReportPage({
         tenantSlug={tenant.slug}
         apiKeyCount={apiKeyCount ?? 0}
         runDays={runDays}
+        langgraphThreadId={(tenant as Record<string, unknown>).langgraph_thread_id as string | undefined}
       />
       </main>
     </>  

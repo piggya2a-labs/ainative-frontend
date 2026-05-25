@@ -238,6 +238,7 @@ export interface LiveClientProps {
   tenantSlug: string
   apiKeyCount: number
   runDays: number
+  langgraphThreadId?: string
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -401,7 +402,7 @@ function MilestoneRunStats({ runId, dispatchedAt, milestoneName }: { runId: stri
 
 
 // ─── Trace Tab ───────────────────────────────────────────────────────────────
-function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string; meta: TenantMetadata; isWriting?: boolean }) {
+function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { tenantSlug: string; meta: TenantMetadata; isWriting?: boolean; langgraphThreadId?: string }) {
   const [data, setData] = useState<TraceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -412,26 +413,77 @@ function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string;
 
   // Thread 实时状态（busy/idle/interrupted）——每 5 秒轮询一次
   const [threadStatus, setThreadStatus] = useState<'busy' | 'idle' | 'interrupted' | null>(null)
+  // interrupt 详情（value 字段，用于展示给用户）
+  const [interruptValue, setInterruptValue] = useState<string | null>(null)
+  // resume 中状态
+  const [resuming, setResuming] = useState(false)
   useEffect(() => {
     if (!liveThreadId) return
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/langgraph-trace', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: `/threads/${liveThreadId}/state` }),
-        })
-        const state = await res.json()
-        const status = state?.status as string | undefined
-        if (status === 'busy') setThreadStatus('busy')
-        else if (status === 'interrupted') setThreadStatus('interrupted')
-        else setThreadStatus('idle')
-      } catch { /* ignore */ }
+    let es: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+    const connect = () => {
+      es = new EventSource(`/api/langgraph-sse?thread_id=${encodeURIComponent(liveThreadId)}`)
+
+      es.addEventListener('thread_status', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data) as { status: string; interrupt_value: string | null }
+          const { status, interrupt_value } = payload
+          if (status === 'busy') {
+            setThreadStatus('busy')
+            setInterruptValue(null)
+          } else if (status === 'interrupted') {
+            setThreadStatus('interrupted')
+            setInterruptValue(interrupt_value)
+          } else {
+            setThreadStatus('idle')
+            setInterruptValue(null)
+          }
+        } catch { /* ignore parse error */ }
+      })
+
+      // SSE 连接关闭时（服务端 30s 自动关闭）自动重连
+      es.onerror = () => {
+        es?.close()
+        es = null
+        reconnectTimer = setTimeout(connect, 1000)
+      }
     }
-    poll()
-    const timer = setInterval(poll, 5000)
-    return () => clearInterval(timer)
+
+    connect()
+    return () => {
+      es?.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+    }
   }, [liveThreadId])
+  // resume interrupt：POST /threads/{id}/runs with command: { resume: true }
+  const resumeInterrupt = async (value: unknown = true) => {
+    if (!liveThreadId) return
+    setResuming(true)
+    try {
+      const res = await fetch('/api/langgraph-trace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: `/threads/${liveThreadId}/runs`,
+          method: 'POST',
+          body: {
+            assistant_id: 'meta_manage_agent',
+            command: { resume: value },
+          },
+        }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      toast('已确认，Agent 继续执行', { description: 'interrupt 已 resume，Thread 恢复运行', duration: 3000 })
+      setThreadStatus('busy')
+      setInterruptValue(null)
+      setFetchKey(k => k + 1)
+    } catch (e) {
+      toast('resume 失败', { description: String(e), duration: 3000 })
+    } finally {
+      setResuming(false)
+    }
+  }
 
   // Checkpoint 历史（通过服务端代理查询，不依赖浏览器 SDK）
   const [checkpointsOpen, setCheckpointsOpen] = useState(false)
@@ -603,8 +655,11 @@ function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path, body })
     }).then(r => r.json())
-    // 先查 thread，再查 thread 里的 runs
-    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    // 如果有 langgraphThreadId，直接用它查；否则 fallback 到 tenant_slug 搜索
+    const getThreads = langgraphThreadId
+      ? Promise.resolve([{ thread_id: langgraphThreadId, metadata: {} }])
+      : lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    getThreads
       .then(async (threads: Array<{ thread_id: string; metadata?: Record<string, unknown> }>) => {
         if (!Array.isArray(threads) || !threads.length) {
           setData({ total_calls: 0, agents: [], timeline: [], artifacts: [], screenshots: [] })
@@ -669,7 +724,7 @@ function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string;
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchTrace() }, [tenantSlug, fetchKey])
+  useEffect(() => { fetchTrace() }, [tenantSlug, fetchKey, langgraphThreadId])
 
   return (
     <div className="space-y-8">
@@ -707,6 +762,39 @@ function TraceTab({ tenantSlug, meta, isWriting = false }: { tenantSlug: string;
             刷新
           </button>
         </div>
+        {/* interrupt 详情 + resume 按钮 */}
+        {threadStatus === 'interrupted' && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Agent 等待确认</p>
+                {interruptValue && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 break-words">{interruptValue}</p>
+                )}
+                <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">点击「确认继续」让 Agent 继续执行，或「拒绝」取消此次操作。</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm" variant="outline"
+                disabled={resuming}
+                onClick={() => resumeInterrupt(false)}
+                className="text-xs h-7 px-2 border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '拒绝'}
+              </Button>
+              <Button
+                size="sm"
+                disabled={resuming}
+                onClick={() => resumeInterrupt(true)}
+                className="text-xs h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {resuming ? <Loader2 className="w-3 h-3 animate-spin" /> : '确认继续'}
+              </Button>
+            </div>
+          </div>
+        )}
         <h2 className="text-2xl font-bold tracking-tight">执行轨迹</h2>
         <p className="text-sm text-muted-foreground max-w-2xl">
           Thread 实时镜像——Agent 每跑一步自动更新，不需刷新。如有 interrupt，在此直接确认。
@@ -1597,12 +1685,13 @@ function McspTab({ meta, runDays, isWriting = false }: { meta: TenantMetadata; r
 }
 
 // ─── OMT Tab（复用 how-we-work MilestoneTracker 结构）────────────────────────
-function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
+function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false, langgraphThreadId }: {
   meta: TenantMetadata
   runDays: number
   tenantSlug: string
   tenantId: string
   isWriting?: boolean
+  langgraphThreadId?: string
 }) {
   const { milestones, mcsp, audit, client } = meta
   const doneMilestones = milestones.filter(m => m.status === 'done').length
@@ -1633,7 +1722,11 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
       body: JSON.stringify({ path, body })
     }).then(r => r.json())
     const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
-    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    // 如果有 langgraphThreadId，直接用它；否则 fallback 到 tenant_slug 搜索
+    const getThreads = langgraphThreadId
+      ? Promise.resolve([{ thread_id: langgraphThreadId, status: 'idle' as string, interrupts: [] as unknown[] }])
+      : lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    getThreads
       .then(async (threads: Array<{ thread_id: string; status: string; interrupts?: unknown[] }>) => {
         if (!Array.isArray(threads) || !threads.length) { setLgRuns([]); return }
         const allRuns: Array<{
@@ -1653,11 +1746,13 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
           const interruptReason = interrupts.length > 0
             ? String((interrupts[0] as { value?: unknown }).value ?? '').slice(0, 80)
             : undefined
+          // thread 实际状态从 state 获取（比 search 结果更准确）
+          const threadStatus = (state as { status?: string })?.status ?? t.status ?? 'idle'
           if (Array.isArray(runs)) {
             runs.forEach(r => allRuns.push({
               ...r,
               thread_id: t.thread_id,
-              thread_status: t.status ?? 'idle',
+              thread_status: threadStatus,
               interrupt_reason: interruptReason,
               tool_calls_count: toolCallsCount,
             }))
@@ -1668,7 +1763,8 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
         setLgRuns(allRuns.slice(0, 20))
       })
       .catch(() => setLgRuns([]))
-  }, [tenantSlug])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantSlug, langgraphThreadId])
 
   // PostHog 客户活跃度
   const [posthogActivity, setPosthogActivity] = useState<Record<string, number> | null>(null)
@@ -1689,8 +1785,11 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
       body: JSON.stringify({ path, body })
     }).then(r => r.json())
     const lgGet = (path: string) => fetch(`/api/langgraph-trace?path=${encodeURIComponent(path)}`).then(r => r.json())
-    // agentName() 来自顶层 AGENT_NAMES 常量
-    lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    // 如果有 langgraphThreadId，直接用它；否则 fallback 到 tenant_slug 搜索
+    const getThreads = langgraphThreadId
+      ? Promise.resolve([{ thread_id: langgraphThreadId }])
+      : lg('/threads/search', { metadata: { tenant_slug: tenantSlug }, limit: 20 })
+    getThreads
       .then(async (threads: Array<{ thread_id: string }>) => {
         if (!Array.isArray(threads) || !threads.length) { setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }); return }
         const allRuns: Array<{ assistant_id: string; status: string }> = []
@@ -1715,7 +1814,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
         })
       })
       .catch(() => setTraceStats({ total_calls: 0, agents: [], success_count: 0, pass_rate: null }))
-  }, [tenantSlug])
+  }, [tenantSlug, langgraphThreadId])
 
   return (
     <div id="section-omt" className="space-y-8 scroll-mt-24">
@@ -2263,7 +2362,7 @@ function OmtTab({ meta, runDays, tenantSlug, tenantId, isWriting = false }: {
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
-export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays }: LiveClientProps) {
+export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCreatedAt, tenantSlug, apiKeyCount, runDays, langgraphThreadId }: LiveClientProps) {
   const posthog = usePostHog()
   const [meta, setMeta] = useState<TenantMetadata>(initialMeta)
   // isWriting: Agent 刚写入 Supabase，触发 Streamdown 动画，2 秒后归 false
@@ -2505,7 +2604,10 @@ export function LiveClient({ meta: initialMeta, tenantId, tenantName, tenantCrea
           <section id="section-overview" className="scroll-mt-24">
             <McspTab meta={meta} runDays={runDays} isWriting={isWriting} />
             <div className="mt-8">
-              <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} tenantId={tenantId} isWriting={isWriting} />
+              <OmtTab meta={meta} runDays={runDays} tenantSlug={tenantSlug} tenantId={tenantId} isWriting={isWriting} langgraphThreadId={langgraphThreadId} />
+            </div>
+            <div className="mt-8">
+              <TraceTab tenantSlug={tenantSlug} meta={meta} isWriting={isWriting} langgraphThreadId={langgraphThreadId} />
             </div>
           </section>
 
