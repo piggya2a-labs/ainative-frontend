@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/langchain": "2.0.197",
+    "@assistant-ui/react": "0.14.8",
+    "@assistant-ui/react-langchain": "0.0.8",
     "@base-ui/react": "^1.4.1",
     "@composio/core": "^0.10.0",
     "@langchain/langgraph-sdk": "^1.9.6",

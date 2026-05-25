@@ -485,10 +485,23 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
     },
   }) as any // as any 以访问 subagents、toolProgress 等完整属性
 
+  // B-06 修复：用 useRef 持久化 interrupts 快照，流暂停后仍能显示 Resume 按鈕
+  const interruptSnapshotRef = useRef<unknown[]>([])
+  const [interruptSnapshot, setInterruptSnapshot] = useState<unknown[]>([])
+
+  // 当 stream.interrupts 有新内容时更新快照；当 resume 成功后清空
+  useEffect(() => {
+    if (stream.interrupts && stream.interrupts.length > 0) {
+      interruptSnapshotRef.current = [...stream.interrupts]
+      setInterruptSnapshot([...stream.interrupts])
+    }
+  }, [stream.interrupts])
+
   // 从 useStream 派生 threadStatus（替换旧的 SSE 轮询）
+  // 如果 interruptSnapshot 有内容，即使流暂停也显示 interrupted
   const threadStatus: 'busy' | 'idle' | 'interrupted' | null = stream.isLoading
     ? 'busy'
-    : stream.interrupts && stream.interrupts.length > 0
+    : (stream.interrupts && stream.interrupts.length > 0) || interruptSnapshot.length > 0
     ? 'interrupted'
     : liveThreadId
     ? 'idle'
@@ -504,6 +517,9 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (stream as any).submit(null, { command: { resume: value } })
+      // resume 成功，清空 interrupt 快照
+      interruptSnapshotRef.current = []
+      setInterruptSnapshot([])
       toast('已确认，Agent 继续执行', { description: 'interrupt 已 resume，Thread 恢复运行', duration: 3000 })
       setFetchKey(k => k + 1)
     } catch (e) {
@@ -519,6 +535,9 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
           }),
         })
         if (!res.ok) throw new Error(await res.text())
+        // resume 成功，清空 interrupt 快照
+        interruptSnapshotRef.current = []
+        setInterruptSnapshot([])
         toast('已确认，Agent 继续执行', { description: 'interrupt 已 resume，Thread 恢复运行', duration: 3000 })
         setFetchKey(k => k + 1)
       } catch (e2) {
@@ -808,9 +827,9 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
         </div>
         {/* interrupt 详情 + resume 按钮 */}
         {/* 多重 Interrupt 展示（遍历 stream.interrupts 数组，支持子图中断） */}
-        {stream.interrupts && stream.interrupts.length > 0 && (
+        {interruptSnapshot.length > 0 && (
           <div className="space-y-2">
-            {(stream.interrupts as unknown[]).map((interrupt: unknown, idx: number) => {
+            {interruptSnapshot.map((interrupt: unknown, idx: number) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const intAny = interrupt as any
               const intValue = intAny?.value ?? intAny?.interrupt_value ?? null
@@ -822,8 +841,8 @@ function TraceTab({ tenantSlug, meta, isWriting = false, langgraphThreadId }: { 
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                         Agent 等待确认
-                        {stream.interrupts.length > 1 && (
-                          <span className="ml-1.5 text-xs text-amber-600/60">({idx + 1}/{stream.interrupts.length})</span>
+                        {interruptSnapshot.length > 1 && (
+                          <span className="ml-1.5 text-xs text-amber-600/60">({idx + 1}/{interruptSnapshot.length})</span>
                         )}
                       </p>
                       {intStr && (
