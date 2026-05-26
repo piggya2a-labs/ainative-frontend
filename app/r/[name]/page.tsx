@@ -72,6 +72,43 @@ function healthLabel(health: string) {
   return '风险'
 }
 
+// Fetch LangGraph thread state and map to TenantMetadata
+async function fetchThreadMeta(threadId: string): Promise<TenantMetadata | null> {
+  const lgUrl = process.env.LANGGRAPH_URL
+  const apiKey = process.env.LANGSMITH_API_KEY || process.env.NEXT_PUBLIC_LANGSMITH_API_KEY
+  if (!lgUrl || !apiKey) return null
+  try {
+    const resp = await fetch(`${lgUrl}/threads/${threadId}/state`, {
+      headers: { 'x-api-key': apiKey },
+      cache: 'no-store',
+    })
+    if (!resp.ok) return null
+    const stateData = await resp.json()
+    const v = stateData.values || {}
+    if (!v.mcsp && !v.milestones?.length) return null
+    const ci = v.client_info || {}
+    return {
+      share_token: v.share_token || '',
+      current_milestone: v.current_milestone || '',
+      milestones: v.milestones || [],
+      mcsp: v.mcsp || null,
+      audit: v.audit || null,
+      client: {
+        name: ci.name || '',
+        contract_start: ci.contract_start || new Date().toISOString().slice(0, 10),
+        plan_period: ci.plan_period || '',
+        lumen: ci.lumen || 'Lumen',
+        sega: ci.sega || 'Sega',
+        client_lead: ci.client_lead || '',
+        telegram_handle: ci.telegram_handle,
+      },
+      update_log: v.update_log || [],
+    }
+  } catch {
+    return null
+  }
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function LiveReportPage({
@@ -90,11 +127,10 @@ export default async function LiveReportPage({
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // 查询 tenant（用 slug 匹配）
-  // ⚠️ 防回退：api_key 在 tenants 表，不要用 tenant_api_keys 表（已删）
+  // Query tenant — no metadata column (removed), use thread_id + share_token for routing
   const { data: tenants, error } = await supabase
     .from('tenants')
-    .select('id, slug, name, status, metadata, created_at, api_key, langgraph_thread_id')
+    .select('id, slug, name, status, thread_id, share_token, created_at')
     .eq('slug', name)
     .limit(1)
 
@@ -103,10 +139,9 @@ export default async function LiveReportPage({
   }
 
   const tenant = tenants[0]
-  const meta = tenant.metadata as TenantMetadata | null
 
-  // 验证 share_token
-  if (!meta || !meta.share_token) {
+  // Verify share_token (stored directly on tenant row after MCSP confirmed)
+  if (!tenant.share_token) {
     return (
       <><Navbar siteConfig={siteConfig} />
       <main className="min-h-screen flex items-center justify-center px-4 pt-14">
@@ -118,7 +153,7 @@ export default async function LiveReportPage({
     )
   }
 
-  if (meta.share_token !== token) {
+  if (tenant.share_token !== token) {
     return (
       <><Navbar siteConfig={siteConfig} />
       <main className="min-h-screen flex items-center justify-center px-4 pt-14">
@@ -130,14 +165,11 @@ export default async function LiveReportPage({
     )
   }
 
-  // ⚠️ 防回退：不要用 tenant_api_keys 表（已删），api_key 在 tenants 表单字段
-  // API Key 是否已生成（单 key 设计，0 或 1）
-  const apiKeyCount = (tenant as Record<string, unknown>).api_key ? 1 : 0
+  // Fetch live data from LangGraph thread state (SSOT for MCSP/milestones/audit)
+  const meta = tenant.thread_id ? await fetchThreadMeta(tenant.thread_id) : null
 
-  // 防御：client / audit 为空说明该 tenant 还未被 Agent 初始化。
-  // 新建的 tenant 只有 share_token，其他字段要等 @Lumen 写入后才有。
-  // 不要删除这个判断，否则新建看板会直接崩溃。
-  if (!meta.client || !meta.audit) {
+  // No meta means MCSP not yet confirmed — show onboarding state
+  if (!meta || !meta.client || !meta.audit) {
     return (
       <><Navbar siteConfig={siteConfig} />
       <main className="min-h-screen flex items-center justify-center px-4 pt-14">
@@ -180,9 +212,9 @@ export default async function LiveReportPage({
         tenantName={tenant.name}
         tenantCreatedAt={tenant.created_at}
         tenantSlug={tenant.slug}
-        apiKeyCount={apiKeyCount ?? 0}
+        apiKeyCount={0}
         runDays={runDays}
-        langgraphThreadId={(tenant as Record<string, unknown>).langgraph_thread_id as string | undefined}
+        langgraphThreadId={tenant.thread_id ?? undefined}
       />
       </main>
     </>  
