@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -87,16 +87,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work Across Your Entire Tech Stack'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work With Your Tools'
   const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy autonomous agents that integrate with your CRM, email, databases, and tools - not just assist line-by-line. ONIT agents handle complete workflows end-to-end with full context awareness and multi-step execution.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Delegating Real Work'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Connected Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Agents In Action'
   const eyebrow = hero?.eyebrow || 'AI-Native Agentic Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: '400+ tool integrations' },
-    { icon: 'bot', text: 'Multi-agent orchestration' },
-    { icon: 'workflow', text: 'End-to-end automation' },
+    { icon: 'network', text: 'CRM & Sales Tools' },
+    { icon: 'bot', text: 'Email & Communication' },
+    { icon: 'workflow', text: 'Databases & APIs' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -111,6 +111,14 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
+  const integrationIcons = [
+    { Icon: Database, label: 'Databases' },
+    { Icon: Mail, label: 'Email' },
+    { Icon: MessageSquare, label: 'Chat' },
+    { Icon: Calendar, label: 'Calendars' },
+    { Icon: Code, label: 'APIs' },
+  ]
+
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-6 pt-20 pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
@@ -118,7 +126,18 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-10">
         <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Tool & API Integration Across Your Entire Tech Stack</p>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          {integrationIcons.map(({ Icon, label }) => (
+            <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border/40 backdrop-blur-sm">
+              <Icon className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-sm font-medium text-foreground/80">{label}</span>
+            </div>
+          ))}
+        </div>
         <div className="flex flex-col items-center gap-4 pt-4">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <Button size="lg" className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group" onClick={onCtaClick}>
