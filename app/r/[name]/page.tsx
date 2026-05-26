@@ -72,38 +72,67 @@ function healthLabel(health: string) {
   return '风险'
 }
 
-// Fetch LangGraph thread state and map to TenantMetadata
+// Map a raw WhileLoop state dict to TenantMetadata
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapWhileloopState(v: Record<string, any>): TenantMetadata | null {
+  if (!v.mcsp && !v.milestones?.length) return null
+  const ci = v.client_info || {}
+  return {
+    share_token: v.share_token || '',
+    current_milestone: v.current_milestone || '',
+    milestones: v.milestones || [],
+    mcsp: v.mcsp || null,
+    audit: v.audit || null,
+    client: {
+      name: ci.name || '',
+      contract_start: ci.contract_start || new Date().toISOString().slice(0, 10),
+      plan_period: ci.plan_period || '',
+      lumen: ci.lumen || 'Lumen',
+      sega: ci.sega || 'Sega',
+      client_lead: ci.client_lead || '',
+      telegram_handle: ci.telegram_handle,
+    },
+    update_log: v.update_log || [],
+  }
+}
+
+// Fetch WhileLoop state for a LangGraph thread.
+// Primary:  GET /threads/{id}         → .metadata.whileloop_state  (written by tools)
+// Fallback: GET /threads/{id}/state   → .values                    (legacy / in-flight)
 async function fetchThreadMeta(threadId: string): Promise<TenantMetadata | null> {
   const lgUrl = process.env.LANGGRAPH_URL
   const apiKey = process.env.LANGSMITH_API_KEY || process.env.NEXT_PUBLIC_LANGSMITH_API_KEY
   if (!lgUrl || !apiKey) return null
+  const headers = { 'x-api-key': apiKey }
+
+  // Primary: thread metadata (written by lumen_create_mcsp via threads.update())
   try {
-    const resp = await fetch(`${lgUrl}/threads/${threadId}/state`, {
-      headers: { 'x-api-key': apiKey },
+    const threadResp = await fetch(, {
+      headers,
       cache: 'no-store',
     })
-    if (!resp.ok) return null
-    const stateData = await resp.json()
-    const v = stateData.values || {}
-    if (!v.mcsp && !v.milestones?.length) return null
-    const ci = v.client_info || {}
-    return {
-      share_token: v.share_token || '',
-      current_milestone: v.current_milestone || '',
-      milestones: v.milestones || [],
-      mcsp: v.mcsp || null,
-      audit: v.audit || null,
-      client: {
-        name: ci.name || '',
-        contract_start: ci.contract_start || new Date().toISOString().slice(0, 10),
-        plan_period: ci.plan_period || '',
-        lumen: ci.lumen || 'Lumen',
-        sega: ci.sega || 'Sega',
-        client_lead: ci.client_lead || '',
-        telegram_handle: ci.telegram_handle,
-      },
-      update_log: v.update_log || [],
+    if (threadResp.ok) {
+      const threadData = await threadResp.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wlState = (threadData.metadata as Record<string, any> || {}).whileloop_state
+      if (wlState) {
+        const mapped = mapWhileloopState(wlState)
+        if (mapped) return mapped
+      }
     }
+  } catch {
+    // fall through to state-values fallback
+  }
+
+  // Fallback: graph state values (old threads or if Command(update=...) worked)
+  try {
+    const stateResp = await fetch(, {
+      headers,
+      cache: 'no-store',
+    })
+    if (!stateResp.ok) return null
+    const stateData = await stateResp.json()
+    return mapWhileloopState(stateData.values || {})
   } catch {
     return null
   }
@@ -165,7 +194,7 @@ export default async function LiveReportPage({
     )
   }
 
-  // Fetch live data from LangGraph thread state (SSOT for MCSP/milestones/audit)
+  // Fetch live data: primary = thread metadata, fallback = state values
   const meta = tenant.thread_id ? await fetchThreadMeta(tenant.thread_id) : null
 
   // No meta means MCSP not yet confirmed — show onboarding state
