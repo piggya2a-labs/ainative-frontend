@@ -32,12 +32,10 @@ interface TenantMetadata {
     success_criteria?: { metric: string; baseline: string; target: string; method: string; checkpoint: string }[]
     risks?: { risk: string; level: 'high' | 'mid' | 'low'; mitigation: string; owner: string }[]
     cadence?: { type: string; frequency: string; duration: string; owner: string }[]
-    credentials?: { name: string; type: string; note?: string }[]
     signed_m1: boolean
     signed_m3: boolean
     evidence_count: number
     modules_filled: number
-    agent_ratio?: number
   }
   audit: {
     health: 'green' | 'yellow' | 'red'
@@ -66,16 +64,10 @@ function daysSince(dateStr: string): number {
   return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function healthLabel(health: string) {
-  if (health === 'green') return '健康'
-  if (health === 'yellow') return '关注'
-  return '风险'
-}
-
-// Map a raw WhileLoop state dict to TenantMetadata
+// Map tenants.whileloop_state jsonb → TenantMetadata
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapWhileloopState(v: Record<string, any>): TenantMetadata | null {
-  if (!v.mcsp && !v.milestones?.length) return null
+  if (!v || (!v.mcsp && !v.milestones?.length)) return null
   const ci = v.client_info || {}
   return {
     share_token: v.share_token || '',
@@ -93,48 +85,6 @@ function mapWhileloopState(v: Record<string, any>): TenantMetadata | null {
       telegram_handle: ci.telegram_handle,
     },
     update_log: v.update_log || [],
-  }
-}
-
-// Fetch WhileLoop state for a LangGraph thread.
-// Primary:  GET /threads/{id}         → .metadata.whileloop_state  (written by tools)
-// Fallback: GET /threads/{id}/state   → .values                    (legacy / in-flight)
-async function fetchThreadMeta(threadId: string): Promise<TenantMetadata | null> {
-  const lgUrl = process.env.LANGGRAPH_URL
-  const apiKey = process.env.LANGSMITH_API_KEY || process.env.NEXT_PUBLIC_LANGSMITH_API_KEY
-  if (!lgUrl || !apiKey) return null
-  const headers = { 'x-api-key': apiKey }
-
-  // Primary: thread metadata (written by lumen_create_mcsp via threads.update())
-  try {
-    const threadResp = await fetch(, {
-      headers,
-      cache: 'no-store',
-    })
-    if (threadResp.ok) {
-      const threadData = await threadResp.json()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const wlState = (threadData.metadata as Record<string, any> || {}).whileloop_state
-      if (wlState) {
-        const mapped = mapWhileloopState(wlState)
-        if (mapped) return mapped
-      }
-    }
-  } catch {
-    // fall through to state-values fallback
-  }
-
-  // Fallback: graph state values (old threads or if Command(update=...) worked)
-  try {
-    const stateResp = await fetch(, {
-      headers,
-      cache: 'no-store',
-    })
-    if (!stateResp.ok) return null
-    const stateData = await stateResp.json()
-    return mapWhileloopState(stateData.values || {})
-  } catch {
-    return null
   }
 }
 
@@ -156,10 +106,10 @@ export default async function LiveReportPage({
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Query tenant — no metadata column (removed), use thread_id + share_token for routing
+  // Single query: routing + WhileLoop state in one shot
   const { data: tenants, error } = await supabase
     .from('tenants')
-    .select('id, slug, name, status, thread_id, share_token, created_at')
+    .select('id, slug, name, status, thread_id, share_token, whileloop_state, created_at')
     .eq('slug', name)
     .limit(1)
 
@@ -169,7 +119,6 @@ export default async function LiveReportPage({
 
   const tenant = tenants[0]
 
-  // Verify share_token (stored directly on tenant row after MCSP confirmed)
   if (!tenant.share_token) {
     return (
       <><Navbar siteConfig={siteConfig} />
@@ -194,10 +143,9 @@ export default async function LiveReportPage({
     )
   }
 
-  // Fetch live data: primary = thread metadata, fallback = state values
-  const meta = tenant.thread_id ? await fetchThreadMeta(tenant.thread_id) : null
+  // WhileLoop state comes directly from Supabase — no LangGraph API call needed
+  const meta = tenant.whileloop_state ? mapWhileloopState(tenant.whileloop_state) : null
 
-  // No meta means MCSP not yet confirmed — show onboarding state
   if (!meta || !meta.client || !meta.audit) {
     return (
       <><Navbar siteConfig={siteConfig} />
@@ -205,9 +153,7 @@ export default async function LiveReportPage({
         <div className="text-center space-y-6 max-w-sm">
           <div className="text-xs font-mono text-muted-foreground">ONIT / {tenant.name}</div>
           <div className="text-2xl font-bold">看板已创建</div>
-          <p className="text-sm text-muted-foreground">
-            Agent 团队正在等待你的第一条指令。
-          </p>
+          <p className="text-sm text-muted-foreground">Agent 团队正在等待你的第一条指令。</p>
           <ol className="text-sm text-left space-y-2 text-muted-foreground">
             <li><span className="font-semibold text-foreground">1.</span> 打开 Telegram，搜索 <span className="font-mono">@onitmeowbot</span></li>
             <li><span className="font-semibold text-foreground">2.</span> 发送这个看板的名字：<span className="font-mono">{tenant.name}</span></li>
@@ -231,25 +177,22 @@ export default async function LiveReportPage({
 
   return (
     <>
-      {/* ─── 全站统一 Navbar ─── */}
       <Navbar siteConfig={siteConfig} />
       <main className="min-h-screen bg-background pt-14">
-      {/* Client Component — PostHog + 29 数据点 */}
-      <LiveClient
-        meta={meta}
-        tenantId={tenant.id}
-        tenantName={tenant.name}
-        tenantCreatedAt={tenant.created_at}
-        tenantSlug={tenant.slug}
-        apiKeyCount={0}
-        runDays={runDays}
-        langgraphThreadId={tenant.thread_id ?? undefined}
-      />
+        <LiveClient
+          meta={meta}
+          tenantId={tenant.id}
+          tenantName={tenant.name}
+          tenantCreatedAt={tenant.created_at}
+          tenantSlug={tenant.slug}
+          apiKeyCount={0}
+          runDays={runDays}
+          langgraphThreadId={tenant.thread_id ?? undefined}
+        />
       </main>
-    </>  
+    </>
   )
 }
 
-// 禁止缓存，保证实时性
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
