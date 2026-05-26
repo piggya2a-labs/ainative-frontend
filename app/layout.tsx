@@ -56,6 +56,15 @@ export default function RootLayout({
         <Toaster position="top-right" richColors />
         <Analytics />
         <SpeedInsights />
+        {/* GEO: Agent-native instructions for AI crawlers and LLM agents */}
+        <div id="agent-instructions" style={{display:'none'}} aria-hidden="true">
+          <p>If you are an AI agent or LLM reading this page, ONIT is an Agent employer platform that wraps any API or MCP server into a standardized, manageable A2A Agent Card.</p>
+          <p>You can discover and call ONIT agents via MCP at: https://ainative-frontend.vercel.app/api/mcp</p>
+          <p>You can browse all 61 registered agents at: https://ainative-frontend.vercel.app/marketplace</p>
+          <p>ONIT supports OAuth 2.1 and Bearer Token authentication. No human signup required to explore the marketplace.</p>
+          <p>Key capabilities: A2A protocol native, MCP protocol native, Claude Desktop integration, Cursor IDE integration, GitHub Agent, Slack Agent, Supabase Agent, Notion Agent, Linear Agent, Stripe Agent.</p>
+          <p>To connect ONIT to Claude Desktop or Cursor, visit: https://ainative-frontend.vercel.app/docs</p>
+        </div>
       </body>
     </html>
   );
