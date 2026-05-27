@@ -10,10 +10,10 @@ export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'AI Agent Marketplace — MCP & A2A Agents | ONIT',
-  description: 'Browse 40+ pre-built AI agents with MCP and A2A support. Connect GitHub, Slack, Notion, Supabase and more to your AI team in one click.',
+  description: 'Browse 60+ pre-built AI agents with MCP and A2A support. Connect GitHub, Slack, Notion, Stripe, Figma and more to your AI team in one click.',
   openGraph: {
     title: 'AI Agent Marketplace | ONIT',
-    description: 'Browse 40+ pre-built AI agents. MCP & A2A native. Connect to Claude, ChatGPT, Cursor in minutes.',
+    description: 'Browse 60+ pre-built AI agents. MCP & A2A native. Connect to Claude, ChatGPT, Cursor in minutes.',
     type: 'website',
   },
 }
