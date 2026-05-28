@@ -87,27 +87,27 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Connect 400+ Apps'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create autonomous agents that handle complete workflows across your tools—automatically sync CRM contacts, draft and send emails, take meeting notes, update databases, and schedule follow-ups. No manual handoffs, just intelligent multi-step automation.'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, email, databases, and 200+ tools with intelligent agents that remember context and collaborate seamlessly. Build autonomous workflows that handle complex multi-step tasks across your entire tech ecosystem.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Agents In Action'
-  const eyebrow = hero?.eyebrow || 'AI-Native Workflow Automation Platform'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Multi-Step Workflows' },
-    { icon: 'bot', text: 'Cross-App Integration' },
-    { icon: 'workflow', text: 'Full Context Awareness' },
+    { icon: 'network', text: 'Multi-Agent Orchestration' },
+    { icon: 'bot', text: 'Cross-Tool Integration' },
+    { icon: 'workflow', text: 'Context-Aware Collaboration' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
     { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Active Agents' },
-    { value: toolCount > 0 ? `${toolCount}+` : '400+', label: demo?.tool_count_label || 'App Integrations' },
+    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Tool Integrations' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Agent Workflow Activity'
+  const feedHeader = demo?.feed_header || 'Live Agent Orchestration Activity'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -127,8 +127,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
         <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Automate Email, Meetings, CRM Updates & More—End to End</p>
+          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Intelligent Agents That Orchestrate Your Entire Workflow</p>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
+          <p className="text-base sm:text-lg text-foreground/80 max-w-2xl leading-relaxed font-medium">
+            Trigger-action logic and modular task orchestration built-in.
+          </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           {integrationIcons.map(({ Icon, label }) => (
@@ -154,7 +157,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             No credit card required • Deploy workflows in minutes
           </p>
           <p className="text-sm font-medium text-foreground/80 pt-2">
-            Agents execute multi-step workflows autonomously—not just chat responses
+            Agents coordinate across tools with persistent context and intelligent task handoffs
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
