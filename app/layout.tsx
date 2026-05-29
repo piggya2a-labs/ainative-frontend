@@ -23,7 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteConfig = await getSiteConfig();
+  const locale = await getLocale();
+  const siteConfig = await getSiteConfig(locale);
   const title = siteConfig?.meta?.title || 'ONIT — AI Agent 团队平台';
   const description = siteConfig?.meta?.description || '让 AI Agent 团队为你的业务工作。';
   return {

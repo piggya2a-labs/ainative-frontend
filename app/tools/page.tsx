@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig } from '@/lib/queries'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -61,7 +62,8 @@ const MCP_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mcp-s
 export default async function ToolsPage() {
   const [agents, siteConfig] = await Promise.all([
     getPlatformAgents(),
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
   ])
 
   const p = siteConfig?.pages?.tools

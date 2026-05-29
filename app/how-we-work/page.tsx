@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/navbar";
 import { getSiteConfig } from "@/lib/queries";
 import HowWeWorkClient from "./how-we-work-client";
+import { getLocale } from "gt-next/server";
 
 export const metadata: Metadata = {
   title: "我们怎么一起工作 — ONIT",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function HowWeWorkPage() {
-  const siteConfig = await getSiteConfig();
+  const locale = await getLocale();
+  const siteConfig = await getSiteConfig(locale);
   return (
     <>
       <Navbar siteConfig={siteConfig} />

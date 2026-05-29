@@ -3,6 +3,7 @@ import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig, getArticles } from '@/lib/queries'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -16,7 +17,8 @@ function formatDate(dateStr?: string) {
 }
 
 export default async function BlogPage() {
-  const [siteConfig, articles] = await Promise.all([getSiteConfig(), getArticles()])
+  const locale = await getLocale();
+  const [siteConfig, articles] = await Promise.all([getSiteConfig(locale), getArticles()])
 
   return (
     <div className="min-h-screen bg-background">

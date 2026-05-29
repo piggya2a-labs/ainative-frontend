@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { LiveClient } from './live-client'
 import { Navbar } from '@/components/navbar'
 import { getSiteConfig } from '@/lib/queries'
+import { getLocale } from "gt-next/server";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +100,8 @@ export default async function LiveReportPage({
 }) {
   const { name } = await params
   const { t: token } = await searchParams
-  const siteConfig = await getSiteConfig()
+  const locale = await getLocale();
+  const siteConfig = await getSiteConfig(locale)
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

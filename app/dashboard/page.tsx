@@ -8,6 +8,7 @@ import { Suspense } from 'react'
 import { DashboardClient } from './dashboard-client'
 import { Navbar } from '@/components/navbar'
 import { getSiteConfig } from '@/lib/queries'
+import { getLocale } from "gt-next/server";
 
 // ─── 只生成 share_token（MCSP 内容由 @Lumen 写入，不自动初始化）──────────────
 function buildDefaultMcspMetadata(tenantName: string, tenantSlug: string, createdAt: string) {
@@ -181,7 +182,8 @@ export default async function DashboardPage() {
   const allAgents: ComposioAgent[] = [...composioAgents]
   const agentCount = allAgents.length
 
-  const siteConfig = await getSiteConfig()
+  const locale = await getLocale();
+  const siteConfig = await getSiteConfig(locale)
 
   return (
     <>

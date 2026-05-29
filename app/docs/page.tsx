@@ -3,6 +3,7 @@ import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig } from '@/lib/queries'
 import { SiteConfig } from '@/lib/sanity-schema'
 import { DocsClient } from './docs-client'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -27,7 +28,8 @@ export type DocsConfig = {
 
 // 外层 server component：fetch siteConfig，传给内层 client component
 export default async function DocsPage() {
-  const siteConfig = await getSiteConfig()
+  const locale = await getLocale();
+  const siteConfig = await getSiteConfig(locale)
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -34,13 +34,24 @@ export async function getAgentTools(): Promise<AgentTool[]> {
   }
 }
 
-export async function getSiteConfig(): Promise<SiteConfig | null> {
+export async function getSiteConfig(locale?: string): Promise<SiteConfig | null> {
   try {
+    // 根据 locale 拉取对应语言的 siteConfig
+    // en → siteConfig-en，其他语言 → siteConfig（中文默认）
+    const docId = locale === 'en' ? 'siteConfig-en' : 'siteConfig'
     const data = await client.fetch<SiteConfig>(
-      `*[_type == "siteConfig"][0]`,
-      {},
+      `*[_type == "siteConfig" && _id == $docId][0]`,
+      { docId },
       { next: { revalidate: 60 } }
     )
+    // fallback 到中文版
+    if (!data) {
+      return await client.fetch<SiteConfig>(
+        `*[_type == "siteConfig"][0]`,
+        {},
+        { next: { revalidate: 60 } }
+      )
+    }
     return data
   } catch {
     return null

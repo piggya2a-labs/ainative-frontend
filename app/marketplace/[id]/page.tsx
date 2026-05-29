@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ExternalLink, Zap, ArrowLeft } from 'lucide-react'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 3600
 
@@ -116,7 +117,8 @@ export default async function AgentDetailPage({ params }: Props) {
   const { id } = await params
   const [agent, siteConfig] = await Promise.all([
     getAgent(id),
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
   ])
   if (!agent) notFound()
 

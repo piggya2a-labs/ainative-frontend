@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -74,7 +75,8 @@ function renderBody(body: NonNullable<Awaited<ReturnType<typeof getArticleBySlug
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params
   const [siteConfig, article] = await Promise.all([
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
     getArticleBySlug(slug),
   ])
 

@@ -5,6 +5,7 @@ import { CTASection, Footer } from '@/components/cta-footer'
 import { MarketplaceClient } from './marketplace-client'
 import type { MarketplaceAgentItem } from '@/lib/database.types'
 import type { Metadata } from 'next'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -40,7 +41,8 @@ async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
 export default async function MarketplacePage() {
   const [agents, siteConfig] = await Promise.all([
     getMarketplaceAgents(),
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
   ])
 
   const p = siteConfig?.pages?.marketplace

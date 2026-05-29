@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { createClient } from '@supabase/supabase-js'
 import { getSiteConfig } from '@/lib/queries'
 import { AgentCardWithPopover } from './agent-card'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60
 
@@ -133,7 +134,8 @@ function getTimeAgo(dateStr: string): string {
 export default async function AgentsPage() {
   const [agents, siteConfig, activity] = await Promise.all([
     getAgents(),
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
     getAgentActivity(),
   ])
 

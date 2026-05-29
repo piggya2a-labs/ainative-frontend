@@ -5,6 +5,7 @@ import { ToolsGrid } from '@/components/tools-grid'
 import { CTASection, Footer } from '@/components/cta-footer'
 import { getSiteConfig } from '@/lib/queries'
 import { createClient } from '@supabase/supabase-js'
+import { getLocale } from "gt-next/server";
 
 export const revalidate = 60 // ISR: 每 60 秒重新验证
 
@@ -32,7 +33,8 @@ async function getSupabaseCounts() {
 
 export default async function Home() {
   const [siteConfig, { agentCount, toolCount }] = await Promise.all([
-    getSiteConfig(),
+    const locale = await getLocale();
+    getSiteConfig(locale),
     getSupabaseCounts(),
   ])
 
