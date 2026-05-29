@@ -39,9 +39,9 @@ async function getMarketplaceAgents(): Promise<MarketplaceAgentItem[]> {
 }
 
 export default async function MarketplacePage() {
+  const locale = await getLocale();
   const [agents, siteConfig] = await Promise.all([
     getMarketplaceAgents(),
-    const locale = await getLocale();
     getSiteConfig(locale),
   ])
 

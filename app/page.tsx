@@ -32,8 +32,8 @@ async function getSupabaseCounts() {
 }
 
 export default async function Home() {
+  const locale = await getLocale();
   const [siteConfig, { agentCount, toolCount }] = await Promise.all([
-    const locale = await getLocale();
     getSiteConfig(locale),
     getSupabaseCounts(),
   ])

@@ -74,8 +74,8 @@ function renderBody(body: NonNullable<Awaited<ReturnType<typeof getArticleBySlug
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params
+  const locale = await getLocale();
   const [siteConfig, article] = await Promise.all([
-    const locale = await getLocale();
     getSiteConfig(locale),
     getArticleBySlug(slug),
   ])

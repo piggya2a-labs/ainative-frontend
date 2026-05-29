@@ -132,9 +132,9 @@ function getTimeAgo(dateStr: string): string {
 }
 
 export default async function AgentsPage() {
+  const locale = await getLocale();
   const [agents, siteConfig, activity] = await Promise.all([
     getAgents(),
-    const locale = await getLocale();
     getSiteConfig(locale),
     getAgentActivity(),
   ])

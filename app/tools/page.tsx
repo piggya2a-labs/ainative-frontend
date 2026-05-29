@@ -60,9 +60,9 @@ function providerLabel(p?: string) {
 const MCP_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mcp-server?agent=l1-operator-agent`
 
 export default async function ToolsPage() {
+  const locale = await getLocale();
   const [agents, siteConfig] = await Promise.all([
     getPlatformAgents(),
-    const locale = await getLocale();
     getSiteConfig(locale),
   ])
 

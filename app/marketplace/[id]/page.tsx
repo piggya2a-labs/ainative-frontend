@@ -115,9 +115,9 @@ function connectorBadge(type: string | null | undefined) {
 
 export default async function AgentDetailPage({ params }: Props) {
   const { id } = await params
+  const locale = await getLocale();
   const [agent, siteConfig] = await Promise.all([
     getAgent(id),
-    const locale = await getLocale();
     getSiteConfig(locale),
   ])
   if (!agent) notFound()
