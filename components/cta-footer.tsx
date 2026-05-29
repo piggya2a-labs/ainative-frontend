@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { usePostHog } from 'posthog-js/react'
 import { useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
+import { T } from 'gt-next'
 
 interface CTASectionProps {
   siteConfig?: SiteConfig | null
@@ -19,17 +20,17 @@ export function CTASection({ siteConfig }: CTASectionProps) {
   const [submitted, setSubmitted] = useState(false)
 
   const cta = siteConfig?.pages?.cta ?? siteConfig?.cta
-  const headline = cta?.headline || '准备好让 Agent 团队为你工作了吗？'
-  const description = cta?.description || '加入等待列表，成为第一批体验 ONIT 的用户。'
+  const headline = cta?.headline || <T id="cta.headline">准备好让 Agent 团队为你工作了吗？</T>
+  const description = cta?.description || <T id="cta.description">加入等待列表，成为第一批体验 ONIT 的用户。</T>
   const buttonText = (cta as { button_text?: string; buttonText?: string })?.button_text
     || (cta as { button_text?: string; buttonText?: string })?.buttonText
-    || '加入等待列表'
+    || <T id="cta.button">加入等待列表</T>
   const subtitle = (cta as { cta_subtitle?: string; subtitle?: string })?.cta_subtitle
     || (cta as { cta_subtitle?: string; subtitle?: string })?.subtitle
-    || '无需信用卡，2 分钟快速上手'
+    || <T id="cta.subtitle">无需信用卡，2 分钟快速上手</T>
   const successMsg = (cta as { success_message?: string })?.success_message
-    || '你已加入等待列表，我们会尽快联系你。'
-  const noSpam = (cta as { no_spam?: string })?.no_spam || '不发垃圾邮件，随时可退订。'
+    || <T id="cta.success">你已加入等待列表，我们会尽快联系你。</T>
+  const noSpam = (cta as { no_spam?: string })?.no_spam || <T id="cta.nospam">不发垃圾邮件，随时可退订。</T>
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,9 +80,9 @@ export function CTASection({ siteConfig }: CTASectionProps) {
 
 export function Footer({ siteConfig }: FooterProps) {
   const footer = siteConfig?.pages?.footer
-  const tagline = footer?.tagline || 'ONIT · Agent 雇主平台'
+  const tagline = footer?.tagline || <T id="footer.tagline">ONIT · Agent 雇主平台</T>
   const logo = siteConfig?.nav?.logo || 'ONIT'
-  const links = footer?.links || ['隐私政策', '服务条款', '文档']
+  const links = footer?.links || ['隐私政策', '服务条款', '文档'] // TODO: translate these
 
   return (
     <footer className="border-t border-border/40 py-8 px-4">

@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { usePostHog } from 'posthog-js/react'
 import { SiteConfig } from '@/lib/sanity-schema'
+import { T } from 'gt-next'
 
 interface FeaturesProps {
   siteConfig?: SiteConfig | null
@@ -30,10 +31,10 @@ export function Features({ siteConfig }: FeaturesProps) {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12 space-y-3">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {siteConfig?.features_section?.title || '为 Agent 真实工作方式而生'}
+            {siteConfig?.features_section?.title || <T id="features.title">为 Agent 真实工作方式而生</T>}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto text-sm">
-            {siteConfig?.features_section?.subtitle || '不是聊天机器人包装。是让 AI Agent 真正完成工作的执行环境。'}
+            {siteConfig?.features_section?.subtitle || <T id="features.subtitle">不是聊天机器人包装。是让 AI Agent 真正完成工作的执行环境。</T>}
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { SiteConfig } from '@/lib/sanity-schema'
 import { useUser } from '@/lib/auth-context'
-import { LocaleSelector } from 'gt-next'
+import { LocaleSelector, T } from 'gt-next'
 
 interface NavbarProps {
   siteConfig?: SiteConfig | null
@@ -87,7 +87,7 @@ export function Navbar({ siteConfig }: NavbarProps) {
                   signOut()
                 }}
               >
-                退出
+                <T id="navbar.signout">退出</T>
               </Button>
             </div>
           ) : (
@@ -99,7 +99,7 @@ export function Navbar({ siteConfig }: NavbarProps) {
                 className="text-xs h-8"
                 onClick={() => router.push('/login')}
               >
-                登录
+                <T id="navbar.login">登录</T>
               </Button>
               <Button
                 size="sm"
@@ -107,7 +107,7 @@ export function Navbar({ siteConfig }: NavbarProps) {
                 disabled={loading}
                 onClick={handleGetStarted}
               >
-                {loading ? '...' : ctaText}
+                {loading ? '...' : <T id="navbar.cta">{ctaText}</T>}
               </Button>
             </div>
           )}
