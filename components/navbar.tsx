@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { SiteConfig } from '@/lib/sanity-schema'
 import { useUser } from '@/lib/auth-context'
-import { LocaleSelector, T } from 'gt-next'
+import { LocaleSelector, T, Var } from 'gt-next'
 
 interface NavbarProps {
   siteConfig?: SiteConfig | null
@@ -107,7 +107,7 @@ export function Navbar({ siteConfig }: NavbarProps) {
                 disabled={loading}
                 onClick={handleGetStarted}
               >
-                {loading ? '...' : <T id="navbar.cta">{ctaText}</T>}
+                {loading ? '...' : <T id="navbar.cta"><Var>{ctaText}</Var></T>}
               </Button>
             </div>
           )}
