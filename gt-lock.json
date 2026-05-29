@@ -1,3 +1,24 @@
 {
-  "locadexModifiedAt": 1780028726418
+  "version": 2,
+  "branchId": "",
+  "entries": [
+    {
+      "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
+      "versionId": "5754e3a6937282d0f3afc18c64d06fd954766492a7dbf78825243ee7b640b528",
+      "translations": {
+        "en": {
+          "updatedAt": "2026-05-29T05:15:42.772Z",
+          "fileName": "/root/repo/public/_gt/en.json",
+          "postProcessHash": "8668e2ce227ec420e589c30bd05f317e66d0d1a00b56c058a7c6fdcc2cee1b4d"
+        },
+        "ja": {
+          "updatedAt": "2026-05-29T05:15:42.773Z",
+          "fileName": "/root/repo/public/_gt/ja.json",
+          "postProcessHash": "a2b8f79e43a53a52c3ea3942a71e3d547f14ac8ac97c75dd688a6b03e68d5050"
+        }
+      },
+      "fileName": "__INTERNAL_GT_TEMPLATE_NAME__",
+      "staged": false
+    }
+  ]
 }
