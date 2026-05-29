@@ -65,6 +65,9 @@ importers:
       composio-core:
         specifier: ^0.5.39
         version: 0.5.39(@ai-sdk/openai@3.0.64(zod@4.4.3))(@cloudflare/workers-types@4.20260519.1)(@langchain/core@1.1.47(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.1))(openai@6.38.0(ws@8.20.1)(zod@4.4.3))(ws@8.20.1))(@langchain/openai@1.4.6(@langchain/core@1.1.47(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.1))(openai@6.38.0(ws@8.20.1)(zod@4.4.3))(ws@8.20.1))(ws@8.20.1))(ai@6.0.191(zod@4.4.3))(langchain@1.4.1(@langchain/core@1.1.47(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.1))(openai@6.38.0(ws@8.20.1)(zod@4.4.3))(ws@8.20.1))(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.1))(openai@6.38.0(ws@8.20.1)(zod@4.4.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(ws@8.20.1)(zod-to-json-schema@3.25.2(zod@4.4.3)))(openai@6.38.0(ws@8.20.1)(zod@4.4.3))
+      gt-next:
+        specifier: ^6.16.30
+        version: 6.16.30(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       langgraph-nextjs-api-passthrough:
         specifier: 0.1.4
         version: 0.1.4(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
@@ -1488,6 +1491,43 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@formatjs/ecma402-abstract@2.3.6':
+    resolution: {integrity: sha512-HJnTFeRM2kVFVr5gr5kH1XP6K0JcJtE7Lzvtr3FS/so5f1kpsqqqxy5JF+FRaO6H2qmcMfAUIox7AJteieRtVw==}
+
+  '@formatjs/fast-memoize@2.2.7':
+    resolution: {integrity: sha512-Yabmi9nSvyOMrlSeGGWDiH7rf3a7sIwplbvo/dlz9WCIjzIQAfy1RMf4S0X3yG724n5Ghu2GmEl5NJIV6O9sZQ==}
+
+  '@formatjs/icu-messageformat-parser@2.11.4':
+    resolution: {integrity: sha512-7kR78cRrPNB4fjGFZg3Rmj5aah8rQj9KPzuLsmcSn4ipLXQvC04keycTI1F7kJYDwIXtT2+7IDEto842CfZBtw==}
+
+  '@formatjs/icu-skeleton-parser@1.8.16':
+    resolution: {integrity: sha512-H13E9Xl+PxBd8D5/6TVUluSpxGNvFSlN/b3coUp0e0JpuWXXnQDiavIpY3NnvSp4xhEMoXyyBvVfdFX8jglOHQ==}
+
+  '@formatjs/intl-localematcher@0.6.2':
+    resolution: {integrity: sha512-XOMO2Hupl0wdd172Y06h6kLpBz6Dv+J4okPLl4LPtzbr8f66WbIoy4ev98EBuZ6ZK4h5ydTN6XneT4QVpD7cdA==}
+
+  '@generaltranslation/compiler@1.3.24':
+    resolution: {integrity: sha512-IgB2xGBvUuO9DfI+0DrNB/wHtW30+/mtmmpTbidPvaUzS2ewfxB1RgWCouSt+3J6OnSz7dFexxHuDJ1LItQ4+A==}
+    engines: {node: '>=16.0.0'}
+
+  '@generaltranslation/format@0.1.1':
+    resolution: {integrity: sha512-HYfBdkrdMuA/Sj0tMrkdat4mnaNnN7Isf1u3IYwYUMvH21iWkqnWZ2KBKD2tboNux2T4SxyFMyCjnwg7tmEOlA==}
+
+  '@generaltranslation/next-internal@0.1.2':
+    resolution: {integrity: sha512-K6oKvNtEqn6AzVXGq4IPk/BFGiRYKH2S+04LBFES3IHaY6cBeR/ptrQUOhTSBFZKNW0vVxnzAR7/WvfBC/tUcw==}
+    peerDependencies:
+      next: '>=13.0.0 <15.2.1 || >15.2.2'
+      react: '>=16.8.0 <20.0.0'
+      react-dom: '>=16.8.0 <20.0.0'
+
+  '@generaltranslation/react-core@1.8.21':
+    resolution: {integrity: sha512-sdforPKEdSRgzjukpivuv2zfXT01fxF8xry+Jl6Ll5MGlI+yeQ+RxrkXvcxj3FHFrUW8zEAOztD2FDkMpZg73A==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@generaltranslation/supported-locales@2.1.1':
+    resolution: {integrity: sha512-tvtQldUnC53gK3H1I3jXOgW+Aa4w9BgnoKfnSFshodbVeNo3uOsRAF780/FUSq63M+XKZocRL4fKI3h8RHLg/w==}
 
   '@hey-api/client-axios@0.2.12':
     resolution: {integrity: sha512-lBehVhbnhvm41cFguZuy1FO+4x8NO3Qy/ooL0Jw4bdqTu21n7DmZMPsXEF0gL7/gNdTt4QkJGwaojy+8ExtE8w==}
@@ -5854,6 +5894,9 @@ packages:
   fuzzysort@3.1.0:
     resolution: {integrity: sha512-sR9BNCjBg6LNgwvxlBd0sBABvQitkLzoVY9MYYROQVX/FvfJ4Mai9LsGhDgd8qYdds0bY77VzYd5iuB+v5rwQQ==}
 
+  generaltranslation@8.2.16:
+    resolution: {integrity: sha512-0N5Ke8TVUFkuvK51Tajr+2e67dCaUlPrnuX3ltpKOfyopD6QvvR8t3VN5RxhKmFpmsebNf0uXISg/QNDQPH0LA==}
+
   generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
@@ -5969,6 +6012,22 @@ packages:
   groq@5.25.1:
     resolution: {integrity: sha512-EzSkxI0r6Wf9BkdDpSpcCmuTe32PcMAZPuWyOixVnOLX4ZrapEqW/UW84SrERGDyiUbm4tmZx3s5HS3IyqAalg==}
     engines: {node: '>=20.19 <22 || >=22.12'}
+
+  gt-i18n@0.9.5:
+    resolution: {integrity: sha512-gwt2rJhIm1+vmIBB5fD6JfCLlS5wd4yYgLShKQ+RUlU8j+M5d6kmx93Fo2vinJA04AyIQgV0ChUPib41eishbA==}
+
+  gt-next@6.16.30:
+    resolution: {integrity: sha512-qetxq5rkyt6KCYEhcwMouJ09x68o2M9dULT7uMQbFuGQJsDAN7yyt6XY4M9/GWbm5sy8btMism+iupaazTyN8g==}
+    peerDependencies:
+      next: '>=13.0.0 <15.2.1 || >15.2.2'
+      react: '>=16.8.0 <20.0.0'
+      react-dom: '>=16.8.0 <20.0.0'
+
+  gt-react@10.19.19:
+    resolution: {integrity: sha512-ajtV4metlcat0zyHiYKabcKzT/hTufqg97dtT2zw6LclsN0uzIVO+mlmSvcz8b6ETajSOhfLfvubukVe7RW7sw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   gunzip-maybe@1.4.2:
     resolution: {integrity: sha512-4haO1M4mLO91PW57BMsDFf75UmwoRX0GkdD+Faw+Lr+r/OZrOCS0pIBwOL1xCKQqnQzbNFGgK2V2CpBUPeFNTw==}
@@ -6187,6 +6246,9 @@ packages:
   internmap@2.0.3:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
+
+  intl-messageformat@10.7.18:
+    resolution: {integrity: sha512-m3Ofv/X/tV8Y3tHXLohcuVuhWKo7BBq62cqY15etqmLxg2DZ34AGGgQDeR+SCta2+zICb1NX83af0GJmbQ1++g==}
 
   ip-address@10.2.0:
     resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
@@ -6514,6 +6576,7 @@ packages:
   json-2-csv@5.5.10:
     resolution: {integrity: sha512-Dep8wO3Fr5wNjQevO2Z8Y7yeee/nYSGRsi7q6zJDKEVHxXkXT+v21vxHmDX923UzmCXXkSo62HaTz6eTWzFLaw==}
     engines: {node: '>= 16'}
+    deprecated: A security vulnerability has been reported with the preventCsvInjection option which has been fixed in version 5.5.11. Please upgrade as soon as possible.
 
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
@@ -7154,6 +7217,7 @@ packages:
   next-sanity@12.4.5:
     resolution: {integrity: sha512-KXqUOfxk8FsVOzKbISRcYCqMxGbUbWO7spYjRHQxv9KyFbYH3ofMHeAvj5uojZ1it+/y2nKFcUk9s4EUOWVwbA==}
     engines: {node: '>=20.19 <22 || >=22.12'}
+    deprecated: This version is not recommended for usage with Next.js v16, please see https://www.sanity.io/docs/help/nextjs-16-sanitylive-status
     peerDependencies:
       '@sanity/client': ^7.22.0
       next: ^16.0.0-0
@@ -8605,6 +8669,10 @@ packages:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
 
+  unplugin@2.3.11:
+    resolution: {integrity: sha512-5uKD0nqiYVzlmCRs01Fhs2BdkEgBS3SAVP6ndrBsuK42iC2+JHyxM05Rm9G8+5mkmRtzMZGY8Ct5+mliZxU/Ww==}
+    engines: {node: '>=18.12.0'}
+
   unrs-resolver@1.12.0:
     resolution: {integrity: sha512-hiJjN9x3O/SF2yGpNX7swfg24bi4t+uqEww16EeH9LT2I6mkGNf8uZvAS9PL1pvkA/fBagTaxbgHfYQPRfahuQ==}
 
@@ -8825,6 +8893,9 @@ packages:
   webidl-conversions@8.0.1:
     resolution: {integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==}
     engines: {node: '>=20'}
+
+  webpack-virtual-modules@0.6.2:
+    resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -10479,6 +10550,66 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@formatjs/ecma402-abstract@2.3.6':
+    dependencies:
+      '@formatjs/fast-memoize': 2.2.7
+      '@formatjs/intl-localematcher': 0.6.2
+      decimal.js: 10.6.0
+      tslib: 2.8.1
+
+  '@formatjs/fast-memoize@2.2.7':
+    dependencies:
+      tslib: 2.8.1
+
+  '@formatjs/icu-messageformat-parser@2.11.4':
+    dependencies:
+      '@formatjs/ecma402-abstract': 2.3.6
+      '@formatjs/icu-skeleton-parser': 1.8.16
+      tslib: 2.8.1
+
+  '@formatjs/icu-skeleton-parser@1.8.16':
+    dependencies:
+      '@formatjs/ecma402-abstract': 2.3.6
+      tslib: 2.8.1
+
+  '@formatjs/intl-localematcher@0.6.2':
+    dependencies:
+      tslib: 2.8.1
+
+  '@generaltranslation/compiler@1.3.24':
+    dependencies:
+      '@babel/generator': 7.29.1
+      '@babel/parser': 7.29.3
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
+      '@generaltranslation/format': 0.1.1
+      generaltranslation: 8.2.16
+      unplugin: 2.3.11
+    transitivePeerDependencies:
+      - supports-color
+
+  '@generaltranslation/format@0.1.1':
+    dependencies:
+      intl-messageformat: 10.7.18
+
+  '@generaltranslation/next-internal@0.1.2(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      next: 16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
+  '@generaltranslation/react-core@1.8.21(react@19.2.4)':
+    dependencies:
+      '@generaltranslation/format': 0.1.1
+      '@generaltranslation/supported-locales': 2.1.1
+      generaltranslation: 8.2.16
+      gt-i18n: 0.9.5
+      react: 19.2.4
+
+  '@generaltranslation/supported-locales@2.1.1':
+    dependencies:
+      generaltranslation: 8.2.16
 
   '@hey-api/client-axios@0.2.12(axios@1.16.1)':
     dependencies:
@@ -15361,6 +15492,12 @@ snapshots:
 
   fuzzysort@3.1.0: {}
 
+  generaltranslation@8.2.16:
+    dependencies:
+      '@formatjs/icu-messageformat-parser': 2.11.4
+      '@generaltranslation/format': 0.1.1
+      '@noble/hashes': 2.2.0
+
   generator-function@2.0.1: {}
 
   gensync@1.0.0-beta.2: {}
@@ -15473,6 +15610,37 @@ snapshots:
   groq@3.88.1-typegen-experimental.0: {}
 
   groq@5.25.1: {}
+
+  gt-i18n@0.9.5:
+    dependencies:
+      '@generaltranslation/format': 0.1.1
+      '@generaltranslation/supported-locales': 2.1.1
+      generaltranslation: 8.2.16
+
+  gt-next@6.16.30(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      '@generaltranslation/compiler': 1.3.24
+      '@generaltranslation/format': 0.1.1
+      '@generaltranslation/next-internal': 0.1.2(next@16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@generaltranslation/supported-locales': 2.1.1
+      generaltranslation: 8.2.16
+      gt-i18n: 0.9.5
+      gt-react: 10.19.19(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      next: 16.2.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+    transitivePeerDependencies:
+      - supports-color
+
+  gt-react@10.19.19(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      '@generaltranslation/format': 0.1.1
+      '@generaltranslation/react-core': 1.8.21(react@19.2.4)
+      '@generaltranslation/supported-locales': 2.1.1
+      generaltranslation: 8.2.16
+      gt-i18n: 0.9.5
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   gunzip-maybe@1.4.2:
     dependencies:
@@ -15737,6 +15905,13 @@ snapshots:
   internmap@1.0.1: {}
 
   internmap@2.0.3: {}
+
+  intl-messageformat@10.7.18:
+    dependencies:
+      '@formatjs/ecma402-abstract': 2.3.6
+      '@formatjs/fast-memoize': 2.2.7
+      '@formatjs/icu-messageformat-parser': 2.11.4
+      tslib: 2.8.1
 
   ip-address@10.2.0: {}
 
@@ -18768,6 +18943,13 @@ snapshots:
 
   unpipe@1.0.0: {}
 
+  unplugin@2.3.11:
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      acorn: 8.16.0
+      picomatch: 4.0.4
+      webpack-virtual-modules: 0.6.2
+
   unrs-resolver@1.12.0:
     dependencies:
       napi-postinstall: 0.3.4
@@ -18962,6 +19144,8 @@ snapshots:
   webidl-conversions@7.0.0: {}
 
   webidl-conversions@8.0.1: {}
+
+  webpack-virtual-modules@0.6.2: {}
 
   whatwg-encoding@3.1.1:
     dependencies:
