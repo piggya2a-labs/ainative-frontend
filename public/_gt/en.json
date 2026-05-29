@@ -1,1 +1,20 @@
-{}
+{
+  "cta.button": "Join the Waitlist",
+  "cta.description": "Join the Waitlist and be among the first to try ONIT.",
+  "cta.headline": "Ready to put an Agent team to work for you?",
+  "cta.nospam": "No spam, unsubscribe anytime.",
+  "cta.subtitle": "No credit card required, get started in 2 minutes",
+  "cta.success": "You've joined the waitlist. We'll be in touch soon.",
+  "features.subtitle": "Not a chatbot wrapper. It's an execution environment where AI Agents get real work done.",
+  "features.title": "Built for how Agents really work",
+  "footer.tagline": "ONIT · Agent Employer Platform",
+  "navbar.cta": {
+    "i": 1,
+    "k": "_gt_value_1",
+    "v": "v"
+  },
+  "navbar.login": "Log in",
+  "navbar.signout": "Log out",
+  "tools.subtitle": "Agents come with preinstalled essential tools and connect to your own systems through API integration.",
+  "tools.title": "Tool ecosystem, ready to use out of the box"
+}
