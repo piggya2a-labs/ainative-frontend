@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { usePostHog } from 'posthog-js/react'
 import { SiteConfig } from '@/lib/sanity-schema'
 import { useUser } from '@/lib/auth-context'
+import { LocaleSelector } from 'gt-next'
 
 interface NavbarProps {
   siteConfig?: SiteConfig | null
@@ -59,6 +60,7 @@ export function Navbar({ siteConfig }: NavbarProps) {
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          <LocaleSelector />
           <Badge variant="secondary" className="hidden sm:flex text-xs">
             {nav?.badge || 'Beta'}
           </Badge>
