@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -87,35 +87,35 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, email, databases, and 200+ tools with intelligent agents that remember context and collaborate seamlessly. Build autonomous workflows that handle complex multi-step tasks across your entire tech ecosystem.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents With Tool & API Integration Across Your Entire Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build intelligent agents with memory, context retention, and multi-agent collaboration. Connect 200+ tools including CRM, email, databases, and custom APIs. Agents that remember conversations, coordinate tasks, and handle complex workflows autonomously.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Multi-Agent Orchestration' },
-    { icon: 'bot', text: 'Cross-Tool Integration' },
-    { icon: 'workflow', text: 'Context-Aware Collaboration' },
+    { icon: 'network', text: '200+ Tool Integrations' },
+    { icon: 'bot', text: 'Persistent Memory & Context' },
+    { icon: 'workflow', text: 'Multi-Agent Coordination' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
+    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Connected Tools' },
     { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Active Agents' },
-    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Tool Integrations' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Agent Orchestration Activity'
+  const feedHeader = demo?.feed_header || 'Live Multi-Agent Orchestration'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationIcons = [
-    { Icon: Database, label: 'CRM Systems' },
-    { Icon: Mail, label: 'Email Automation' },
-    { Icon: MessageSquare, label: 'Team Chat' },
-    { Icon: Calendar, label: 'Scheduling' },
+    { Icon: Database, label: 'CRM & Databases' },
+    { Icon: Mail, label: 'Email & Communication' },
+    { Icon: MessageSquare, label: 'Chat Platforms' },
+    { Icon: Calendar, label: 'Scheduling Tools' },
     { Icon: Code, label: 'Custom APIs' },
   ]
 
@@ -124,18 +124,18 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       <div className="max-w-4xl mx-auto flex flex-col items-center gap-10">
-        <p className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
+          <Sparkles className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+          <span className="text-xs font-mono uppercase tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
+        </div>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Intelligent Agents That Orchestrate Your Entire Workflow</p>
+          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Agents With Memory, Context Retention & Multi-Agent Collaboration</p>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
-          <p className="text-base sm:text-lg text-foreground/80 max-w-2xl leading-relaxed font-medium">
-            Trigger-action logic and modular task orchestration built-in.
-          </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           {integrationIcons.map(({ Icon, label }) => (
-            <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border/40 backdrop-blur-sm">
+            <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border/40 backdrop-blur-sm hover:bg-muted/70 hover:border-border/60 transition-all">
               <Icon className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
               <span className="text-sm font-medium text-foreground/80">{label}</span>
             </div>
@@ -143,7 +143,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
         </div>
         <div className="flex flex-col items-center gap-4 pt-4">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group" onClick={onCtaClick}>
+            <Button size="lg" className="h-12 px-8 text-base font-semibold tracking-tight transition-all hover:opacity-90 active:scale-[0.98] group shadow-lg" onClick={onCtaClick}>
               {ctaText}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
             </Button>
@@ -154,10 +154,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            No credit card required • Deploy workflows in minutes
+            No credit card required • Connect 100+ integrations instantly
           </p>
           <p className="text-sm font-medium text-foreground/80 pt-2">
-            Agents coordinate across tools with persistent context and intelligent task handoffs
+            Agents coordinate autonomously with persistent context across all your tools
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
@@ -166,7 +166,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             return (
               <div key={indicator.text} className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Icon className="w-4 h-4 shrink-0 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-                <span>{indicator.text}</span>
+                <span className="font-medium">{indicator.text}</span>
               </div>
             )
           })}
