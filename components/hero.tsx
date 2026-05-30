@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -18,6 +18,7 @@ interface HeroProps {
   toolCount?: number
   onCtaClick?: () => void
   onDemoClick?: () => void
+  onTemplatesClick?: () => void
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -83,20 +84,20 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
   )
 }
 
-export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick }: HeroProps) {
+export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick, onTemplatesClick }: HeroProps) {
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents With Tool & API Integration Across Your Entire Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build intelligent agents with memory, context retention, and multi-agent collaboration. Connect 200+ tools including CRM, email, databases, and custom APIs. Agents that remember conversations, coordinate tasks, and handle complex workflows autonomously.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work For You'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create specialized AI agents that automate emails, calls, CRM updates, and sales outreach without writing a single line of code. Deploy task-specific agents in minutes using pre-built templates or customize them for your exact workflow.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: '200+ Tool Integrations' },
-    { icon: 'bot', text: 'Persistent Memory & Context' },
-    { icon: 'workflow', text: 'Multi-Agent Coordination' },
+    { icon: 'bot', text: 'Task-Specific Agent Templates' },
+    { icon: 'workflow', text: 'No-Code Workflow Builder' },
+    { icon: 'network', text: '200+ Pre-Built Integrations' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -107,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Multi-Agent Orchestration'
+  const feedHeader = demo?.feed_header || 'Live Agent Automation'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
-  const integrationIcons = [
-    { Icon: Database, label: 'CRM & Databases' },
-    { Icon: Mail, label: 'Email & Communication' },
-    { Icon: MessageSquare, label: 'Chat Platforms' },
-    { Icon: Calendar, label: 'Scheduling Tools' },
-    { Icon: Code, label: 'Custom APIs' },
+  const automationUseCases = [
+    { Icon: Mail, label: 'Email Automation' },
+    { Icon: MessageSquare, label: 'Sales Outreach' },
+    { Icon: Database, label: 'CRM Updates' },
+    { Icon: Calendar, label: 'Meeting Scheduling' },
+    { Icon: Code, label: 'Custom Workflows' },
   ]
 
   return (
@@ -130,11 +131,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
         </div>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Agents With Memory, Context Retention & Multi-Agent Collaboration</p>
+          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Automate Real Business Tasks Without Writing Code</p>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          {integrationIcons.map(({ Icon, label }) => (
+          {automationUseCases.map(({ Icon, label }) => (
             <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border/40 backdrop-blur-sm hover:bg-muted/70 hover:border-border/60 transition-all">
               <Icon className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
               <span className="text-sm font-medium text-foreground/80">{label}</span>
@@ -147,17 +148,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
               {ctaText}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
             </Button>
-            <Button size="lg" variant="outline" className="h-12 px-7 text-base font-medium group" onClick={onDemoClick}>
-              <Play className="w-4 h-4 mr-2 fill-current opacity-60 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+            <Button size="lg" variant="outline" className="h-12 px-7 text-base font-medium group" onClick={onTemplatesClick || onDemoClick}>
+              <LayoutTemplate className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" aria-hidden="true" />
               {secondaryCtaText}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            No credit card required • Connect 100+ integrations instantly
+            No credit card required • No coding skills needed • Deploy in minutes
           </p>
           <p className="text-sm font-medium text-foreground/80 pt-2">
-            Agents coordinate autonomously with persistent context across all your tools
+            Unlike generic AI chatbots, our agents deliver measurable business outcomes
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
