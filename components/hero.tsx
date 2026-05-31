@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -88,11 +88,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work For You'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create specialized AI agents that automate emails, calls, CRM updates, and sales outreach without writing a single line of code. Deploy task-specific agents in minutes using pre-built templates or customize them for your exact workflow.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create intelligent AI agents with persistent memory and context retention that seamlessly integrate with your CRM, email, databases, and 200+ tools. Deploy multi-agent workflows in minutes without writing code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building in 5 Minutes'
   const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
 
   const defaultTrustIndicators = [
     { icon: 'bot', text: 'Task-Specific Agent Templates' },
@@ -129,9 +129,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           <Sparkles className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
           <span className="text-xs font-mono uppercase tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
         </div>
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/10 to-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
+            <Brain className="w-3.5 h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-xs font-semibold text-[oklch(0.65_0.15_145)]">Multi-Agent Collaboration</span>
+            <Cpu className="w-3.5 h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+          </div>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-[-0.03em] leading-[1.1] text-balance">{headline}</h1>
+        </div>
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Automate Real Business Tasks Without Writing Code</p>
+          <p className="text-xl sm:text-2xl font-semibold text-foreground/90 tracking-tight">Intelligent Agents with Memory, Context & Deep Integration</p>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty">{subheadline}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
@@ -158,7 +165,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             No credit card required • No coding skills needed • Deploy in minutes
           </p>
           <p className="text-sm font-medium text-foreground/80 pt-2">
-            Unlike generic AI chatbots, our agents deliver measurable business outcomes
+            Agents that remember context, coordinate tasks, and integrate with your entire stack
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 w-full max-w-2xl">
