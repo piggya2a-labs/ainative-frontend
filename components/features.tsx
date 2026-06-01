@@ -8,7 +8,6 @@ interface FeaturesProps {
   siteConfig?: SiteConfig | null
 }
 
-// icon 映射：Sanity 里存的是字符串 key，这里映射到 emoji
 const ICON_MAP: Record<string, string> = {
   users: '👥',
   message: '💬',
@@ -16,25 +15,47 @@ const ICON_MAP: Record<string, string> = {
   tool: '🔧',
   shield: '🛡️',
   refresh: '🔄',
+  autonomous: '🤖',
+  healing: '🔧',
+  composable: '🧩',
 }
+
+const DEFAULT_FEATURES = [
+  {
+    _key: 'autonomous',
+    icon: 'autonomous',
+    title: 'Autonomous Execution',
+    description: 'Deploy agents that run 24/7 without human supervision. Handle tasks while you sleep, scale operations without adding headcount, and maintain consistent performance across time zones.',
+  },
+  {
+    _key: 'healing',
+    icon: 'healing',
+    title: 'Self-Healing',
+    description: 'Agents automatically detect errors, retry failed operations, and adapt to API changes. Reduce downtime from hours to seconds with built-in recovery mechanisms that fix issues before they impact users.',
+  },
+  {
+    _key: 'composable',
+    icon: 'composable',
+    title: 'Composable Workflows',
+    description: 'Mix and match agents like building blocks. Connect data analysis agents with notification agents, chain research agents with content creators, or build custom pipelines for any business process.',
+  },
+]
 
 export function Features({ siteConfig }: FeaturesProps) {
   const posthog = usePostHog()
-  const features = siteConfig?.features
-
-  if (!features || features.length === 0) {
-    return null
-  }
+  const features = siteConfig?.features && siteConfig.features.length > 0 
+    ? siteConfig.features 
+    : DEFAULT_FEATURES
 
   return (
     <section className="py-20 px-4" id="features">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12 space-y-3">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {siteConfig?.features_section?.title || <T id="features.title">为 Agent 真实工作方式而生</T>}
+            {siteConfig?.features_section?.title || <T id="features.title">AI-Native Agent Capabilities</T>}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto text-sm">
-            {siteConfig?.features_section?.subtitle || <T id="features.subtitle">不是聊天机器人包装。是让 AI Agent 真正完成工作的执行环境。</T>}
+            {siteConfig?.features_section?.subtitle || <T id="features.subtitle">Built for agents that actually do the work, not just talk about it.</T>}
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
