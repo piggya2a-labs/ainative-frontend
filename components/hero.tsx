@@ -88,22 +88,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Orchestrate AI Agents Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Multi-Agent Collaboration Platform: Seamlessly integrate 200+ tools and APIs. Build intelligent workflows that coordinate tasks, maintain context, and automate complex business processes without coding.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Connect Your Stack Now'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect your CRM, email, databases, and cloud tools. Deploy intelligent agents that coordinate tasks, maintain context, and execute complex workflows across your entire tech stack—no coding required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents Now'
   const secondaryCtaText = hero?.secondaryCtaText || 'View Integration Gallery'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Orchestration'
+  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'bot', text: 'Multi-Agent Coordination' },
-    { icon: 'workflow', text: 'Cross-Platform Workflows' },
-    { icon: 'network', text: 'Universal API Integration' },
+    { icon: 'bot', text: 'Multi-Agent Orchestration' },
+    { icon: 'workflow', text: 'Cross-Platform Automation' },
+    { icon: 'network', text: '200+ Tool Integrations' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
-    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Integrated Tools' },
+    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Connected Tools' },
     { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Agent Templates' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
@@ -113,12 +113,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
-    { Icon: Mail, label: 'Email & Communication', tools: ['Gmail', 'Outlook', 'Slack'] },
-    { Icon: Database, label: 'CRM & Sales', tools: ['Salesforce', 'HubSpot', 'Pipedrive'] },
-    { Icon: Calendar, label: 'Scheduling & Meetings', tools: ['Google Cal', 'Calendly', 'Zoom'] },
-    { Icon: Cloud, label: 'Cloud Storage', tools: ['Drive', 'Dropbox', 'OneDrive'] },
-    { Icon: Code, label: 'Dev & APIs', tools: ['GitHub', 'Jira', 'Custom APIs'] },
-    { Icon: DollarSign, label: 'Finance & Billing', tools: ['Stripe', 'QuickBooks', 'Xero'] },
+    { Icon: Mail, label: 'Email & Communication', tools: ['Gmail', 'Outlook', 'Slack'], description: 'Email & chat platforms' },
+    { Icon: Database, label: 'CRM & Sales', tools: ['Salesforce', 'HubSpot', 'Pipedrive'], description: 'Customer data systems' },
+    { Icon: Calendar, label: 'Scheduling', tools: ['Google Cal', 'Calendly', 'Zoom'], description: 'Meeting & calendar tools' },
+    { Icon: Cloud, label: 'Cloud Storage', tools: ['Drive', 'Dropbox', 'OneDrive'], description: 'File & document systems' },
+    { Icon: Code, label: 'Dev Tools', tools: ['GitHub', 'Jira', 'REST APIs'], description: 'Development platforms' },
+    { Icon: DollarSign, label: 'Finance', tools: ['Stripe', 'QuickBooks', 'Xero'], description: 'Payment & accounting' },
   ]
 
   return (
@@ -126,43 +126,55 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className="max-w-6xl mx-auto flex flex-col items-center gap-6 sm:gap-8 w-full">
+      <div className="max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-7 w-full">
         <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
           <GitBranch className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
           <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
         </div>
 
-        <div className="flex flex-col items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/10 to-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
-            <Brain className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-semibold text-[oklch(0.65_0.15_145)]">Multi-Agent Collaboration Engine</span>
-            <Cpu className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-          </div>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] leading-[1.05] text-balance px-2 max-w-5xl">{headline}</h1>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 sm:gap-4 max-w-4xl">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/30 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/10 via-[oklch(0.65_0.15_145)]/5 to-transparent backdrop-blur-sm shadow-lg">
+        <div className="flex flex-col items-center gap-4 sm:gap-5">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] leading-[1.05] text-balance px-2 max-w-5xl">{headline}</h1>
+          
+          <div className="flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl">
             <Link2 className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground tracking-tight">
-              Tool & API Integration Across Your Entire Tech Stack
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground tracking-tight leading-tight">
+              Tool & API Integration Across Your Tech Stack
             </p>
             <Network className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
           </div>
-          
-          <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed text-pretty px-4">{subheadline}</p>
         </div>
 
-        <div className="w-full max-w-5xl px-4 pt-2">
+        <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed text-pretty px-4 max-w-3xl">{subheadline}</p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-4 pt-1">
+          {trustIndicators.map((indicator, idx) => {
+            const IconComponent = ICON_MAP[indicator.icon] || Bot
+            return (
+              <div key={idx} className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-muted/50 border border-border/60 backdrop-blur-sm">
+                <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
+                <span className="text-xs sm:text-sm font-semibold text-foreground whitespace-nowrap">{indicator.text}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="w-full max-w-5xl px-2 sm:px-4 pt-2 sm:pt-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {integrationCategories.map(({ Icon, label, tools }) => (
-              <div key={label} className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm hover:bg-muted/60 hover:border-[oklch(0.65_0.15_145)]/30 hover:shadow-md transition-all group">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.15_145)]/20 to-[oklch(0.65_0.15_145)]/5 border border-[oklch(0.65_0.15_145)]/20 group-hover:border-[oklch(0.65_0.15_145)]/40 transition-colors">
+            {integrationCategories.map(({ Icon, label, tools, description }) => (
+              <div key={label} className="flex flex-col items-center gap-2 sm:gap-2.5 p-3 sm:p-4 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm hover:bg-muted/60 hover:border-[oklch(0.65_0.15_145)]/40 hover:shadow-lg transition-all group cursor-pointer">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.15_145)]/20 to-[oklch(0.65_0.15_145)]/5 border border-[oklch(0.65_0.15_145)]/20 group-hover:border-[oklch(0.65_0.15_145)]/50 group-hover:shadow-md transition-all">
                   <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col items-center gap-1 text-center">
-                  <span className="text-xs sm:text-sm font-semibold text-foreground leading-tight">{label}</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">{tools.join(' • ')}</span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground leading-tight">{label}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium leading-tight">{description}</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {tools.slice(0, 3).map((tool, i) => (
+                      <span key={i} className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-[oklch(0.65_0.15_145)]/10 text-[oklch(0.65_0.15_145)] font-semibold border border-[oklch(0.65_0.15_145)]/20">
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -175,12 +187,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
               {ctaText}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
             </Button>
-            <Button size="lg" variant="outline" className="h-14 sm:h-14 px-7 sm:px-8 text-base sm:text-lg font-semibold border-2 group w-full sm:w-auto min-h-[3.5rem]" onClick={onTemplatesClick || onDemoClick}>
-              <LayoutTemplate className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" aria-hidden="true" />
-              {secondaryCtaText}
-            </Button>
-          </div>
-          
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm sm:text-base text-muted-foreground flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[oklch(0.65_0.15
+            <Button size="lg" variant="outline" className="h-14 sm:h-14 px-7 sm:px-8 text-base sm:text-lg font-semibold border-2 group w-full sm:w-auto
