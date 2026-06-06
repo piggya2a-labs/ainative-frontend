@@ -88,10 +88,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Enterprise-Grade AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build intelligent agents with visual logic branching, real-time monitoring, and multi-team collaboration. Connect 200+ tools across your tech stack with enterprise security and governance—no developers required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Enterprise Features'
+  const headline = hero?.hero_title || hero?.headline || 'Build Enterprise AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent AI agents with visual logic branching, real-time monitoring, and multi-team collaboration. Connect 200+ enterprise tools with SOC 2 security and governance—no developers required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Deploy Your First Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
   const eyebrow = hero?.eyebrow || 'Enterprise No-Code AI Platform'
 
   const defaultTrustIndicators = [
@@ -127,66 +127,81 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Activity, label: 'Real-Time', description: 'Monitoring & alerts' },
   ]
 
+  const trustBadges = [
+    'No credit card required',
+    'Enterprise-ready',
+    'SOC 2 compliant',
+    'Deploy in minutes'
+  ]
+
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-24 sm:pt-20 pb-12 sm:pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className="max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-7 w-full">
+      <div className="max-w-6xl mx-auto flex flex-col items-center gap-6 sm:gap-8 w-full">
         <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
           <Brain className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
           <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
         </div>
 
-        <div className="flex flex-col items-center gap-4 sm:gap-5">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] leading-[1.05] text-balance px-2 max-w-5xl">{headline}</h1>
+        <div className="flex flex-col items-center gap-5 sm:gap-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] leading-[1.05] text-balance px-2 max-w-5xl">
+            {headline}
+          </h1>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 py-3 sm:py-3.5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl">
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">Enterprise-Ready</span>
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed text-pretty px-4 max-w-3xl">
+            {subheadline}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 py-4 sm:py-4 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl">
+            <div className="flex items-center gap-2.5">
+              <Workflow className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
+              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">Logic Branching</span>
             </div>
-            <div className="hidden sm:block w-px h-6 bg-border" aria-hidden="true" />
-            <div className="flex items-center gap-2">
-              <Cpu className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">No Code Required</span>
+            <div className="hidden sm:block w-px h-6 bg-border/60" aria-hidden="true" />
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
+              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">Real-Time Monitoring</span>
             </div>
-            <div className="hidden sm:block w-px h-6 bg-border" aria-hidden="true" />
-            <div className="flex items-center gap-2">
-              <Network className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">200+ Integrations</span>
+            <div className="hidden sm:block w-px h-6 bg-border/60" aria-hidden="true" />
+            <div className="flex items-center gap-2.5">
+              <Users className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
+              <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">Multi-Team Collaboration</span>
             </div>
           </div>
         </div>
 
-        <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed text-pretty px-4 max-w-3xl">{subheadline}</p>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-4 pt-1">
-          {trustIndicators.map((indicator, idx) => {
-            const IconComponent = ICON_MAP[indicator.icon] || Bot
-            return (
-              <div key={idx} className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-muted/50 border border-border/60 backdrop-blur-sm">
-                <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-                <span className="text-xs sm:text-sm font-semibold text-foreground whitespace-nowrap">{indicator.text}</span>
-              </div>
-            )
-          })}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
+          <Button 
+            size="lg" 
+            onClick={onCtaClick}
+            className="group relative h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-xl transition-all border-0"
+          >
+            {ctaText}
+            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+          </Button>
+          <Button 
+            size="lg" 
+            variant="outline"
+            onClick={onDemoClick}
+            className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover:bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all"
+          >
+            <Play className="w-5 h-5 mr-2" aria-hidden="true" />
+            {secondaryCtaText}
+          </Button>
         </div>
 
-        <div className="flex items-center justify-center gap-3 sm:gap-4 px-4 pb-2">
-          {enterpriseFeatures.map(({ Icon, label, description }, idx) => (
-            <div key={idx} className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.15_145)]/10 to-[oklch(0.65_0.15_145)]/5 border border-[oklch(0.65_0.15_145)]/30 backdrop-blur-sm">
-              <Icon className="w-4 h-4 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
-              <div className="flex flex-col items-start">
-                <span className="text-xs font-bold text-foreground leading-tight">{label}</span>
-                <span className="text-[10px] text-muted-foreground leading-tight">{description}</span>
-              </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 px-4 pt-1">
+          {trustBadges.map((badge, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-xs sm:text-sm text-muted-foreground font-medium">{badge}</span>
             </div>
           ))}
         </div>
 
-        <div className="w-full max-w-5xl px-2 sm:px-4 pt-2 sm:pt-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {integrationCategories.map(({ Icon, label, tools, description }) => (
-              <div key={label} className="flex flex-col items-center gap-2 sm:gap-2.5 p-3 sm:p-4 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm hover:bg-muted/60 hover:border-[oklch(0.65_0.15_145)]/40 hover:shadow-lg transition-all group cursor-pointer">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.15_145)]/20 to-[oklch(0.65_0.15_145)]/5 border border-[oklch(0.65_0.15_145)]/20 group-hover:border-[oklch(0.65_0.15_145)]/50 group-hover:shadow-md transition-all">
+        <div className="flex items-center justify-center gap-3 sm:gap-4 px-4 pt-3">
+          {enterpriseFeatures.map(({ Icon, label, description }, idx) => (
+            <div key={idx} className="flex items-center gap-2.5 px-4 sm:px-5 py-3 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.15_145)]/10 to-[oklch(0.65_0.15_145)]/5 border border-[oklch(0.65_0.15_145)]/30 backdrop-blur-sm hover:border-[oklch(0.65_0.15_145)]/50 transition-all">
+              <Icon className="w-5 h-5 text-[oklch(0.65_0.15_145)] shrink-0" aria
