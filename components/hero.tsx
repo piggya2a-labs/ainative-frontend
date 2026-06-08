@@ -88,16 +88,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Task Automation'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your busywork with AI agents that handle emails, CRM updates, outbound sales, and scheduling. Build intelligent workflows with visual logic branching—no developers needed.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Tasks'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, email, databases, and more with intelligent agents that remember context and collaborate seamlessly. Build multi-agent workflows with visual logic branching—no developers needed.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Multi-Agent Workflows'
   const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'bot', text: 'Visual Agent Builder' },
-    { icon: 'workflow', text: 'Logic Branching & Loops' },
-    { icon: 'network', text: 'Real-Time Monitoring' },
+    { icon: 'network', text: 'Agent Collaboration' },
+    { icon: 'workflow', text: 'Context Memory' },
+    { icon: 'bot', text: 'Tool Integration' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -135,9 +135,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const automationUseCases = [
-    { Icon: Mail, label: 'Email Automation', description: 'Auto-respond & sort' },
-    { Icon: Database, label: 'CRM Updates', description: 'Sync data automatically' },
-    { Icon: Rocket, label: 'Outbound Sales', description: 'Personalized outreach' },
+    { Icon: Link2, label: 'Cross-Platform Sync', description: 'Connect your entire stack' },
+    { Icon: Brain, label: 'Context Memory', description: 'Agents remember everything' },
+    { Icon: Network, label: 'Agent Collaboration', description: 'Multi-agent workflows' },
   ]
 
   return (
@@ -148,13 +148,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full">
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
-            <Brain className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Network className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
             <Users className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span>Join 1,000+ teams automating workflows</span>
+            <span>Join 1,000+ teams orchestrating AI agents</span>
           </div>
         </div>
 
@@ -209,4 +209,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           ))}
         </div>
 
-        <div className="grid grid
+        <div className="grid grid-cols-3
