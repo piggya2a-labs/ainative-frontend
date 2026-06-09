@@ -88,11 +88,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, email, databases, and more with intelligent agents that remember context and collaborate seamlessly. Build multi-agent workflows with visual logic branching—no developers needed.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Multi-Agent Workflows'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create intelligent agents with persistent memory, seamless tool integration, and advanced trigger-action logic. Connect 200+ apps, automate complex workflows, and let your agents collaborate autonomously—all with visual workflow builders.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Agent Collaboration' },
@@ -103,7 +103,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
-    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Connected Tools' },
+    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Integrated Tools' },
     { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Agent Templates' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
@@ -128,16 +128,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
+    'Free 14-day trial',
     'No credit card required',
-    'Enterprise-ready',
-    'SOC 2 compliant',
-    'Deploy in minutes'
+    'Enterprise-grade security',
+    'Deploy in 5 minutes'
   ]
 
   const automationUseCases = [
-    { Icon: Link2, label: 'Cross-Platform Sync', description: 'Connect your entire stack' },
-    { Icon: Brain, label: 'Context Memory', description: 'Agents remember everything' },
-    { Icon: Network, label: 'Agent Collaboration', description: 'Multi-agent workflows' },
+    { Icon: Brain, label: 'Persistent Memory', description: 'Agents remember context across sessions' },
+    { Icon: Link2, label: '200+ Tool Integrations', description: 'Connect your entire tech stack instantly' },
+    { Icon: Workflow, label: 'Advanced Logic Triggers', description: 'Build complex if-then workflows visually' },
   ]
 
   return (
@@ -148,13 +148,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full">
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
-            <Network className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
             <Users className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span>Join 1,000+ teams orchestrating AI agents</span>
+            <span>Trusted by 1,200+ teams shipping AI agents to production</span>
           </div>
         </div>
 
@@ -206,7 +206,3 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
               <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
               <span className="text-[11px] sm:text-sm text-muted-foreground font-medium">{badge}</span>
             </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-3
