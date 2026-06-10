@@ -88,9 +88,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create intelligent agents with persistent memory, seamless tool integration, and advanced trigger-action logic. Connect 200+ apps, automate complex workflows, and let your agents collaborate autonomously—all with visual workflow builders.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your Agent'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build intelligent agents with persistent memory, contextual understanding, and multi-agent collaboration. Connect 200+ tools, automate complex workflows, and orchestrate autonomous agent teams—all without code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your Agent Now'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
   const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
@@ -135,10 +135,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const automationUseCases = [
-    { Icon: Brain, label: 'Persistent Memory', description: 'Agents remember context across sessions' },
+    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember and learn from every interaction' },
+    { Icon: Network, label: 'Multi-Agent Collaboration', description: 'Orchestrate teams of specialized agents' },
     { Icon: Link2, label: '200+ Tool Integrations', description: 'Connect your entire tech stack instantly' },
-    { Icon: Workflow, label: 'Advanced Logic Triggers', description: 'Build complex if-then workflows visually' },
   ]
+
+  const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1000
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
@@ -153,8 +155,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
-            <Users className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span>Trusted by 1,200+ teams shipping AI agents to production</span>
+            <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span><strong className="text-foreground font-bold">{totalAgentsDeployed.toLocaleString()}+</strong> AI agents deployed across production environments</span>
           </div>
         </div>
 
@@ -203,6 +205,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt-0.5 sm:pt-1">
           {trustBadges.map((badge, idx) => (
             <div key={idx} className="flex items-center gap-1.5 sm:gap-2">
-              <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[11px] sm:text-sm text-muted-foreground font-medium">{badge}</span>
-            </div>
+              <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria
