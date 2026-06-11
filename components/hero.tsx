@@ -85,12 +85,18 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
 }
 
 export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick, onTemplatesClick }: HeroProps) {
+  const [isVisible, setIsVisible] = useState(false)
+  
+  useEffect(() => {
+    setIsVisible(true)
+  }, [])
+
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build intelligent agents with persistent memory, contextual understanding, and multi-agent collaboration. Connect 200+ tools, automate complex workflows, and orchestrate autonomous agent teams—all without code.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your Agent Now'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Get Work Done'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wasting time on repetitive tasks. Deploy intelligent AI agents in minutes that work 24/7 across your entire tech stack—with memory, context, and true collaboration.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
   const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
@@ -140,14 +146,14 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Link2, label: '200+ Tool Integrations', description: 'Connect your entire tech stack instantly' },
   ]
 
-  const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1000
+  const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1247
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className="max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full">
+      <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
@@ -156,16 +162,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
             <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span><strong className="text-foreground font-bold">{totalAgentsDeployed.toLocaleString()}+</strong> AI agents deployed across production environments</span>
+            <span>Trusted by <strong className="text-foreground font-bold">{totalAgentsDeployed.toLocaleString()}+</strong> teams automating workflows daily</span>
           </div>
         </div>
 
         <div className="flex flex-col items-center gap-4 sm:gap-6">
-          <h1 className="text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] sm:leading-[1.05] text-balance px-1 sm:px-2 max-w-5xl">
+          <h1 className="text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] sm:leading-[1.05] text-balance px-1 sm:px-2 max-w-5xl">
             {headline}
           </h1>
           
-          <p className="text-sm leading-relaxed sm:text-lg md:text-xl text-muted-foreground sm:leading-relaxed text-pretty px-3 sm:px-4 max-w-3xl">
+          <p className="text-sm leading-relaxed sm:text-lg md:text-xl text-muted-foreground sm:leading-relaxed text-pretty px-3 sm:px-4 max-w-3xl font-medium">
             {subheadline}
           </p>
 
@@ -186,7 +192,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           <Button 
             size="lg" 
             onClick={onCtaClick}
-            className="group relative h-11 sm:h-14 px-5 sm:px-8 text-sm sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-xl transition-all border-0 w-full sm:w-auto"
+            className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
           >
             {ctaText}
             <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
@@ -195,14 +201,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             size="lg" 
             variant="outline"
             onClick={onDemoClick}
-            className="h-11 sm:h-14 px-5 sm:px-8 text-sm sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover:bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all w-full sm:w-auto"
+            className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover:bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all w-full sm:w-auto"
           >
             <Play className="w-4 sm:w-5 h-4 sm:h-5 mr-2" aria-hidden="true" />
             {secondaryCtaText}
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt-0.5 sm:pt-1">
-          {trustBadges.map((badge, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 sm:gap-2">
-              <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt-0.5 sm:pt-1
