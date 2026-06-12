@@ -94,9 +94,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Get Work Done'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wasting time on repetitive tasks. Deploy intelligent AI agents in minutes that work 24/7 across your entire tech stack—with memory, context, and true collaboration.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Free'
+  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Seamlessly integrate CRM, Email, Chat & More. Deploy intelligent AI agents that work across all your tools—with native integrations, real-time sync, and unified automation.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Connecting'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
   const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
@@ -141,9 +141,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const automationUseCases = [
-    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember and learn from every interaction' },
-    { Icon: Network, label: 'Multi-Agent Collaboration', description: 'Orchestrate teams of specialized agents' },
-    { Icon: Link2, label: '200+ Tool Integrations', description: 'Connect your entire tech stack instantly' },
+    { Icon: Link2, label: '200+ Native Integrations', description: 'CRM, Email, Chat, Cloud & API platforms' },
+    { Icon: Network, label: 'Cross-Tool Workflows', description: 'Orchestrate multi-app automations seamlessly' },
+    { Icon: Brain, label: 'Smart Data Sync', description: 'Real-time bidirectional tool synchronization' },
   ]
 
   const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1247
@@ -208,4 +208,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt-0.5 sm:pt-1
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt
