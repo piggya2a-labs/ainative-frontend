@@ -94,10 +94,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Seamlessly integrate CRM, Email, Chat & More. Deploy intelligent AI agents that work across all your tools—with native integrations, real-time sync, and unified automation.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Connecting'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect to CRMs, databases, APIs, and chat platforms with memory-aware agents that collaborate seamlessly. Deploy intelligent automation across all your tools with native integrations and real-time orchestration.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Integration Options'
   const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
   const defaultTrustIndicators = [
@@ -141,9 +141,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const automationUseCases = [
-    { Icon: Link2, label: '200+ Native Integrations', description: 'CRM, Email, Chat, Cloud & API platforms' },
-    { Icon: Network, label: 'Cross-Tool Workflows', description: 'Orchestrate multi-app automations seamlessly' },
-    { Icon: Brain, label: 'Smart Data Sync', description: 'Real-time bidirectional tool synchronization' },
+    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate multiple AI agents across workflows' },
+    { Icon: Link2, label: '200+ Tool Integrations', description: 'CRMs, databases, APIs, chat & cloud platforms' },
+    { Icon: Brain, label: 'Memory-Aware Agents', description: 'Context persistence across all interactions' },
   ]
 
   const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1247
@@ -158,6 +158,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg">
+            <Network className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Multi-Agent Orchestration</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">• Key Differentiator</span>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
@@ -195,17 +201,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
           >
             {ctaText}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={onDemoClick}
-            className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover:bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all w-full sm:w-auto"
-          >
-            <Play className="w-4 sm:w-5 h-4 sm:h-5 mr-2" aria-hidden="true" />
-            {secondaryCtaText}
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 px-3 sm:px-4 pt
+            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-
