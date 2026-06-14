@@ -94,11 +94,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect to CRMs, databases, APIs, and chat platforms with memory-aware agents that collaborate seamlessly. Deploy intelligent automation across all your tools with native integrations and real-time orchestration.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Integration Options'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Seamless CRM, email, calendar & database integration with persistent memory. Deploy intelligent agents that remember context, collaborate autonomously, and orchestrate complex workflows across all your tools.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Get Early Access Now'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const eyebrow = hero?.eyebrow || 'Memory-Powered AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Agent Collaboration' },
@@ -109,12 +109,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
-    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Integrated Tools' },
-    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Agent Templates' },
+    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Native Integrations' },
+    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Pre-Built Agents' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Agent Orchestration'
+  const feedHeader = demo?.feed_header || 'Live Agent Activity'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -134,19 +134,19 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
-    'Free 14-day trial',
+    'Join 1000+ early adopters',
     'No credit card required',
-    'Enterprise-grade security',
-    'Deploy in 5 minutes'
+    'Setup in under 5 minutes',
+    'Enterprise-grade security'
   ]
 
-  const automationUseCases = [
-    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate multiple AI agents across workflows' },
-    { Icon: Link2, label: '200+ Tool Integrations', description: 'CRMs, databases, APIs, chat & cloud platforms' },
-    { Icon: Brain, label: 'Memory-Aware Agents', description: 'Context persistence across all interactions' },
+  const coreValueProps = [
+    { Icon: Link2, label: '200+ Native Integrations', description: 'CRM, email, calendar, database & API connections out-of-the-box' },
+    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember every interaction and maintain context across sessions' },
+    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate teams of specialized agents working together autonomously' },
   ]
 
-  const totalAgentsDeployed = agentCount > 0 ? agentCount * 20 : 1247
+  const totalEarlyAdopters = 1247
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
@@ -161,14 +161,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg">
-            <Network className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Multi-Agent Orchestration</span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">• Key Differentiator</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground font-medium px-3">
-            <Activity className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span>Trusted by <strong className="text-foreground font-bold">{totalAgentsDeployed.toLocaleString()}+</strong> teams automating workflows daily</span>
+            <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Join {totalEarlyAdopters.toLocaleString()}+ Early Adopters</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">• Limited Spots Available</span>
           </div>
         </div>
 
@@ -181,13 +176,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             {subheadline}
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl w-full">
-            {automationUseCases.map(({ Icon, label, description }, idx) => (
-              <div key={idx} className="flex items-center gap-2 sm:gap-2.5 py-1.5 sm:py-0">
-                <Icon className="w-5 sm:w-6 h-5 sm:h-6 text-[oklch(0.65_0.15_145)] shrink-0" aria-hidden="true" />
+          <div className="grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl w-full">
+            {coreValueProps.map(({ Icon, label, description }, idx) => (
+              <div key={idx} className="flex items-start gap-3 sm:gap-3.5 py-1 sm:py-0">
+                <div className="shrink-0 mt-0.5">
+                  <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+                </div>
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-xs sm:text-sm md:text-base font-bold text-foreground tracking-tight leading-tight">{label}</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">{description}</span>
+                  <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">{label}</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{description}</span>
                 </div>
               </div>
             ))}
@@ -201,4 +198,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
           >
             {ctaText}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-
+            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+          </Button>
+          <Button 
+            size="lg" 
+            variant="outline"
+            onClick={onDemoClick}
+            className="group h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover
