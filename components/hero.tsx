@@ -94,11 +94,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Seamless CRM, email, calendar & database integration with persistent memory. Deploy intelligent agents that remember context, collaborate autonomously, and orchestrate complex workflows across all your tools.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Get Early Access Now'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Memory-Powered, Trigger-Based Automation with Seamless Tool Integration. Deploy intelligent agents that collaborate autonomously, remember context, and orchestrate complex workflows across CRM, email, calendar, database, and 200+ integrations.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your Agent Workflow'
   const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Memory-Powered AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'Multi-Agent Collaboration Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Agent Collaboration' },
@@ -141,12 +141,19 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
+    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate teams of specialized agents working together autonomously' },
     { Icon: Link2, label: '200+ Native Integrations', description: 'CRM, email, calendar, database & API connections out-of-the-box' },
     { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember every interaction and maintain context across sessions' },
-    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate teams of specialized agents working together autonomously' },
   ]
 
   const totalEarlyAdopters = 1247
+
+  const keyIntegrations = [
+    { Icon: Database, label: 'CRM' },
+    { Icon: Mail, label: 'Email' },
+    { Icon: Calendar, label: 'Calendar' },
+    { Icon: Cloud, label: 'Database' },
+  ]
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
@@ -191,17 +198,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 pt-1 sm:pt-2 w-full max-w-md sm:max-w-none px-3 sm:px-0">
-          <Button 
-            size="lg" 
-            onClick={onCtaClick}
-            className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
-          >
-            {ctaText}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={onDemoClick}
-            className="group h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-semibold rounded-xl border-2 border-border hover:border-[oklch(0.65_0.15_145)]/50 hover
+        <div className="flex flex-col items-center gap-3 sm:gap-4 pt-1 sm:pt-2 w-full max-w-md sm:max-w-none px-3 sm:px-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full">
+            <Button 
+              size="lg" 
+              onClick={onCtaClick}
+              className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
+            >
+              {ctaText}
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1
