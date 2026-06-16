@@ -86,19 +86,33 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
 
 export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick, onTemplatesClick }: HeroProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [hasScrolled, setHasScrolled] = useState(false)
   
   useEffect(() => {
-    setIsVisible(true)
-  }, [])
+    const timer = setTimeout(() => setIsVisible(true), 100)
+    
+    const handleScroll = () => {
+      if (window.scrollY > 50 && !hasScrolled) {
+        setHasScrolled(true)
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [hasScrolled])
 
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Memory-Powered, Trigger-Based Automation with Seamless Tool Integration. Deploy intelligent agents that collaborate autonomously, remember context, and orchestrate complex workflows across CRM, email, calendar, database, and 200+ integrations.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your Agent Workflow'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Multi-Agent Collaboration Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'No-code AI automation for real business tasks. Emailing prospects, making calls, updating CRMs, and running outbound sales campaigns while you sleep.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See AI Agents in Action'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Agent Collaboration' },
@@ -141,11 +155,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Coordinate teams of specialized agents working together autonomously' },
-    { Icon: Link2, label: '200+ Native Integrations', description: 'CRM, email, calendar, database & API connections out-of-the-box' },
-    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember every interaction and maintain context across sessions' },
+    { Icon: Mail, label: 'Automated Emailing & Outreach', description: 'AI agents handle prospect emails, follow-ups, and personalized outbound campaigns' },
+    { Icon: MessageSquare, label: 'Smart Calling & Voice AI', description: 'Make and receive calls, qualify leads, and book meetings automatically' },
+    { Icon: Database, label: 'Instant CRM Updates', description: 'Sync contacts, deals, and activities across Salesforce, HubSpot, and more' },
   ]
 
+  const totalTasksAutomated = 10247
   const totalEarlyAdopters = 1247
 
   const keyIntegrations = [
@@ -162,19 +177,18 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       
       <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm">
+          <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg">
-            <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Join {totalEarlyAdopters.toLocaleString()}+ Early Adopters</span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">• Limited Spots Available</span>
+          <div className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)] animate-pulse" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Trusted by teams automating {totalTasksAutomated.toLocaleString()}+ tasks daily</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 sm:gap-6">
+        <div className={`flex flex-col items-center gap-4 sm:gap-6 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <h1 className="text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] sm:leading-[1.05] text-balance px-1 sm:px-2 max-w-5xl">
             {headline}
           </h1>
@@ -183,9 +197,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             {subheadline}
           </p>
 
-          <div className="grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl w-full">
+          <div className={`grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl w-full transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             {coreValueProps.map(({ Icon, label, description }, idx) => (
-              <div key={idx} className="flex items-start gap-3 sm:gap-3.5 py-1 sm:py-0">
+              <div 
+                key={idx} 
+                className={`flex items-start gap-3 sm:gap-3.5 py-1 sm:py-0 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+                style={{ transitionDelay: `${800 + idx * 150}ms` }}
+              >
                 <div className="shrink-0 mt-0.5">
                   <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
                 </div>
@@ -195,15 +213,3 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 sm:gap-4 pt-1 sm:pt-2 w-full max-w-md sm:max-w-none px-3 sm:px-0">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full">
-            <Button 
-              size="lg" 
-              onClick={onCtaClick}
-              className="group relative h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-br from-[oklch(0.65_0.15_145)] to-[oklch(0.60_0.18_150)] hover:from-[oklch(0.70_0.16_145)] hover:to-[oklch(0.65_0.19_150)] text-white shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all border-0 w-full sm:w-auto"
-            >
-              {ctaText}
-              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1
