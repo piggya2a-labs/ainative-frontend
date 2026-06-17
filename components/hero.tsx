@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'No-code AI automation for real business tasks. Emailing prospects, making calls, updating CRMs, and running outbound sales campaigns while you sleep.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, Email, Chat, Databases & More with Intelligent Multi-Agent Workflows. Orchestrate complex automations that span your entire business system—no code required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your Agent Stack'
   const secondaryCtaText = hero?.secondaryCtaText || 'See AI Agents in Action'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const eyebrow = hero?.eyebrow || 'Multi-Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Agent Collaboration' },
@@ -211,5 +211,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                   <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">{label}</span>
                   <span className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{description}</span>
                 </div>
-              </div>
-            ))}
+              </div
