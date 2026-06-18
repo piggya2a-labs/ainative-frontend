@@ -39,7 +39,7 @@ function StatusIcon({ status }: { status: AgentEvent['status'] }) {
 interface LiveFeedProps {
   feedHeader: string
   seedEvents: Omit<AgentEvent, 'id'>[]
-  rollingEvents: Omit<AgentEvent, 'id' | 'ts'>[]
+  rollingEvents: Omit<AgentEvent, 'id' | ts'>[]
 }
 
 function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
@@ -108,22 +108,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, Email, Chat, Databases & More with Intelligent Multi-Agent Workflows. Orchestrate complex automations that span your entire business system—no code required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your Agent Stack'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See AI Agents in Action'
-  const eyebrow = hero?.eyebrow || 'Multi-Agent Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Orchestrate context-aware multi-agent workflows across CRM, email, chat, databases, and 50+ integrations. Deploy intelligent automation that spans your complete business system with collaborative AI agents that share context and coordinate actions.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Connect Your Tools Now'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Integrations'
+  const eyebrow = hero?.eyebrow || 'Multi-Tool Agent Orchestration'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Agent Collaboration' },
-    { icon: 'workflow', text: 'Context Memory' },
-    { icon: 'bot', text: 'Tool Integration' },
+    { icon: 'network', text: 'Multi-Agent Collaboration' },
+    { icon: 'workflow', text: 'Cross-Platform Context' },
+    { icon: 'bot', text: '50+ Tool Integrations' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const trustStats = [
-    { value: toolCount > 0 ? `${toolCount}+` : '200+', label: demo?.tool_count_label || 'Native Integrations' },
+    { value: toolCount > 0 ? `${toolCount}+` : '50+', label: demo?.tool_count_label || 'Tool Integrations' },
     { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Pre-Built Agents' },
     { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
   ]
@@ -155,9 +155,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Automated Emailing & Outreach', description: 'AI agents handle prospect emails, follow-ups, and personalized outbound campaigns' },
-    { Icon: MessageSquare, label: 'Smart Calling & Voice AI', description: 'Make and receive calls, qualify leads, and book meetings automatically' },
-    { Icon: Database, label: 'Instant CRM Updates', description: 'Sync contacts, deals, and activities across Salesforce, HubSpot, and more' },
+    { Icon: Network, label: 'Unified Platform Integration', description: 'Connect CRM, email, chat, databases, and calendars in one orchestrated system' },
+    { Icon: Bot, label: 'Context-Aware Agent Collaboration', description: 'Multiple AI agents share context and coordinate actions across all your tools' },
+    { Icon: Workflow, label: 'Cross-Tool Automation Flows', description: 'Build workflows that span Salesforce to Slack to databases with intelligent handoffs' },
   ]
 
   const totalTasksAutomated = 10247
@@ -170,6 +170,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Cloud, label: 'Database' },
   ]
 
+  const displayToolCount = toolCount > 0 ? toolCount : 50
+
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
@@ -178,13 +180,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Link2 className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
           <div className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)] animate-pulse" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Trusted by teams automating {totalTasksAutomated.toLocaleString()}+ tasks daily</span>
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Connecting {displayToolCount}+ integrations for {totalEarlyAdopters.toLocaleString()}+ teams</span>
           </div>
         </div>
 
@@ -209,6 +211,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                 </div>
                 <div className="flex flex-col items-start text-left">
                   <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">{label}</span>
-                  <span className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{description}</span>
-                </div>
-              </div
+                  <span className="
