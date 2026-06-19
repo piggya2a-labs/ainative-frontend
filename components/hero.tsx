@@ -39,7 +39,7 @@ function StatusIcon({ status }: { status: AgentEvent['status'] }) {
 interface LiveFeedProps {
   feedHeader: string
   seedEvents: Omit<AgentEvent, 'id'>[]
-  rollingEvents: Omit<AgentEvent, 'id' | ts'>[]
+  rollingEvents: Omit<AgentEvent, 'id' | 'ts'>[]
 }
 
 function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
@@ -108,9 +108,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Orchestrate context-aware multi-agent workflows across CRM, email, chat, databases, and 50+ integrations. Deploy intelligent automation that spans your complete business system with collaborative AI agents that share context and coordinate actions.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Connect Your Tools Now'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect to CRMs, databases, calendars, and more with memory-aware agents that collaborate seamlessly. Deploy intelligent automation that spans your complete business system with AI agents that share context and coordinate actions across all your tools.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Multi-Agent Workflows'
   const secondaryCtaText = hero?.secondaryCtaText || 'Explore Integrations'
   const eyebrow = hero?.eyebrow || 'Multi-Tool Agent Orchestration'
 
@@ -185,8 +185,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)] animate-pulse" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Connecting {displayToolCount}+ integrations for {totalEarlyAdopters.toLocaleString()}+ teams</span>
+            <Bot className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)] animate-pulse" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Multi-Agent Platform</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">Collaborative AI</span>
           </div>
         </div>
 
@@ -210,5 +212,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                   <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight leading-tight">{label}</span>
-                  <span className="
+                  <span className="text-sm sm:
