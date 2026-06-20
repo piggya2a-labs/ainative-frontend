@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect to CRMs, databases, calendars, and more with memory-aware agents that collaborate seamlessly. Deploy intelligent automation that spans your complete business system with AI agents that share context and coordinate actions across all your tools.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Multi-Agent Workflows'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Integrations'
-  const eyebrow = hero?.eyebrow || 'Multi-Tool Agent Orchestration'
+  const headline = hero?.hero_title || hero?.headline || 'Build Enterprise-Grade AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create sophisticated AI agents with complex workflows, conditional logic, and branching. Real-time monitoring, multi-team collaboration, and enterprise-grade security—no programming required. Deploy intelligent automation across your entire business system.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Multi-Agent Collaboration' },
@@ -155,9 +155,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Unified Platform Integration', description: 'Connect CRM, email, chat, databases, and calendars in one orchestrated system' },
-    { Icon: Bot, label: 'Context-Aware Agent Collaboration', description: 'Multiple AI agents share context and coordinate actions across all your tools' },
-    { Icon: Workflow, label: 'Cross-Tool Automation Flows', description: 'Build workflows that span Salesforce to Slack to databases with intelligent handoffs' },
+    { Icon: GitBranch, label: 'Complex Workflows with Logic & Branching', description: 'Build sophisticated automation with conditional paths, loops, and decision trees—no coding required' },
+    { Icon: Activity, label: 'Real-Time Monitoring & Multi-Team Collaboration', description: 'Track agent performance live, share workflows across teams, and collaborate on automation at scale' },
+    { Icon: Shield, label: 'Enterprise-Grade Security & Compliance', description: 'SOC 2 compliant platform with role-based access, audit logs, and industry-leading data protection' },
   ]
 
   const totalTasksAutomated = 10247
@@ -180,15 +180,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Link2 className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Code className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Bot className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)] animate-pulse" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Multi-Agent Platform</span>
+          <div className={`flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <Shield className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Enterprise-Grade</span>
+            <span className="text-xs text-muted-foreground">•</span>
+            <span className="text-xs text-muted-foreground">SOC 2 Compliant</span>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
-            <span className="hidden sm:inline text-xs text-muted-foreground">Collaborative AI</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">No Code Required</span>
           </div>
         </div>
 
@@ -209,7 +211,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                 style={{ transitionDelay: `${800 + idx * 150}ms` }}
               >
                 <div className="shrink-0 mt-0.5">
-                  <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-                </div>
-                <div className="flex flex-col items-start text-left">
-                  <span className="text-sm sm:
+                  <Icon className="w-6 sm:w-7 h-6 sm:h-7 text-[oklch(0
