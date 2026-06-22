@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Together'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect your entire tech stack with intelligent agents that orchestrate tasks across CRM, email, databases, and 100+ tools. No coding required—just smart automation that adapts to your workflow with trigger-action logic and seamless cross-platform compatibility.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Smart Agents'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work - No Code Required'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email responses, sales calls, CRM updates, and outbound sales with intelligent agents. Connect 100+ tools, set trigger-action rules, and watch your workflow run itself—no coding, no complexity.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'Multi-Agent Orchestration Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Multi-Agent Orchestration' },
-    { icon: 'workflow', text: 'Trigger-Action Logic' },
-    { icon: 'bot', text: '100+ Tool Integrations' },
+    { icon: 'bot', text: 'No-Code Agent Builder' },
+    { icon: 'workflow', text: 'Smart Task Automation' },
+    { icon: 'network', text: '100+ Tool Integrations' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -157,9 +157,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Multi-Agent Orchestration Across Your Stack', description: 'Connect agents to work together seamlessly across CRM, email, databases, and 100+ tools—automatically passing context and triggering actions' },
-    { Icon: Workflow, label: 'Modular Task Orchestration with Smart Logic', description: 'Build sophisticated workflows with trigger-action patterns, conditional branching, and decision trees that adapt to your business needs' },
-    { Icon: Link2, label: 'True Cross-Platform Compatibility', description: 'Agents integrate natively with your entire tech stack—from Salesforce to Slack, Gmail to GitHub—with unified data flow and real-time sync' },
+    { Icon: Mail, label: 'Email & Call Automation - No Code Required', description: 'AI agents handle email responses, schedule calls, and manage follow-ups across Gmail, Outlook, Zoom—just connect your accounts and set triggers' },
+    { Icon: Database, label: 'Automated CRM Updates & Sales Workflows', description: 'Keep Salesforce, HubSpot, and Pipedrive synced automatically—agents update records, create tasks, and trigger outbound campaigns based on your rules' },
+    { Icon: Workflow, label: 'Smart Outbound Sales on Autopilot', description: 'Build multi-step sales sequences with conditional logic—agents qualify leads, send personalized emails, book meetings, and hand off to your team at the right moment' },
   ]
 
   const totalTasksAutomated = 10247
@@ -180,17 +180,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Network className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Bot className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
           <div className={`flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Workflow className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Agent Collaboration</span>
+            <Zap className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Zero Code</span>
             <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs text-muted-foreground">100+ Integrations</span>
+            <span className="text-xs text-muted-foreground">Email, Calls, CRM</span>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
-            <span className="hidden sm:inline text-xs text-muted-foreground">No Code Required</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">Sales Automation</span>
           </div>
         </div>
 
@@ -210,5 +210,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
                 className={`flex items-start gap-3 sm:gap-3.5 py-1 sm:py-0 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
                 style={{ transitionDelay: `${800 + idx * 150}ms` }}
               >
-                <div className="shrink-0 mt-0.5">
-                  <Icon className="w-6
+                <div className="shrink-0 mt-0.
