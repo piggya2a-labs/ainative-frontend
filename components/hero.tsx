@@ -110,7 +110,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work - No Code Required'
   const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email responses, sales calls, CRM updates, and outbound sales with intelligent agents. Connect 100+ tools, set trigger-action rules, and watch your workflow run itself—no coding, no complexity.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Tasks for Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
 
@@ -199,15 +199,14 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             {headline}
           </h1>
           
-          <p className="text-sm leading-relaxed sm:text-lg md:text-xl text-muted-foreground sm:leading-relaxed text-pretty px-3 sm:px-4 max-w-3xl font-medium">
-            {subheadline}
-          </p>
+          <div className={`flex flex-col items-center gap-2 sm:gap-3 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-[oklch(0.65_0.15_145)]/10 to-transparent border border-[oklch(0.65_0.15_145)]/30">
+              <Workflow className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-sm sm:text-lg font-bold text-foreground">Automate Emails, Calls, CRM Updates & Outbound Sales</span>
+            </div>
+            <p className="text-sm leading-relaxed sm:text-lg md:text-xl text-muted-foreground sm:leading-relaxed text-pretty px-3 sm:px-4 max-w-3xl font-medium">
+              {subheadline}
+            </p>
+          </div>
 
-          <div className={`grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/40 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/15 via-[oklch(0.65_0.15_145)]/8 to-transparent backdrop-blur-sm shadow-lg max-w-4xl w-full transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            {coreValueProps.map(({ Icon, label, description }, idx) => (
-              <div 
-                key={idx} 
-                className={`flex items-start gap-3 sm:gap-3.5 py-1 sm:py-0 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
-                style={{ transitionDelay: `${800 + idx * 150}ms` }}
-              >
-                <div className="shrink-0 mt-0.
+          <div className={`grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[okl
