@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work - No Code Required'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email responses, sales calls, CRM updates, and outbound sales with intelligent agents. Connect 100+ tools, set trigger-action rules, and watch your workflow run itself—no coding, no complexity.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Tasks for Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create intelligent agents with seamless tool integration, persistent memory & context retention, and multi-agent collaboration. Connect your entire tech stack and orchestrate complex workflows without writing a single line of code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'bot', text: 'No-Code Agent Builder' },
-    { icon: 'workflow', text: 'Smart Task Automation' },
-    { icon: 'network', text: '100+ Tool Integrations' },
+    { icon: 'network', text: 'Seamless Tool Integration' },
+    { icon: 'bot', text: 'Memory & Context Retention' },
+    { icon: 'workflow', text: 'Multi-Agent Collaboration' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -157,9 +157,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Email & Call Automation - No Code Required', description: 'AI agents handle email responses, schedule calls, and manage follow-ups across Gmail, Outlook, Zoom—just connect your accounts and set triggers' },
-    { Icon: Database, label: 'Automated CRM Updates & Sales Workflows', description: 'Keep Salesforce, HubSpot, and Pipedrive synced automatically—agents update records, create tasks, and trigger outbound campaigns based on your rules' },
-    { Icon: Workflow, label: 'Smart Outbound Sales on Autopilot', description: 'Build multi-step sales sequences with conditional logic—agents qualify leads, send personalized emails, book meetings, and hand off to your team at the right moment' },
+    { Icon: Network, label: 'Seamless Tool Integration Across Your Stack', description: 'Connect 100+ tools instantly—Gmail, Salesforce, Slack, GitHub, and more. Agents work across your entire ecosystem without custom API development' },
+    { Icon: Brain, label: 'Persistent Memory & Context Retention', description: 'Agents remember conversations, user preferences, and workflow history. Provide intelligent, context-aware responses every time without manual data entry' },
+    { Icon: Workflow, label: 'Multi-Agent Collaboration & Orchestration', description: 'Build teams of specialized agents that work together—one qualifies leads while another schedules meetings and a third updates your CRM, all in perfect sync' },
   ]
 
   const totalTasksAutomated = 10247
@@ -186,11 +186,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex items-center gap-2 sm:gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border-2 border-[oklch(0.65_0.15_145)]/50 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/20 via-[oklch(0.65_0.15_145)]/10 to-transparent backdrop-blur-md shadow-lg transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Zap className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">Zero Code</span>
+            <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight">No-Code Builder</span>
             <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs text-muted-foreground">Email, Calls, CRM</span>
+            <span className="text-xs text-muted-foreground">Enterprise Orchestration</span>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
-            <span className="hidden sm:inline text-xs text-muted-foreground">Sales Automation</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">Multi-Agent Teams</span>
           </div>
         </div>
 
@@ -201,12 +201,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           
           <div className={`flex flex-col items-center gap-2 sm:gap-3 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-[oklch(0.65_0.15_145)]/10 to-transparent border border-[oklch(0.65_0.15_145)]/30">
-              <Workflow className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-sm sm:text-lg font-bold text-foreground">Automate Emails, Calls, CRM Updates & Outbound Sales</span>
+              <Brain className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-sm sm:text-lg font-bold text-foreground">No-Code Agent Builder with Enterprise-Grade Orchestration</span>
             </div>
             <p className="text-sm leading-relaxed sm:text-lg md:text-xl text-muted-foreground sm:leading-relaxed text-pretty px-3 sm:px-4 max-w-3xl font-medium">
               {subheadline}
             </p>
           </div>
 
-          <div className={`grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[okl
+          <div className={`grid grid-cols-1 gap-3 sm:gap-3.5 px-3 sm:px-4 py-4 sm:py-5 rounded-xl border-2 border-[oklch(0.65_0.15_145)]/20 bg-gradient-to-br from-[
