@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents with Seamless Tool Integration Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create intelligent agents with persistent memory & context retention, multi-agent collaboration, and 100+ pre-built integrations. Orchestrate complex workflows without code—connect Gmail, Salesforce, Slack, GitHub, and your entire ecosystem instantly.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with persistent memory, multi-agent collaboration, and seamless integration across 100+ tools—Gmail, Salesforce, Slack, GitHub, and your entire ecosystem. No custom API development required.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Intelligent Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Platform Demo'
+  const eyebrow = hero?.eyebrow || 'AI Agent Orchestration Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Seamless Tool Integration' },
@@ -157,9 +157,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Seamless Tool Integration Across Your Stack', description: 'Connect 100+ tools instantly—Gmail, Salesforce, Slack, GitHub, and more. Agents work across your entire ecosystem without custom API development' },
-    { Icon: Brain, label: 'Persistent Memory & Context Retention', description: 'Agents remember conversations, user preferences, and workflow history. Provide intelligent, context-aware responses every time without manual data entry' },
-    { Icon: Workflow, label: 'Multi-Agent Collaboration & Orchestration', description: 'Build teams of specialized agents that work together—one qualifies leads while another schedules meetings and a third updates your CRM, all in perfect sync' },
+    { Icon: Network, label: 'Seamless API Integration', description: 'Connect 100+ tools instantly without custom development' },
+    { Icon: Brain, label: 'Memory-Aware Agents', description: 'Persistent context and conversation history across sessions' },
+    { Icon: Workflow, label: 'Multi-Agent Workflows', description: 'Orchestrate teams of specialized agents working in sync' },
   ]
 
   const totalTasksAutomated = 10247
@@ -180,19 +180,19 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-6xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Bot className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Cpu className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-[oklch(0.65_0.15_145)]/20 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/5 to-transparent backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Trusted by 1000+ teams</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">1000+ developer teams</span>
             </div>
             <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
             <div className="flex items-center gap-1.5">
               <Shield className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">No credit card required</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Enterprise security</span>
             </div>
             <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
             <div className="flex items-center gap-1.5">
@@ -207,7 +207,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             {headline}
           </h1>
           
-          <div className={`flex flex-col items-center gap-2 sm:gap-3 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-[oklch(0.65_0.15_145)]/10 to-transparent border border-[oklch(0.65_0.15_145)]/30">
-              <Brain className="w-4 sm:w-5 h-4 sm:h-5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="
+          <div className={`flex flex-col items-center gap-4 sm:gap-5 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl text-balance leading-relaxed px-2 sm:px-4">
+              {subheadline}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-3xl px-2 sm:px-4">
+              {coreValueProps.map((prop, idx) => {
+                const Icon = prop.Icon
+                return (
+                  <div 
+                    key={idx}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border border-[oklch(0.65_0.15_145)]/20 bg-gradient-to-br from-[oklch(0.65_0.15_145)]/5 to-transparent backdrop-blur-sm transition-all
