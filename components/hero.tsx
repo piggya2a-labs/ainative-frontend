@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity, Award, Star, TrendingUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
+  const headline = hero?.hero_title || hero?.headline || 'Enterprise-Grade AI Agents Built Without Code'
   const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with persistent memory, multi-agent collaboration, and seamless integration across 100+ tools—Gmail, Salesforce, Slack, GitHub, and your entire ecosystem. No custom API development required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Deploy Your First Integrated Agent'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Multi-Agent Workflows'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First AI Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Seamless Tool Integration' },
@@ -180,39 +180,36 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.16 50)' },
   ]
 
+  const keyDifferentiators = [
+    { Icon: Workflow, label: 'Complex Workflows', description: 'Handle multi-step processes', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Activity, label: 'Real-Time Monitor', description: 'Track all agent activity', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Users, label: 'Team Collaboration', description: 'Built for teams of all sizes', color: 'oklch(0.58_0.15_145)' },
+  ]
+
   return (
-    <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-20 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-16 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-4 sm:gap-7 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-2 sm:gap-3">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Network className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-[oklch(0.65_0.15_145)]/20 bg-gradient-to-r from-[oklch(0.65_0.15_145)]/5 to-transparent backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="flex items-center gap-1.5">
-              <Link2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">100+ integrations</span>
+          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
+              <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">SOC 2 Type II</span>
             </div>
-            <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
-            <div className="flex items-center gap-1.5">
-              <Brain className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Persistent memory</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
+              <Users className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Built for Teams</span>
             </div>
-            <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
-            <div className="flex items-center gap-1.5">
-              <Workflow className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Multi-agent orchestration</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
+              <Award className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">Enterprise Ready</span>
             </div>
           </div>
-        </div>
-
-        <div className={`flex flex-col items-center gap-4 sm:gap-6 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <h1 className="text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] sm:leading-[1.05] text-balance px-1 sm:px-2 max-w-5xl">
-            {headline}
-          </h1>
-          
-          <div className={`flex flex-col items-center gap-4 sm:gap-5 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-
+        </div
