@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Enterprise-Grade AI Agents Built Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with persistent memory, multi-agent collaboration, and seamless integration across 100+ tools—Gmail, Salesforce, Slack, GitHub, and your entire ecosystem. No custom API development required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First AI Agent'
+  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'CRM, Email, Chat, Databases & More—All Working Together. Deploy intelligent agents with persistent memory, multi-agent collaboration, and seamless integration across your entire ecosystem. No custom API development required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Across Your Stack'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'Multi-Tool AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: 'Seamless Tool Integration' },
@@ -200,16 +200,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">SOC 2 Type II</span>
+              <Workflow className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Multi-Agent Orchestration</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Users className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Built for Teams</span>
+              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">100+ Integrations</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
-              <Award className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">Enterprise Ready</span>
-            </div>
-          </div>
-        </div
+              <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Type II</span>
