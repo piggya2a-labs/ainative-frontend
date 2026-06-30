@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'CRM, Email, Chat, Databases & More—All Working Together. Deploy intelligent agents with persistent memory, multi-agent collaboration, and seamless integration across your entire ecosystem. No custom API development required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Across Your Stack'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
-  const eyebrow = hero?.eyebrow || 'Multi-Tool AI Agent Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Enterprise AI Agent Platform with Native Tool Integration & Multi-Agent Orchestration'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with seamless CRM, email, database, and calendar integrations. Enable multi-agent collaboration, trigger-action automation, and cross-platform workflows—all with enterprise-grade security and persistent memory.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Integration Catalog'
+  const eyebrow = hero?.eyebrow || 'Comprehensive AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Seamless Tool Integration' },
-    { icon: 'bot', text: 'Memory & Context Retention' },
-    { icon: 'workflow', text: 'Multi-Agent Collaboration' },
+    { icon: 'network', text: '100+ Native Integrations' },
+    { icon: 'workflow', text: 'Multi-Agent Orchestration' },
+    { icon: 'bot', text: 'Trigger-Action Automation' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -125,47 +125,47 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayToolCount = toolCount > 0 ? toolCount : 100
 
   const trustStats = [
-    { value: `${displayToolCount}+`, label: demo?.tool_count_label || 'Tool Integrations' },
-    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Pre-Built Agents' },
-    { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Uptime SLA' },
+    { value: `${displayToolCount}+`, label: demo?.tool_count_label || 'Native Integrations' },
+    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Pre-Built Agent Templates' },
+    { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Enterprise SLA' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Agent Activity'
+  const feedHeader = demo?.feed_header || 'Live Multi-Agent Activity'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
-    { Icon: Mail, label: 'Email & Communication', tools: ['Gmail', 'Outlook', 'Slack'], description: 'Email & chat platforms' },
-    { Icon: Database, label: 'CRM & Sales', tools: ['Salesforce', 'HubSpot', 'Pipedrive'], description: 'Customer data systems' },
-    { Icon: Calendar, label: 'Scheduling', tools: ['Google Cal', 'Calendly', 'Zoom'], description: 'Meeting & calendar tools' },
-    { Icon: Cloud, label: 'Cloud Storage', tools: ['Drive', 'Dropbox', 'OneDrive'], description: 'File & document systems' },
-    { Icon: Code, label: 'Dev Tools', tools: ['GitHub', 'Jira', 'REST APIs'], description: 'Development platforms' },
-    { Icon: DollarSign, label: 'Finance', tools: ['Stripe', 'QuickBooks', 'Xero'], description: 'Payment & accounting' },
+    { Icon: Database, label: 'CRM & Sales', tools: ['Salesforce', 'HubSpot', 'Pipedrive'], description: 'Customer relationship systems' },
+    { Icon: Mail, label: 'Email & Communication', tools: ['Gmail', 'Outlook', 'Slack'], description: 'Email & messaging platforms' },
+    { Icon: Calendar, label: 'Scheduling & Meetings', tools: ['Google Cal', 'Calendly', 'Zoom'], description: 'Calendar & meeting tools' },
+    { Icon: Cloud, label: 'Cloud Storage', tools: ['Drive', 'Dropbox', 'OneDrive'], description: 'Document management' },
+    { Icon: Code, label: 'Dev & Project Tools', tools: ['GitHub', 'Jira', 'REST APIs'], description: 'Development platforms' },
+    { Icon: DollarSign, label: 'Finance & Payments', tools: ['Stripe', 'QuickBooks', 'Xero'], description: 'Accounting & billing' },
   ]
 
   const enterpriseFeatures = [
-    { Icon: Lock, label: 'SOC 2 Compliant', description: 'Enterprise security' },
-    { Icon: Users, label: 'Multi-Team', description: 'Collaboration tools' },
-    { Icon: Activity, label: 'Real-Time', description: 'Monitoring & alerts' },
+    { Icon: Lock, label: 'SOC 2 Type II', description: 'Enterprise security certified' },
+    { Icon: Users, label: 'Team Workspaces', description: 'Multi-tenant collaboration' },
+    { Icon: Activity, label: 'Real-Time Monitoring', description: 'Live agent activity tracking' },
   ]
 
   const trustBadges = [
     'No credit card required',
-    'Setup in under 5 minutes',
-    'Zero custom API coding',
+    'Deploy in under 5 minutes',
+    'Zero custom API development',
     'SOC 2 Type II certified'
   ]
 
   const coreValueProps = [
-    { Icon: Link2, label: '100+ Native Integrations', description: 'CRM, email, calendar, databases—all connected out of the box' },
-    { Icon: Brain, label: 'Persistent Memory', description: 'Agents remember context across conversations and sessions' },
-    { Icon: Workflow, label: 'Multi-Agent Teams', description: 'Orchestrate specialized agents that collaborate in real-time' },
+    { Icon: Link2, label: 'Native Tool Integrations', description: 'Connect CRM, email, calendar, databases, and 100+ platforms instantly' },
+    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Coordinate specialized agent teams that collaborate in real-time' },
+    { Icon: Zap, label: 'Trigger-Action Automation', description: 'Build complex workflows with event-driven agent responses' },
   ]
 
   const technicalBenefits = [
-    { Icon: Code, label: 'Zero API Development', description: 'Pre-built connectors for Salesforce, Gmail, Slack, GitHub' },
-    { Icon: Database, label: 'Stateful Context', description: 'Conversation history and user preferences persist automatically' },
-    { Icon: GitBranch, label: 'Agent Orchestration', description: 'Coordinate multiple agents with shared memory and workflows' },
+    { Icon: Code, label: 'Zero API Development', description: 'Pre-built connectors for Salesforce, Gmail, Slack, GitHub, and more' },
+    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember conversations, user preferences, and workflow state' },
+    { Icon: GitBranch, label: 'Cross-Platform Workflows', description: 'Seamlessly orchestrate actions across multiple tools and services' },
   ]
 
   const totalTasksAutomated = 10247
@@ -181,9 +181,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Workflow, label: 'Complex Workflows', description: 'Handle multi-step processes', color: 'oklch(0.65_0.15_145)' },
-    { Icon: Activity, label: 'Real-Time Monitor', description: 'Track all agent activity', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Users, label: 'Team Collaboration', description: 'Built for teams of all sizes', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Workflow, label: 'Multi-Step Workflows', description: 'Complex automation pipelines', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Activity, label: 'Real-Time Orchestration', description: 'Live agent coordination', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Shield, label: 'Enterprise Security', description: 'SOC 2 Type II compliance', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -200,13 +200,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Workflow className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Multi-Agent Orchestration</span>
+              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Native Tool Integration</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">100+ Integrations</span>
+              <Workflow className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Multi-Agent Orchestration</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
               <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Type II</span>
+              <span className="text-[9px] sm:text-[
