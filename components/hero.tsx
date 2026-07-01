@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Enterprise AI Agent Platform with Native Tool Integration & Multi-Agent Orchestration'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with seamless CRM, email, database, and calendar integrations. Enable multi-agent collaboration, trigger-action automation, and cross-platform workflows—all with enterprise-grade security and persistent memory.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Integration Catalog'
-  const eyebrow = hero?.eyebrow || 'Comprehensive AI Agent Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email, CRM, outbound sales, and scheduling with intelligent AI agents. Deploy in minutes, no technical skills required. Connect your tools and let agents handle the repetitive work.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building for Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: '100+ Native Integrations' },
-    { icon: 'workflow', text: 'Multi-Agent Orchestration' },
-    { icon: 'bot', text: 'Trigger-Action Automation' },
+    { icon: 'network', text: 'Deploy in 5 Minutes' },
+    { icon: 'workflow', text: 'No Coding Required' },
+    { icon: 'bot', text: '100+ Ready-to-Use Tools' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -125,12 +125,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayToolCount = toolCount > 0 ? toolCount : 100
 
   const trustStats = [
-    { value: `${displayToolCount}+`, label: demo?.tool_count_label || 'Native Integrations' },
-    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Pre-Built Agent Templates' },
-    { value: demo?.sla_value || '99.9%', label: demo?.sla_label || 'Enterprise SLA' },
+    { value: `${displayToolCount}+`, label: demo?.tool_count_label || 'Connected Tools' },
+    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Ready-Made Templates' },
+    { value: demo?.sla_value || '<5min', label: demo?.sla_label || 'Setup Time' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Multi-Agent Activity'
+  const feedHeader = demo?.feed_header || 'Live Agent Automation Activity'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -152,20 +152,20 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const trustBadges = [
     'No credit card required',
     'Deploy in under 5 minutes',
-    'Zero custom API development',
-    'SOC 2 Type II certified'
+    'No coding or technical skills needed',
+    'Enterprise-grade security'
   ]
 
   const coreValueProps = [
-    { Icon: Link2, label: 'Native Tool Integrations', description: 'Connect CRM, email, calendar, databases, and 100+ platforms instantly' },
-    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Coordinate specialized agent teams that collaborate in real-time' },
-    { Icon: Zap, label: 'Trigger-Action Automation', description: 'Build complex workflows with event-driven agent responses' },
+    { Icon: Zap, label: 'Instant Setup', description: 'Create working agents in minutes with drag-and-drop simplicity' },
+    { Icon: Link2, label: 'Connect Everything', description: 'Sync Gmail, Salesforce, calendars, and 100+ tools instantly' },
+    { Icon: Bot, label: 'Smart Automation', description: 'Agents learn your workflows and handle tasks autonomously' },
   ]
 
   const technicalBenefits = [
-    { Icon: Code, label: 'Zero API Development', description: 'Pre-built connectors for Salesforce, Gmail, Slack, GitHub, and more' },
-    { Icon: Brain, label: 'Persistent Memory & Context', description: 'Agents remember conversations, user preferences, and workflow state' },
-    { Icon: GitBranch, label: 'Cross-Platform Workflows', description: 'Seamlessly orchestrate actions across multiple tools and services' },
+    { Icon: Mail, label: 'Email Automation', description: 'Auto-respond, prioritize, and schedule follow-ups intelligently' },
+    { Icon: Database, label: 'CRM Sync', description: 'Update contacts, log calls, and manage pipelines automatically' },
+    { Icon: Calendar, label: 'Smart Scheduling', description: 'Book meetings, send reminders, and coordinate across time zones' },
   ]
 
   const totalTasksAutomated = 10247
@@ -181,8 +181,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Workflow, label: 'Multi-Step Workflows', description: 'Complex automation pipelines', color: 'oklch(0.65_0.15_145)' },
-    { Icon: Activity, label: 'Real-Time Orchestration', description: 'Live agent coordination', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Zap, label: 'Zero Learning Curve', description: 'Start automating immediately', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Rocket, label: 'Instant Deployment', description: 'Live in under 5 minutes', color: 'oklch(0.60_0.18_25)' },
     { Icon: Shield, label: 'Enterprise Security', description: 'SOC 2 Type II compliance', color: 'oklch(0.58_0.15_145)' },
   ]
 
@@ -192,7 +192,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-4 sm:gap-7 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="flex flex-col items-center gap-2 sm:gap-3">
+        <div className="flex flex-col items-center gap-3 sm:gap-4">
           <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
@@ -200,13 +200,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Native Tool Integration</span>
+              <Zap className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Deploy in 5 Minutes</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Workflow className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Multi-Agent Orchestration</span>
+              <Code className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">No Code Required</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
               <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Certified</span
