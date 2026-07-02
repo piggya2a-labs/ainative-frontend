@@ -109,9 +109,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const demo = siteConfig?.hero_demo
 
   const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email, CRM, outbound sales, and scheduling with intelligent AI agents. Deploy in minutes, no technical skills required. Connect your tools and let agents handle the repetitive work.'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and lead qualification with intelligent AI agents. No technical skills required. Connect your tools and let AI handle repetitive work—deploy in minutes.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building for Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Agent Templates'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
