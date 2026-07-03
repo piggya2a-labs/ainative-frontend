@@ -109,9 +109,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const demo = siteConfig?.hero_demo
 
   const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and lead qualification with intelligent AI agents. No technical skills required. Connect your tools and let AI handle repetitive work—deploy in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building for Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Agent Templates'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate CRM updates, scheduling, follow-ups, and lead qualification with intelligent AI agents. No technical skills required—connect your tools and deploy working automation in minutes.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Create Your First Agent'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Agent Templates'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
@@ -209,4 +209,5 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
               <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Certified</span
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Certified</span>
+            </div>
