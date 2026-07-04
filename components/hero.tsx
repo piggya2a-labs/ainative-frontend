@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate CRM updates, scheduling, follow-ups, and lead qualification with intelligent AI agents. No technical skills required—connect your tools and deploy working automation in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Create Your First Agent'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, Email, Chat & More — No Code Required. Deploy intelligent agents with memory retention and multi-agent orchestration that automate your workflow in minutes.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Smart Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Agent Templates'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'AI Agent Platform with Full Integration'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Deploy in 5 Minutes' },
-    { icon: 'workflow', text: 'No Coding Required' },
-    { icon: 'bot', text: '100+ Ready-to-Use Tools' },
+    { icon: 'network', text: '100+ Tool Integrations' },
+    { icon: 'bot', text: 'Memory-Enabled Agents' },
+    { icon: 'workflow', text: 'Multi-Agent Orchestration' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -157,9 +157,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Zap, label: 'Instant Setup', description: 'Create working agents in minutes with drag-and-drop simplicity' },
-    { Icon: Link2, label: 'Connect Everything', description: 'Sync Gmail, Salesforce, calendars, and 100+ tools instantly' },
-    { Icon: Bot, label: 'Smart Automation', description: 'Agents learn your workflows and handle tasks autonomously' },
+    { Icon: Link2, label: 'Full Stack Integration', description: 'Connect 100+ tools seamlessly across your entire workflow' },
+    { Icon: Brain, label: 'Memory Retention', description: 'Agents remember context, learn preferences, and improve over time' },
+    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Coordinate multiple agents working together intelligently' },
   ]
 
   const technicalBenefits = [
@@ -181,9 +181,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Zap, label: 'Zero Learning Curve', description: 'Start automating immediately', color: 'oklch(0.65_0.15_145)' },
-    { Icon: Rocket, label: 'Instant Deployment', description: 'Live in under 5 minutes', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Enterprise Security', description: 'SOC 2 Type II compliance', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Link2, label: 'Universal Integration', description: 'Works with your entire stack', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Brain, label: 'Persistent Memory', description: 'Agents that learn and adapt', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Agent Orchestration', description: 'Coordinate multiple agents', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -200,14 +200,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Zap className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Deploy in 5 Minutes</span>
+              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">100+ Integrations</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Code className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">No Code Required</span>
+              <Brain className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Memory Retention</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
-              <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">SOC 2 Certified</span>
+              <Network className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">Multi-Agent Orchestration</span>
             </div>
+          </div>
