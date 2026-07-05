@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect CRM, Email, Chat & More — No Code Required. Deploy intelligent agents with memory retention and multi-agent orchestration that automate your workflow in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Smart Agents'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Agent Templates'
-  const eyebrow = hero?.eyebrow || 'AI Agent Platform with Full Integration'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your busywork with AI agents that handle email responses, schedule meetings, update your CRM, and manage outbound sales. No coding, no complicated setup.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See What Agents Can Do'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Builder'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: '100+ Tool Integrations' },
@@ -125,12 +125,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayToolCount = toolCount > 0 ? toolCount : 100
 
   const trustStats = [
-    { value: `${displayToolCount}+`, label: demo?.tool_count_label || 'Connected Tools' },
-    { value: agentCount > 0 ? `${agentCount}+` : '50+', label: demo?.agent_count_label || 'Ready-Made Templates' },
-    { value: demo?.sla_value || '<5min', label: demo?.sla_label || 'Setup Time' },
+    { value: '1,000+', label: demo?.tool_count_label || 'Tasks Automated Daily' },
+    { value: '20hrs', label: demo?.agent_count_label || 'Avg. Time Saved/Week' },
+    { value: demo?.sla_value || '5min', label: demo?.sla_label || 'To First Agent' },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live Agent Automation Activity'
+  const feedHeader = demo?.feed_header || 'Live: Your AI Agents Working Now'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -151,21 +151,21 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const trustBadges = [
     'No credit card required',
-    'Deploy in under 5 minutes',
-    'No coding or technical skills needed',
-    'Enterprise-grade security'
+    'Free to start',
+    'No coding skills needed',
+    'Cancel anytime'
   ]
 
   const coreValueProps = [
-    { Icon: Link2, label: 'Full Stack Integration', description: 'Connect 100+ tools seamlessly across your entire workflow' },
-    { Icon: Brain, label: 'Memory Retention', description: 'Agents remember context, learn preferences, and improve over time' },
-    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Coordinate multiple agents working together intelligently' },
+    { Icon: Mail, label: 'Email Autopilot', description: 'AI agents read, prioritize, and respond to emails based on your style' },
+    { Icon: Calendar, label: 'Smart Scheduling', description: 'Book meetings, send reminders, and handle calendar conflicts automatically' },
+    { Icon: Database, label: 'CRM on Autopilot', description: 'Update contacts, log interactions, and sync data across your sales stack' },
   ]
 
   const technicalBenefits = [
-    { Icon: Mail, label: 'Email Automation', description: 'Auto-respond, prioritize, and schedule follow-ups intelligently' },
-    { Icon: Database, label: 'CRM Sync', description: 'Update contacts, log calls, and manage pipelines automatically' },
-    { Icon: Calendar, label: 'Smart Scheduling', description: 'Book meetings, send reminders, and coordinate across time zones' },
+    { Icon: Bot, label: 'Outbound Sales', description: 'Research leads, personalize outreach, and follow up intelligently' },
+    { Icon: MessageSquare, label: 'Customer Support', description: 'Answer common questions and escalate complex issues to your team' },
+    { Icon: FileText, label: 'Data Entry', description: 'Extract info from emails, docs, and forms into your systems automatically' },
   ]
 
   const totalTasksAutomated = 10247
@@ -181,9 +181,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Link2, label: 'Universal Integration', description: 'Works with your entire stack', color: 'oklch(0.65_0.15_145)' },
-    { Icon: Brain, label: 'Persistent Memory', description: 'Agents that learn and adapt', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Network, label: 'Agent Orchestration', description: 'Coordinate multiple agents', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Zap, label: 'Zero Code Required', description: 'Build powerful agents without writing a single line of code', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Brain, label: 'Learns Your Style', description: 'Agents adapt to your preferences and improve over time', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Works Everywhere', description: 'Connect to 100+ tools across your entire workflow', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -200,15 +200,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
           <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Link2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">100+ Integrations</span>
+              <Mail className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Email Automation</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Brain className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Memory Retention</span>
+              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Smart Scheduling</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
-              <Network className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">Multi-Agent Orchestration</span>
+              <Database className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
+              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">CRM Sync</span>
             </div>
-          </div>
+            <div className
