@@ -112,7 +112,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your busywork with AI agents that handle email responses, schedule meetings, update your CRM, and manage outbound sales. No coding, no complicated setup.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'See What Agents Can Do'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Builder'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: '100+ Tool Integrations' },
@@ -186,29 +186,41 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Network, label: 'Works Everywhere', description: 'Connect to 100+ tools across your entire workflow', color: 'oklch(0.58_0.15_145)' },
   ]
 
+  const automationUseCases = [
+    { icon: Mail, text: 'Email Automation' },
+    { icon: Database, text: 'CRM Updates' },
+    { icon: Calendar, text: 'Meeting Scheduling' },
+    { icon: Bot, text: 'Sales Outreach' }
+  ]
+
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-3 sm:px-6 pt-16 sm:pt-20 pb-10 sm:pb-16 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-4 sm:gap-7 w-full transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="flex flex-col items-center gap-3 sm:gap-4">
-          <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.15em] sm:tracking-[0.22em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
+      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-5 sm:gap-8 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className="flex flex-col items-center gap-4 sm:gap-6 max-w-4xl">
+          <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-border/30 bg-muted/20 backdrop-blur-md transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.65_0.15_145)]/10">
-              <Mail className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.65_0.15_145)]">Email Automation</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.58_0.15_145)]/10">
-              <Calendar className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.58_0.15_145)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.58_0.15_145)]">Smart Scheduling</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[oklch(0.60_0.18_25)]/10">
-              <Database className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[oklch(0.60_0.18_25)]" aria-hidden="true" />
-              <span className="text-[9px] sm:text-[10px] font-semibold text-[oklch(0.60_0.18_25)]">CRM Sync</span>
-            </div>
-            <div className
+          <div className={`flex flex-col items-center gap-4 sm:gap-5 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.1] px-2">
+              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                {headline}
+              </span>
+            </h1>
+            
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl leading-relaxed px-4">
+              {subheadline}
+            </p>
+          </div>
+
+          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            {automationUseCases.map((useCase, idx) => {
+              const IconComponent = useCase.icon
+              return (
+                <div key={idx} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border border-border/40 bg-muted/30 backdrop-blur-sm hover:bg-muted/50 transition-colors">
+                  <IconComponent className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+                  <span className="text-[10px] sm
