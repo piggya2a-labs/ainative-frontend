@@ -108,9 +108,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email responses, phone calls, CRM updates, and sales outreach with intelligent AI agents. No coding required, no complicated setup—just results.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect with CRM, email, databases, calendars, and 100+ tools. Build intelligent AI agents that automate your workflows without writing a single line of code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
@@ -198,30 +198,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-10 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="flex flex-col items-center gap-5 sm:gap-7 max-w-4xl">
+      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-8 sm:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className="flex flex-col items-center gap-6 sm:gap-8 max-w-5xl">
           <div className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Sparkles className="w-4 sm:w-4.5 h-4 sm:h-4.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
             <span className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-col items-center gap-5 sm:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.08] px-2">
+          <div className={`flex flex-col items-center gap-6 sm:gap-7 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <h1 className="text-[2.5rem] leading-[1.1] sm:text-6xl sm:leading-[1.08] md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold tracking-tight px-2">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 {headline}
               </span>
             </h1>
             
-            <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl text-muted-foreground max-w-3xl leading-relaxed px-4">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl leading-relaxed sm:leading-relaxed px-2 sm:px-4">
               {subheadline}
             </p>
           </div>
 
-          <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-4 w-full sm:w-auto transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Button
-              size="lg"
-              onClick={onCtaClick}
-              className="w-full sm:w-auto min-h-[56px] sm:min-h-[60px] px-8 sm:px-10 text-base sm:text-lg font-semibold bg-[oklch(0.65_0.15_145)] hover:bg-[oklch(0.60_0.15_145)] text-white shadow-lg shadow-[oklch(0.65_0.15_145)]/20 hover:shadow-xl hover:shadow-[oklch(0.65_0.15_145)]/30 transition-all duration-200 rounded-xl touch-manipulation"
-            >
-              {ctaText}
-              <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true
+          <div className={`flex flex-col items-center gap-5 sm:gap-6 w-full transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+              <Button
+                size="lg"
+                onClick={onCtaClick}
+                className="w-full sm:w-auto min-h-[58px] sm:min-h-[64px] px-8 sm:px-12 text-base sm:text-lg font-semibold bg-[oklch(0.65_0.15_145)] hover:bg-[oklch(0.60_0.15_145)] text-white shadow-lg shadow-[oklch(0.65_0.15_145)]/20 hover:shadow-
