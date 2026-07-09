@@ -108,9 +108,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work Across Your Entire Tech Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Connect with CRM, email, databases, calendars, and 100+ tools. Build intelligent AI agents that automate your workflows without writing a single line of code.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and data entry tasks. Deploy intelligent AI agents in minutes—no technical skills required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today - Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
@@ -123,6 +123,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const displayToolCount = toolCount > 0 ? toolCount : 100
+  const displayAgentCount = agentCount > 0 ? agentCount : 2847
 
   const trustStats = [
     { value: '20hrs', label: 'Saved Per Week Per User', Icon: Clock },
@@ -217,9 +218,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             </p>
           </div>
 
-          <div className={`flex flex-col items-center gap-5 sm:gap-6 w-full transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <Button
-                size="lg"
-                onClick={onCtaClick}
-                className="w-full sm:w-auto min-h-[58px] sm:min-h-[64px] px-8 sm:px-12 text-base sm:text-lg font-semibold bg-[oklch(0.65_0.15_145)] hover:bg-[oklch(0.60_0.15_145)] text-white shadow-lg shadow-[oklch(0.65_0.15_145)]/20 hover:shadow-
+          <div className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[oklch(0.65_0.15_145)]/10 border border-[oklch(0.65_0.15_145)]/20 transition-all duration-700 delay-250 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <Activity className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-sm font-semibold text-foreground">
+              <span className="text-[oklch(0.65_0.15_145)] font-bold">{displayAgentCount.toLocaleString()}</span> agents actively automating tasks right now
+            </span>
+          </div>
+
+          <div className={`flex flex-
