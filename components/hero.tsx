@@ -63,20 +63,20 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
 
   return (
     <div className="w-full rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm overflow-hidden text-left">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-muted/30">
-        <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{feedHeader}</span>
-        <span className="flex items-center gap-1.5 text-xs text-[oklch(0.65_0.15_145)]">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-border/40 bg-muted/30">
+        <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase tracking-wider">{feedHeader}</span>
+        <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[oklch(0.65_0.15_145)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse" />
           {activeCount} active
         </span>
       </div>
       <ul className="divide-y divide-border">
         {events.slice(0, 5).map((event) => (
-          <li key={event.id} className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors">
+          <li key={event.id} className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors">
             <StatusIcon status={event.status} />
-            <span className="font-mono text-xs text-muted-foreground w-32 shrink-0 truncate">{event.agent}</span>
-            <span className="flex-1 text-foreground truncate text-xs leading-relaxed">{event.action}</span>
-            <span className="text-xs font-mono text-muted-foreground shrink-0 tabular-nums">{event.ts}</span>
+            <span className="font-mono text-[10px] sm:text-xs text-muted-foreground w-24 sm:w-32 shrink-0 truncate">{event.agent}</span>
+            <span className="flex-1 text-foreground truncate text-[10px] sm:text-xs leading-relaxed">{event.action}</span>
+            <span className="text-[10px] sm:text-xs font-mono text-muted-foreground shrink-0 tabular-nums hidden sm:inline">{event.ts}</span>
           </li>
         ))}
       </ul>
@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and data entry tasks. Deploy intelligent AI agents in minutes—no technical skills required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today - Free'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Stack'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with 100+ tool integrations, persistent memory, and multi-agent orchestration. From email automation to CRM sync—all without code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Smart Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: '100+ Tool Integrations' },
@@ -195,34 +195,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   return (
-    <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-20 sm:pt-24 pb-12 sm:pb-20 overflow-hidden" aria-label="Hero">
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-16 sm:pt-20 md:pt-24 pb-8 sm:pb-12 md:pb-20 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, var(--background) 0%, transparent 100%)' }} />
       
-      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-8 sm:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="flex flex-col items-center gap-6 sm:gap-8 max-w-5xl">
-          <div className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Sparkles className="w-4 sm:w-4.5 h-4 sm:h-4.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
+      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-10 md:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className="flex flex-col items-center gap-5 sm:gap-7 md:gap-8 max-w-5xl w-full">
+          <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-[oklch(0.65_0.15_145)]/30 bg-[oklch(0.65_0.15_145)]/5 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <Sparkles className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
+            <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-col items-center gap-6 sm:gap-7 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2.5rem] leading-[1.1] sm:text-6xl sm:leading-[1.08] md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold tracking-tight px-2">
+          <div className={`flex flex-col items-center gap-4 sm:gap-6 md:gap-7 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <h1 className="text-[2rem] leading-[1.12] sm:text-5xl sm:leading-[1.1] md:text-6xl md:leading-[1.08] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 {headline}
               </span>
             </h1>
             
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl leading-relaxed sm:leading-relaxed px-2 sm:px-4">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-3xl leading-relaxed px-2 sm:px-4">
               {subheadline}
             </p>
           </div>
 
-          <div className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[oklch(0.65_0.15_145)]/10 border border-[oklch(0.65_0.15_145)]/20 transition-all duration-700 delay-250 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Activity className="w-4 h-4 text-[oklch(0.65_0.15_145)]" aria-hidden="true" />
-            <span className="text-sm font-semibold text-foreground">
-              <span className="text-[oklch(0.65_0.15_145)] font-bold">{displayAgentCount.toLocaleString()}</span> agents actively automating tasks right now
-            </span>
-          </div>
-
-          <div className={`flex flex-
+          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 transition-all duration-700 delay-250 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            {trustIndicators.slice
