@@ -74,7 +74,7 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
         {events.slice(0, 5).map((event) => (
           <li key={event.id} className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors">
             <StatusIcon status={event.status} />
-            <span className="font-mono text-[10px] sm:text-xs text-muted-foreground w-24 sm:w-32 shrink-0 truncate">{event.agent}</span>
+            <span className="font-mono text-[10px] sm:text-xs text-muted-foreground w-20 sm:w-32 shrink-0 truncate">{event.agent}</span>
             <span className="flex-1 text-foreground truncate text-[10px] sm:text-xs leading-relaxed">{event.action}</span>
             <span className="text-[10px] sm:text-xs font-mono text-muted-foreground shrink-0 tabular-nums hidden sm:inline">{event.ts}</span>
           </li>
@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Across Your Entire Stack'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents with 100+ tool integrations, persistent memory, and multi-agent orchestration. From email automation to CRM sync—all without code.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Smart Agents'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate CRM, scheduling, and workflows with intelligent agents that work across your entire stack. Multi-agent orchestration, 100+ integrations, zero coding required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: '100+ Tool Integrations' },
-    { icon: 'bot', text: 'Memory-Enabled Agents' },
     { icon: 'workflow', text: 'Multi-Agent Orchestration' },
+    { icon: 'network', text: '100+ Tool Integrations' },
+    { icon: 'bot', text: 'Zero Code Required' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -206,17 +206,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] text-[oklch(0.65_0.15_145)]">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-col items-center gap-4 sm:gap-6 md:gap-7 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2rem] leading-[1.12] sm:text-5xl sm:leading-[1.1] md:text-6xl md:leading-[1.08] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2">
+          <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 {headline}
               </span>
             </h1>
             
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-3xl leading-relaxed px-2 sm:px-4">
+            <p className="text-base sm:text-lg md:text-xl lg:text-[1.375rem] text-muted-foreground max-w-3xl leading-[1.6] px-2 sm:px-4">
               {subheadline}
             </p>
           </div>
 
-          <div className={`flex flex-wrap items-center justify-center gap-2 sm:gap-3 transition-all duration-700 delay-250 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            {trustIndicators.slice
+          <div className={`flex flex-col items-center gap-4 sm:gap-5 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className
