@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Connect Your Entire Tech Stack with AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Seamless CRM, email, database, and calendar integration with intelligent multi-agent orchestration. Deploy agents that work together across 50+ tools to automate your entire workflow.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Connected Agents'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your day-to-day tasks like updating your CRM, scheduling meetings, and following up with leads. No coding required—just connect your tools and let AI agents handle the work.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
     { icon: 'network', text: '50+ Tool Integrations' },
@@ -202,7 +202,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-10 md:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-5 sm:gap-7 md:gap-8 max-w-5xl w-full">
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Network className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
+            <Sparkles className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
@@ -218,4 +218,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             </p>
           </div>
 
-          <div className={`flex flex-wrap items-center justify
+          <div className={`flex flex-col items
