@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Deploy intelligent agents that handle CRM updates, meeting scheduling, and follow-ups automatically. No developers required—your team can build and deploy in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent Free'
+  const headline = hero?.hero_title || hero?.headline || 'Automate Your Workflows with AI Agents'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build AI agents without coding—automate emails, calls, CRM updates, and outbound sales in minutes. No technical skills required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Now'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
     { icon: 'shield', text: 'SOC 2 Type II Certified' },
@@ -158,15 +158,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Email Autopilot', description: 'AI agents read, prioritize, and respond to emails based on your style' },
-    { Icon: Calendar, label: 'Smart Scheduling', description: 'Book meetings, send reminders, and handle calendar conflicts automatically' },
-    { Icon: Database, label: 'CRM on Autopilot', description: 'Update contacts, log interactions, and sync data across your sales stack' },
+    { Icon: Mail, label: 'Email Automation', description: 'AI agents read, draft, and send emails based on your guidelines' },
+    { Icon: MessageSquare, label: 'Automated Calling', description: 'Schedule calls, send follow-ups, and log conversations automatically' },
+    { Icon: Database, label: 'CRM Updates', description: 'Sync contacts, log activities, and update records across your sales tools' },
   ]
 
   const technicalBenefits = [
-    { Icon: Bot, label: 'Outbound Sales', description: 'Research leads, personalize outreach, and follow up intelligently' },
-    { Icon: MessageSquare, label: 'Customer Support', description: 'Answer common questions and escalate complex issues to your team' },
-    { Icon: FileText, label: 'Data Entry', description: 'Extract info from emails, docs, and forms into your systems automatically' },
+    { Icon: Bot, label: 'Outbound Sales', description: 'Research prospects, personalize outreach, and automate follow-up sequences' },
+    { Icon: MessageSquare, label: 'Customer Support', description: 'Answer FAQs, route tickets, and escalate issues intelligently' },
+    { Icon: FileText, label: 'Data Entry', description: 'Extract information from emails and documents into your systems' },
   ]
 
   const totalTasksAutomated = 10247
@@ -202,7 +202,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-10 md:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-5 sm:gap-7 md:gap-8 max-w-5xl w-full">
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Bot className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
+            <Workflow className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
@@ -216,6 +216,5 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             <p className="text-base sm:text-lg md:text-xl lg:text-[1.375rem] text-muted-foreground max-w-3xl leading-[1.6] px-2 sm:px-4">
               {subheadline}
             </p>
-          </div>
 
-          <div className={`flex flex-col sm:flex-row items-center
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-
