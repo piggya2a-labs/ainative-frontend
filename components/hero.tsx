@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Automate Your Workflows with AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build AI agents without coding—automate emails, calls, CRM updates, and outbound sales in minutes. No technical skills required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Now'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support. Deploy intelligent AI agents in minutes—no technical skills required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'shield', text: 'SOC 2 Type II Certified' },
-    { icon: 'network', text: '50+ Enterprise Integrations' },
-    { icon: 'workflow', text: 'Multi-Agent Orchestration' },
+    { icon: 'bot', text: 'Multi-Agent Orchestration' },
+    { icon: 'network', text: '50+ Tool Integrations' },
+    { icon: 'shield', text: 'Enterprise-Grade Security' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -126,9 +126,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 2847
 
   const trustStats = [
+    { value: '5min', label: 'To Build Your First Agent', Icon: Zap },
     { value: '20hrs', label: 'Saved Per Week Per User', Icon: Clock },
-    { value: '5min', label: 'To Deploy First Agent', Icon: Zap },
-    { value: '50+', label: 'Tools & Integrations', Icon: Network },
+    { value: '50+', label: 'Pre-Built Integrations', Icon: Network },
   ]
 
   const feedHeader = demo?.feed_header || 'Live: Your AI Agents Working Now'
@@ -158,14 +158,14 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Email Automation', description: 'AI agents read, draft, and send emails based on your guidelines' },
-    { Icon: MessageSquare, label: 'Automated Calling', description: 'Schedule calls, send follow-ups, and log conversations automatically' },
-    { Icon: Database, label: 'CRM Updates', description: 'Sync contacts, log activities, and update records across your sales tools' },
+    { Icon: Mail, label: 'Email Automation', description: 'AI agents read, draft, and send personalized emails automatically' },
+    { Icon: Database, label: 'CRM Sync', description: 'Auto-update contacts, activities, and opportunities across all your tools' },
+    { Icon: Bot, label: 'Sales Outreach', description: 'Research prospects, personalize messages, and automate follow-up sequences' },
   ]
 
   const technicalBenefits = [
-    { Icon: Bot, label: 'Outbound Sales', description: 'Research prospects, personalize outreach, and automate follow-up sequences' },
     { Icon: MessageSquare, label: 'Customer Support', description: 'Answer FAQs, route tickets, and escalate issues intelligently' },
+    { Icon: Calendar, label: 'Meeting Coordination', description: 'Schedule calls, send reminders, and log conversations automatically' },
     { Icon: FileText, label: 'Data Entry', description: 'Extract information from emails and documents into your systems' },
   ]
 
@@ -182,9 +182,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Network, label: 'Universal Integration', description: 'Connect to 50+ tools across your entire workflow', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Workflow, label: 'Multi-Agent Collaboration', description: 'Agents work together seamlessly to complete complex tasks', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Link2, label: 'Real-Time Sync', description: 'Data flows instantly between all your connected platforms', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Bot, label: 'Visual Agent Builder', description: 'Drag-and-drop interface to build complex automation workflows', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Multiple AI agents collaborate to complete complex tasks together', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Universal Connectors', description: 'Connect to any tool via 50+ pre-built integrations or custom APIs', color: 'oklch(0.65_0.15_145)' },
   ]
 
   const automationUseCases = [
@@ -192,6 +192,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { icon: Database, text: 'CRM Updates' },
     { icon: Calendar, text: 'Meeting Scheduling' },
     { icon: Bot, text: 'Sales Outreach' }
+  ]
+
+  const platformCapabilities = [
+    { Icon: Bot, label: 'Intelligent Agents', description: 'Build agents that learn and adapt to your workflow', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Workflow, label: 'Visual Builder', description: 'Drag-and-drop interface—no coding required', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Deep Integrations', description: 'Native connections to your existing tools', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -202,19 +208,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-10 md:gap-12 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-5 sm:gap-7 md:gap-8 max-w-5xl w-full">
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Workflow className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
+            <Bot className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
           <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2">
-              <span className="bg-gradient-to-br from-foreground via-purple-200 to-blue-200 bg-clip-text text-transparent">
-                {headline}
-              </span>
-            </h1>
-            
-            <p className="text-base sm:text-lg md:text-xl lg:text-[1.375rem] text-muted-foreground max-w-3xl leading-[1.6] px-2 sm:px-4">
-              {subheadline}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2
