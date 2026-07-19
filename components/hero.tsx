@@ -109,8 +109,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const demo = siteConfig?.hero_demo
 
   const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support. Deploy intelligent AI agents in minutes—no technical skills required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support with intelligent AI agents. Deploy multi-task automation in minutes—no technical skills required.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
@@ -213,4 +213,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold tracking-tight px-2
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold
