@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support with intelligent AI agents. Deploy multi-task automation in minutes—no technical skills required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Work For Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Delegate repetitive tasks to intelligent AI agents. Automate email outreach, CRM updates, outbound sales, and customer follow-ups—without writing a single line of code.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Now'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Demo'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'bot', text: 'Multi-Agent Orchestration' },
-    { icon: 'network', text: '50+ Tool Integrations' },
-    { icon: 'shield', text: 'Enterprise-Grade Security' },
+    { icon: 'bot', text: 'Delegate Tasks to AI' },
+    { icon: 'network', text: 'Zero Coding Required' },
+    { icon: 'shield', text: 'Enterprise-Ready Platform' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -126,12 +126,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
   const trustStats = [
-    { value: '5min', label: 'To Build Your First Agent', Icon: Zap },
-    { value: '20hrs', label: 'Saved Per Week Per User', Icon: Clock },
-    { value: '50+', label: 'Pre-Built Integrations', Icon: Network },
+    { value: '5min', label: 'To Delegate Your First Task', Icon: Zap },
+    { value: '20hrs', label: 'Saved Per Week Per Team', Icon: Clock },
+    { value: '50+', label: 'Built-In Integrations', Icon: Network },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: Your AI Agents Working Now'
+  const feedHeader = demo?.feed_header || 'Live: Your AI Team in Action'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -153,20 +153,20 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const trustBadges = [
     'No credit card required',
     'Free to start',
-    'No coding skills needed',
+    'Zero coding required',
     'Cancel anytime'
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Email Automation', description: 'AI agents read, draft, and send personalized emails automatically' },
-    { Icon: Database, label: 'CRM Sync', description: 'Auto-update contacts, activities, and opportunities across all your tools' },
-    { Icon: Bot, label: 'Sales Outreach', description: 'Research prospects, personalize messages, and automate follow-up sequences' },
+    { Icon: Mail, label: 'Email Delegation', description: 'AI agents compose, personalize, and send emails on your behalf automatically' },
+    { Icon: Database, label: 'CRM Automation', description: 'Delegate contact updates, activity logging, and data entry to AI workers' },
+    { Icon: Bot, label: 'Outbound Sales', description: 'AI agents research leads, craft messages, and execute follow-up sequences for you' },
   ]
 
   const technicalBenefits = [
-    { Icon: MessageSquare, label: 'Customer Support', description: 'Answer FAQs, route tickets, and escalate issues intelligently' },
-    { Icon: Calendar, label: 'Meeting Coordination', description: 'Schedule calls, send reminders, and log conversations automatically' },
-    { Icon: FileText, label: 'Data Entry', description: 'Extract information from emails and documents into your systems' },
+    { Icon: MessageSquare, label: 'Support Automation', description: 'AI handles ticket routing, FAQs, and escalation decisions automatically' },
+    { Icon: Calendar, label: 'Meeting Management', description: 'Agents schedule meetings, send reminders, and log call notes without your input' },
+    { Icon: FileText, label: 'Data Processing', description: 'Extract and organize information from emails, PDFs, and forms into your systems' },
   ]
 
   const totalTasksAutomated = 10247
@@ -182,22 +182,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Bot, label: 'Visual Agent Builder', description: 'Drag-and-drop interface to build complex automation workflows', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Workflow, label: 'Multi-Agent Orchestration', description: 'Multiple AI agents collaborate to complete complex tasks together', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Network, label: 'Universal Connectors', description: 'Connect to any tool via 50+ pre-built integrations or custom APIs', color: 'oklch(0.65_0.15_145)' },
+    { Icon: Bot, label: 'No-Code Delegation', description: 'Point, click, and delegate—build AI agents that handle tasks without technical skills', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Workflow, label: 'Multi-Agent Teams', description: 'AI agents collaborate and divide complex workflows automatically', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Universal Connections', description: 'Connect to any tool instantly with 50+ pre-built integrations', color: 'oklch(0.65_0.15_145)' },
   ]
 
   const automationUseCases = [
-    { icon: Mail, text: 'Email Automation' },
-    { icon: Database, text: 'CRM Updates' },
-    { icon: Calendar, text: 'Meeting Scheduling' },
-    { icon: Bot, text: 'Sales Outreach' }
+    { icon: Mail, text: 'Delegate Emails' },
+    { icon: Database, text: 'Automate CRM' },
+    { icon: Calendar, text: 'Schedule Meetings' },
+    { icon: Bot, text: 'Run Outreach' }
   ]
 
   const platformCapabilities = [
-    { Icon: Bot, label: 'Intelligent Agents', description: 'Build agents that learn and adapt to your workflow', color: 'oklch(0.65_0.15_270)' },
-    { Icon: Workflow, label: 'Visual Builder', description: 'Drag-and-drop interface—no coding required', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Network, label: 'Deep Integrations', description: 'Native connections to your existing tools', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Bot, label: 'Autonomous Agents', description: 'Deploy AI workers that execute tasks independently', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Workflow, label: 'Visual Workflow Builder', description: 'Drag-and-drop task delegation—no coding required', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Network, label: 'Deep Integrations', description: 'Native connections to CRM, email, and productivity tools', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -213,4 +213,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:leading-[1.06] lg:text-7xl xl:text-[5.5rem] font-bold
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl sm:leading-[1.08] md:text-6xl md:
