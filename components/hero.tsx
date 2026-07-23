@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Delegate Real Work to AI Agents'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Built for teams who need AI agents that execute complete workflows autonomously—from email outreach and CRM updates to customer follow-ups and sales sequences. Deploy intelligent workers that handle end-to-end processes without human intervention.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Delegating Work'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work for Your Team—No Code Required'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate repetitive work in minutes, not months. Deploy AI agents that handle emails, calls, CRM updates, and customer follow-ups—freeing your team to focus on growth. Ship 10x faster with autonomous workflows.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agents'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Agents in Action'
-  const eyebrow = hero?.eyebrow || 'Enterprise AI Agent Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
 
   const defaultTrustIndicators = [
-    { icon: 'workflow', text: 'Autonomous Workflow Execution' },
-    { icon: 'bot', text: 'Enterprise-Grade Automation' },
-    { icon: 'shield', text: 'Production-Ready Infrastructure' },
+    { icon: 'workflow', text: 'No-Code Workflow Builder' },
+    { icon: 'bot', text: 'Autonomous Task Execution' },
+    { icon: 'zap', text: 'Deploy in Minutes' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -126,12 +126,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
   const trustStats = [
-    { value: '100%', label: 'Autonomous Execution', Icon: Bot },
-    { value: '24/7', label: 'Continuous Operations', Icon: Clock },
-    { value: 'SOC 2', label: 'Enterprise Security', Icon: Shield },
+    { value: '5 min', label: 'Average Setup Time', Icon: Clock },
+    { value: '24/7', label: 'Autonomous Operations', Icon: Bot },
+    { value: '0', label: 'Code Required', Icon: Zap },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: Agents Executing Real Work'
+  const feedHeader = demo?.feed_header || 'Live: Agents Automating Work Right Now'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -145,28 +145,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Lock, label: 'SOC 2 Type II', description: 'Enterprise security certified' },
-    { Icon: Users, label: 'Multi-Agent Teams', description: 'Collaborative agent workspaces' },
+    { Icon: Lock, label: 'Enterprise Security', description: 'SOC 2 Type II certified' },
+    { Icon: Users, label: 'Team Collaboration', description: 'Multi-agent workspaces' },
     { Icon: Activity, label: 'Real-Time Execution', description: 'Live autonomous operations' },
   ]
 
   const trustBadges = [
-    'Enterprise-ready automation',
+    'No-code automation',
+    'Deploy in minutes',
     'Autonomous execution',
-    'Zero-code deployment',
-    'Production infrastructure'
+    'Production-ready infrastructure'
   ]
 
   const coreValueProps = [
-    { Icon: Workflow, label: 'Complete Workflow Delegation', description: 'Agents execute entire business processes from start to finish without supervision' },
-    { Icon: Bot, label: 'Autonomous Decision Making', description: 'AI workers make contextual decisions and adapt workflows based on outcomes' },
-    { Icon: Network, label: 'Multi-System Orchestration', description: 'Agents coordinate across CRM, email, calendars, and databases seamlessly' },
+    { Icon: Zap, label: 'Ship 10x Faster', description: 'Deploy automated workflows in minutes instead of weeks of development time' },
+    { Icon: Bot, label: 'No Code Required', description: 'Build powerful AI agents with visual workflows—zero programming needed' },
+    { Icon: Workflow, label: 'Automate Repetitive Tasks', description: 'Eliminate manual work: emails, calls, CRM updates, data entry, and follow-ups' },
   ]
 
   const technicalBenefits = [
-    { Icon: Database, label: 'End-to-End CRM Management', description: 'Agents handle lead enrichment, qualification, and pipeline updates autonomously' },
-    { Icon: Mail, label: 'Outbound Campaign Execution', description: 'Deploy agents that research, personalize, and manage entire email sequences' },
-    { Icon: MessageSquare, label: 'Support Workflow Automation', description: 'Agents triage, research, and resolve customer inquiries independently' },
+    { Icon: Mail, label: 'Email & Outreach Automation', description: 'Agents draft, personalize, and send emails based on triggers and customer data' },
+    { Icon: Database, label: 'CRM & Data Management', description: 'Automatically update contacts, leads, and deals across Salesforce, HubSpot, and more' },
+    { Icon: MessageSquare, label: 'Customer Support & Follow-ups', description: 'Handle inquiries, schedule calls, and send follow-up sequences autonomously' },
   ]
 
   const totalTasksAutomated = 10247
@@ -182,22 +182,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Bot, label: 'True Autonomous Agents', description: 'Deploy AI workers that execute complete workflows independently—not just task assistants', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Workflow, label: 'End-to-End Execution', description: 'Agents handle entire business processes from research to completion without intervention', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Brain, label: 'Contextual Intelligence', description: 'AI agents make decisions, adapt workflows, and learn from outcomes autonomously', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Zap, label: 'No-Code Simplicity', description: 'Build AI agents with drag-and-drop workflows—no technical skills required', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Workflow, label: 'End-to-End Automation', description: 'Agents handle complete processes from trigger to completion without human intervention', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Brain, label: 'Intelligent Decision Making', description: 'AI agents adapt workflows, prioritize tasks, and learn from outcomes autonomously', color: 'oklch(0.65_0.15_270)' },
   ]
 
   const automationUseCases = [
-    { icon: Workflow, text: 'Execute Workflows' },
-    { icon: Bot, text: 'Autonomous Agents' },
-    { icon: Network, text: 'Multi-System Ops' },
-    { icon: Brain, text: 'Intelligent Decisions' }
+    { icon: Mail, text: 'Automate Emails' },
+    { icon: Database, text: 'Update CRM' },
+    { icon: MessageSquare, text: 'Handle Calls' },
+    { icon: Calendar, text: 'Schedule Meetings' }
   ]
 
   const platformCapabilities = [
-    { Icon: Bot, label: 'Production-Ready Agents', description: 'Deploy enterprise-grade AI workers that execute real business processes', color: 'oklch(0.65_0.15_270)' },
-    { Icon: Workflow, label: 'Complete Workflow Automation', description: 'Build agents that handle end-to-end processes without human oversight', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Enterprise Infrastructure', description: 'SOC 2 certified platform with production-grade reliability and security', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Zap, label: 'Launch in Minutes', description: 'Deploy AI agents faster than building internal tools—no dev time required', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Bot, label: 'Autonomous Execution', description: 'Agents run 24/7, handling tasks and making decisions without supervision', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Shield, label: 'Enterprise-Ready', description: 'SOC 2 certified with production-grade security and reliability', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -208,9 +208,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-6 sm:gap-8 md:gap-10 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-4 sm:gap-6 md:gap-7 max-w-5xl w-full">
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Bot className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
+            <Zap className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <h1 className="text-[2.25rem] leading-[1
+          <div className={`flex flex-col items-center gap-4 sm:gap-5 md:gap-6 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' :
