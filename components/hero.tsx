@@ -108,10 +108,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Team Automation'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Ship 10x faster by automating repetitive work with AI agents. Eliminate manual emails, CRM updates, customer follow-ups, and data entry—deploy autonomous workflows in minutes, scale your operations without scaling headcount.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'No-code platform to automate emails, calls, CRM updates, and outbound sales. Deploy in minutes, not months.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent in 5 Minutes'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Examples'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
 
   const defaultTrustIndicators = [
@@ -212,4 +212,5 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
-          <div className={`flex flex-col items-center gap-3 sm:gap-4 md:gap-5 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' :
+          <div className={`flex flex-col items-center gap-3 sm:gap-4 md:gap-5 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h1 className="
