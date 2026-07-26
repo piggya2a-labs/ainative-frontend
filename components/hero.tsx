@@ -108,9 +108,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'No-code platform to automate emails, calls, CRM updates, and outbound sales. Deploy in minutes, not months.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Build Your First Agent in 5 Minutes'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your team\'s work—emails, CRM updates, follow-ups, and repetitive tasks. Deploy autonomous agents in minutes and scale productivity 10x faster than building from scratch.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Live Examples'
   const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation'
 
@@ -213,4 +213,3 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           </div>
 
           <div className={`flex flex-col items-center gap-3 sm:gap-4 md:gap-5 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <h1 className="
