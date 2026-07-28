@@ -108,15 +108,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agents That Execute Tasks for Your Team'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Send emails, make calls, update your CRM, schedule meetings—all on autopilot. Give your team back 20+ hours per week with autonomous AI agents that work 24/7.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Now—Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Agents in Action'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Workflow Automation'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Automate Your Team\'s Work—No Code Required'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create AI agents that send emails, update your CRM, schedule meetings, handle customer support, and execute workflows autonomously. Give your team back 20+ hours per week—setup takes 5 minutes.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'workflow', text: 'Visual Workflow Builder' },
-    { icon: 'bot', text: '24/7 Autonomous Execution' },
+    { icon: 'workflow', text: 'Visual No-Code Builder' },
+    { icon: 'bot', text: 'Autonomous 24/7 Execution' },
     { icon: 'zap', text: 'Deploy in 5 Minutes' },
   ]
 
@@ -126,8 +126,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
   const trustStats = [
-    { value: '5 min', label: 'Average Setup Time', Icon: Clock },
-    { value: '24/7', label: 'Autonomous Operations', Icon: Bot },
+    { value: '5 min', label: 'Setup Time', Icon: Clock },
+    { value: '24/7', label: 'Autonomous Ops', Icon: Bot },
     { value: '0', label: 'Code Required', Icon: Zap },
   ]
 
@@ -210,6 +210,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <Bot className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
-          </div>
-
-          <div
+          </div
