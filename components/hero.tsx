@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Automate Your Team\'s Work—No Code Required'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Create AI agents that send emails, update your CRM, schedule meetings, handle customer support, and execute workflows autonomously. Give your team back 20+ hours per week—setup takes 5 minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Teams'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate repetitive work without writing code. Build AI agents that handle emails, outbound calls, CRM updates, and sales tasks—freeing your team to focus on what matters.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const eyebrow = hero?.eyebrow || 'Trusted by Modern Teams'
 
   const defaultTrustIndicators = [
-    { icon: 'workflow', text: 'Visual No-Code Builder' },
-    { icon: 'bot', text: 'Autonomous 24/7 Execution' },
-    { icon: 'zap', text: 'Deploy in 5 Minutes' },
+    { icon: 'workflow', text: 'Simple Visual Builder' },
+    { icon: 'bot', text: 'Works 24/7 Automatically' },
+    { icon: 'zap', text: 'Ready in Minutes' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -131,7 +131,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: '0', label: 'Code Required', Icon: Zap },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agents Automating Team Workflows Now'
+  const feedHeader = demo?.feed_header || 'Live: Teams Automating Work Right Now'
   const seedEvents = (demo?.seed_events ?? []) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? []) as Omit<AgentEvent, 'id' | 'ts'>[]
 
@@ -151,22 +151,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
-    'Zero coding required',
-    'Launch in 5 minutes',
-    'Runs autonomously 24/7',
-    'Enterprise-grade infrastructure'
+    'No technical skills needed',
+    'Set up in minutes',
+    'Works around the clock',
+    'Enterprise-grade security'
   ]
 
   const coreValueProps = [
-    { Icon: Zap, label: 'Deploy 10x Faster Than Building', description: 'Launch automated workflows in minutes—no engineering time, no code, no delays' },
-    { Icon: Bot, label: 'True Autonomous Execution', description: 'AI agents handle complete workflows from start to finish without human supervision' },
-    { Icon: Workflow, label: 'Eliminate Repetitive Work', description: 'Automate emails, CRM updates, follow-ups, calls, data entry, and scheduling instantly' },
+    { Icon: Zap, label: 'Launch Instantly, No Tech Skills', description: 'Create automated workflows in minutes with our visual builder—no developers, no code, no complexity' },
+    { Icon: Bot, label: 'AI Agents That Work for You', description: 'Your agents handle complete tasks from start to finish, making smart decisions without needing your input' },
+    { Icon: Workflow, label: 'Eliminate Busy Work Forever', description: 'Stop manually sending emails, updating spreadsheets, and chasing leads—let AI handle the repetitive stuff' },
   ]
 
   const technicalBenefits = [
-    { Icon: Mail, label: 'Autonomous Email & Outreach', description: 'Agents draft, personalize, and send emails triggered by customer actions and data changes' },
-    { Icon: Database, label: 'Intelligent CRM Automation', description: 'Automatically enrich leads, update deals, sync contacts across Salesforce, HubSpot, and more' },
-    { Icon: MessageSquare, label: 'Smart Follow-ups & Support', description: 'Handle customer inquiries, schedule calls, send sequences—all executed autonomously' },
+    { Icon: Mail, label: 'Smart Email & Outreach', description: 'Agents compose personalized emails, follow up with leads, and respond to inquiries automatically' },
+    { Icon: Database, label: 'Automatic CRM Management', description: 'Keep customer data fresh, update deals, enrich contacts across Salesforce, HubSpot, and more' },
+    { Icon: MessageSquare, label: 'Intelligent Follow-ups', description: 'Never miss a lead—agents schedule calls, send reminders, and manage customer conversations' },
   ]
 
   const totalTasksAutomated = 10247
@@ -182,22 +182,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Zap, label: 'Zero-Code Simplicity', description: 'Build AI agents with visual workflows—founders and ops teams launch automation in minutes', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Workflow, label: 'Complete Task Automation', description: 'AI agents handle entire processes autonomously from trigger to completion without supervision', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Brain, label: 'Intelligent Workflow Decisions', description: 'Agents adapt to context, prioritize tasks, and execute complex sequences without human input', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Zap, label: 'Anyone Can Build Agents', description: 'Drag-and-drop builder designed for teams—no coding background needed to automate workflows', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Workflow, label: 'Handles Complete Tasks', description: 'AI agents execute entire workflows autonomously from trigger to completion without supervision', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Brain, label: 'Makes Smart Decisions', description: 'Agents adapt to context, prioritize what matters, and handle complex processes intelligently', color: 'oklch(0.65_0.15_270)' },
   ]
 
   const automationUseCases = [
-    { icon: Mail, text: 'Send Emails Automatically' },
-    { icon: Database, text: 'Update CRM in Real-Time' },
-    { icon: MessageSquare, text: 'Execute Outbound Calls' },
-    { icon: Calendar, text: 'Schedule Meetings Autonomously' }
+    { icon: Mail, text: 'Send Personalized Emails' },
+    { icon: Database, text: 'Keep CRM Up-to-Date' },
+    { icon: MessageSquare, text: 'Handle Outbound Calls' },
+    { icon: Calendar, text: 'Schedule Meetings Automatically' }
   ]
 
   const platformCapabilities = [
-    { Icon: Zap, label: 'Launch Today, Not Next Quarter', description: 'Deploy AI agents in 5 minutes—no dev cycles, no hiring, no technical bottlenecks', color: 'oklch(0.65_0.15_270)' },
-    { Icon: Bot, label: 'Truly Autonomous Operations', description: 'Agents work 24/7 executing tasks, making decisions, and handling workflows independently', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Production-Ready Infrastructure', description: 'SOC 2 certified with enterprise security—trusted by fast-moving startups and ops teams', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Zap, label: 'Start Today, Not Next Month', description: 'Build your first AI agent in 5 minutes—no technical setup, no learning curve, just results', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Bot, label: 'Truly Hands-Off Automation', description: 'Agents work 24/7 handling tasks, making decisions, and running workflows while you sleep', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Shield, label: 'Safe & Secure by Design', description: 'SOC 2 certified infrastructure—trusted by teams who take security seriously', color: 'oklch(0.58_0.15_145)' },
   ]
 
   return (
@@ -208,6 +208,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-5 sm:gap-7 md:gap-9 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-4 sm:gap-5 md:gap-6 max-w-5xl w-full">
           <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Bot className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
+            <Users className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
-          </div
+          </div>
+
+          <h1 className={`text-3xl
