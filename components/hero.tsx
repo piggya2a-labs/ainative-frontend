@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity, Award, Star, TrendingUp } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity, Award, Star, TrendingUp, CreditCard } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -108,16 +108,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Teams'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate repetitive work without writing code. Build AI agents that handle emails, outbound calls, CRM updates, and sales tasks—freeing your team to focus on what matters.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Trusted by Modern Teams'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate repetitive tasks across your team—email outreach, CRM updates, follow-ups, and sales calls. No technical skills required, just results in minutes.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
+  const eyebrow = hero?.eyebrow || 'Trusted by High-Performing Teams'
 
   const defaultTrustIndicators = [
-    { icon: 'workflow', text: 'Simple Visual Builder' },
-    { icon: 'bot', text: 'Works 24/7 Automatically' },
-    { icon: 'zap', text: 'Ready in Minutes' },
+    { icon: 'workflow', text: 'No-Code Visual Builder' },
+    { icon: 'bot', text: 'Autonomous 24/7 Agents' },
+    { icon: 'zap', text: 'Live in 5 Minutes' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -212,4 +212,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
             <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
           </div>
 
-          <h1 className={`text-3xl
+          <h1
