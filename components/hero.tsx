@@ -108,11 +108,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate repetitive tasks across your team—email outreach, CRM updates, follow-ups, and sales calls. No technical skills required, just results in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
-  const eyebrow = hero?.eyebrow || 'Trusted by High-Performing Teams'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wasting hours on email management, meeting scheduling, and CRM updates. Our AI agents handle repetitive work autonomously—so your team can focus on what matters. From lead follow-ups to data enrichment, automate the busy work in minutes.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const eyebrow = hero?.eyebrow || 'Trusted by Teams Building the Future'
 
   const defaultTrustIndicators = [
     { icon: 'workflow', text: 'No-Code Visual Builder' },
@@ -200,6 +200,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Shield, label: 'Safe & Secure by Design', description: 'SOC 2 certified infrastructure—trusted by teams who take security seriously', color: 'oklch(0.58_0.15_145)' },
   ]
 
+  const realWorldUseCases = [
+    { Icon: Mail, label: 'Email Management', description: 'Auto-reply to inquiries, draft personalized outreach, and manage inbox triage' },
+    { Icon: Calendar, label: 'Meeting Scheduling', description: 'Coordinate calendars, send invites, and handle rescheduling automatically' },
+    { Icon: Database, label: 'CRM Automation', description: 'Update contacts, enrich lead data, and sync information across platforms' },
+    { Icon: MessageSquare, label: 'Lead Follow-ups', description: 'Track prospects, send timely reminders, and nurture relationships autonomously' },
+  ]
+
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-16 sm:pt-20 md:pt-24 pb-8 sm:pb-12 md:pb-20 overflow-hidden" aria-label="Hero">
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
@@ -207,9 +214,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       
       <div className={`max-w-7xl mx-auto flex flex-col items-center gap-5 sm:gap-7 md:gap-9 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="flex flex-col items-center gap-4 sm:gap-5 md:gap-6 max-w-5xl w-full">
-          <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <Users className="w-3.5 sm:w-4 md:w-4.5 h-3.5 sm:h-4 md:h-4.5 text-purple-400" aria-hidden="true" />
-            <span className="text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-[0.15em] sm:tracking-[0.18em] md:tracking-[0.2em] bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{eyebrow}</span>
-          </div>
-
-          <h1
+          <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity
