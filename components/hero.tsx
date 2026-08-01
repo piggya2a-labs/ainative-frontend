@@ -62,8 +62,8 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
   const activeCount = events.filter((e) => e.status === 'running').length
 
   return (
-    <div className="w-full rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm overflow-hidden text-left">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-border/40 bg-muted/30">
+    <div className="w-full rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm overflow-hidden text-left shadow-lg shadow-purple-500/5 hover:shadow-purple-500/10 transition-shadow duration-300">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-border/40 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-purple-500/5">
         <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase tracking-wider">{feedHeader}</span>
         <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[oklch(0.65_0.15_145)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.65_0.15_145)] animate-pulse" />
@@ -72,7 +72,7 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
       </div>
       <ul className="divide-y divide-border">
         {events.slice(0, 5).map((event) => (
-          <li key={event.id} className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors">
+          <li key={event.id} className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-all duration-200 hover:bg-muted/30">
             <StatusIcon status={event.status} />
             <span className="font-mono text-[10px] sm:text-xs text-muted-foreground w-20 sm:w-32 shrink-0 truncate">{event.agent}</span>
             <span className="flex-1 text-foreground truncate text-[10px] sm:text-xs leading-relaxed">{event.action}</span>
@@ -87,6 +87,7 @@ function LiveFeed({ feedHeader, seedEvents, rollingEvents }: LiveFeedProps) {
 export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, onDemoClick, onTemplatesClick }: HeroProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [hasScrolled, setHasScrolled] = useState(false)
+  const [socialProofCount, setSocialProofCount] = useState(0)
   
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100)
@@ -105,14 +106,33 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     }
   }, [hasScrolled])
 
+  useEffect(() => {
+    const targetCount = 10000
+    const duration = 2000
+    const steps = 60
+    const increment = targetCount / steps
+    const stepDuration = duration / steps
+    
+    let currentStep = 0
+    const interval = setInterval(() => {
+      currentStep++
+      setSocialProofCount(Math.min(Math.floor(increment * currentStep), targetCount))
+      if (currentStep >= steps) {
+        clearInterval(interval)
+      }
+    }, stepDuration)
+    
+    return () => clearInterval(interval)
+  }, [])
+
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Actually Work for Your Team'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wasting hours on email management, meeting scheduling, and CRM updates. Our AI agents handle repetitive work autonomously—so your team can focus on what matters. From lead follow-ups to data enrichment, automate the busy work in minutes.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate workflows, manage tasks, and boost productivity without complexity. From email management to CRM updates, let AI agents handle the busy work while your team focuses on growth.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
-  const eyebrow = hero?.eyebrow || 'Trusted by Teams Building the Future'
+  const eyebrow = hero?.eyebrow || 'Trusted by 10,000+ Teams Building the Future'
 
   const defaultTrustIndicators = [
     { icon: 'workflow', text: 'No-Code Visual Builder' },
@@ -212,6 +232,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle, oklch(0.30 0 0) 1px, transparent 1px)', backgroundSize: '28px 28px', opacity: 0.35 }} />
       <div className="absolute inset-0 -z-10" aria-hidden="true" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 45%, oklch(0.30 0.08 270) 0%, transparent 50%), radial-gradient(ellipse 50% 40% at 50% 60%, oklch(0.25 0.10 250) 0%, transparent 60%)' }} />
       
-      <div className={`max-w-7xl mx-auto flex flex-col items-center gap-5 sm:gap-7 md:gap-9 w-full transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="flex flex-col items-center gap-4 sm:gap-5 md:gap-6 max-w-5xl w-full">
-          <div className={`flex items-center gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm transition-all duration-700 delay-100 ${isVisible ? 'opacity
+      <div className={`max-w-7xl mx-auto flex flex-col items-center gap
