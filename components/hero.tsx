@@ -128,11 +128,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI Agents That Automate Your Work'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'No-code AI agents handle emails, update your CRM, follow up with leads, and manage sales workflows—automatically. Set up in 5 minutes, no technical skills required.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Automate Your Team's Work'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Eliminate repetitive tasks and accelerate your team's productivity with no-code AI agents. Handle emails, update CRMs, follow up with leads, and manage workflows automatically—so your team can focus on high-impact work.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
-  const eyebrow = hero?.eyebrow || '12,847+ Teams Already Automating Daily Work'
+  const eyebrow = hero?.eyebrow || 'No-Code Automation for Fast-Moving Teams'
 
   const defaultTrustIndicators = [
     { icon: 'zap', text: 'Live in 5 Minutes' },
@@ -234,4 +234,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const realWorldUseCases = [
     { Icon: Mail, label: 'Email Management', description: 'Auto-reply to inquiries, draft personalized outreach, manage inbox triage automatically' },
-    { Icon: Calendar, label: 'Meeting Coordination', description: '
+    { Icon: Calendar,
