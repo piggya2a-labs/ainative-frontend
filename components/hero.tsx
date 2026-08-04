@@ -107,7 +107,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   }, [hasScrolled])
 
   useEffect(() => {
-    const targetCount = 12847
+    const targetCount = 1000
     const duration = 2000
     const steps = 60
     const increment = targetCount / steps
@@ -128,22 +128,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Automate Your Team's Work'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Eliminate repetitive tasks and accelerate your team's productivity with no-code AI agents. Handle emails, update CRMs, follow up with leads, and manage workflows automatically—so your team can focus on high-impact work.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
-  const eyebrow = hero?.eyebrow || 'No-Code Automation for Fast-Moving Teams'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agents That Actually Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wasting time on repetitive work. Our AI agents handle emails, schedule calls, and update your CRM automatically—no coding or technical skills needed. Just tell them what to do, and they'll do it.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Agent Templates'
+  const eyebrow = hero?.eyebrow || 'Ship your first AI agent in minutes'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Live in 5 Minutes' },
-    { icon: 'workflow', text: 'No Code Required' },
-    { icon: 'bot', text: 'Works 24/7 Automatically' },
+    { icon: 'zap', text: 'Set up in 5 minutes' },
+    { icon: 'workflow', text: 'Zero code required' },
+    { icon: 'bot', text: 'Works 24/7 on autopilot' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const displayToolCount = toolCount > 0 ? toolCount : 50
-  const displayAgentCount = agentCount > 0 ? agentCount : 12847
+  const displayAgentCount = agentCount > 0 ? agentCount : 1000
 
   const trustStats = [
     { value: '5 min', label: 'Setup Time', Icon: Clock },
@@ -151,7 +151,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: '0', label: 'Code Needed', Icon: Zap },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agents Automating Work Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agents Working Right Now'
   const seedEvents = (demo?.seed_events ?? [
     { agent: 'Sales-Agent-47', action: 'Updated 12 CRM contacts in Salesforce', status: 'done' as const, ts: '2m ago' },
     { agent: 'Email-Agent-23', action: 'Sent 8 personalized follow-up emails', status: 'done' as const, ts: '5m ago' },
@@ -190,19 +190,19 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Automated Email & Outreach', description: 'AI agents compose personalized emails, follow up with leads, and manage your inbox—no manual work required' },
-    { Icon: Database, label: 'Smart CRM Management', description: 'Keep Salesforce, HubSpot, or Pipedrive updated automatically—contacts enriched, deals synced, data always fresh' },
-    { Icon: Calendar, label: 'Intelligent Scheduling', description: 'Let agents coordinate meetings, send calendar invites, and handle rescheduling across your team autonomously' },
+    { Icon: Mail, label: 'Automated Email & Outreach', description: 'AI agents write personalized emails, follow up with leads, and manage your inbox—completely hands-off' },
+    { Icon: Database, label: 'Smart CRM Updates', description: 'Keep Salesforce, HubSpot, or Pipedrive fresh automatically—contacts enriched, deals synced, data always current' },
+    { Icon: Calendar, label: 'Intelligent Scheduling', description: 'Agents coordinate meetings, send invites, and handle rescheduling across your team without lifting a finger' },
   ]
 
   const technicalBenefits = [
-    { Icon: Zap, label: 'Build Without Code', description: 'Visual drag-and-drop builder anyone on your team can use—no developers, no technical training needed' },
-    { Icon: Bot, label: 'True Autonomous Agents', description: 'Set it and forget it—agents handle complete workflows from trigger to completion, 24/7 without supervision' },
-    { Icon: Workflow, label: 'Connects Everything', description: 'Works with Gmail, Salesforce, Slack, Google Calendar, and 50+ tools your team already uses every day' },
+    { Icon: Zap, label: 'No Code, No Problem', description: 'Simple drag-and-drop builder anyone can use—zero developers, zero training, zero headaches' },
+    { Icon: Bot, label: 'True Autopilot', description: 'Set it once and agents handle everything—complete workflows from start to finish, 24/7 without babysitting' },
+    { Icon: Workflow, label: 'Plugs Into Everything', description: 'Works with Gmail, Salesforce, Slack, Google Calendar, and 50+ tools you already use daily' },
   ]
 
   const totalTasksAutomated = 10247
-  const totalEarlyAdopters = 1247
+  const totalEarlyAdopters = 1000
 
   const keyIntegrations = [
     { Icon: Database, label: 'Salesforce', color: 'oklch(0.55 0.20 220)' },
@@ -214,9 +214,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Zap, label: 'Non-Technical Setup', description: 'Anyone can create AI agents—designed for teams without coding skills or technical background', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Bot, label: 'Complete Task Automation', description: 'Agents execute entire workflows autonomously from start to finish without human intervention', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Brain, label: 'Intelligent Decision-Making', description: 'AI agents adapt to context, prioritize actions, and handle complex business logic automatically', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Zap, label: 'Actually No-Code', description: 'Anyone on your team can build agents—seriously, no coding or technical background required', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Bot, label: 'Full Task Automation', description: 'Agents run entire workflows start-to-finish autonomously without needing your input', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Brain, label: 'Smart Decision-Making', description: 'AI adapts to context, prioritizes actions, and handles complex business logic automatically', color: 'oklch(0.65_0.15_270)' },
   ]
 
   const automationUseCases = [
@@ -227,9 +227,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const platformCapabilities = [
-    { Icon: Zap, label: 'Launch in Minutes', description: 'Create your first AI automation in 5 minutes—no complex setup, no learning curve, just results', color: 'oklch(0.65_0.15_270)' },
-    { Icon: Bot, label: 'Truly Hands-Off', description: 'Agents work 24/7 handling repetitive tasks, making decisions, and running workflows autonomously', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Enterprise-Grade Security', description: 'SOC 2 Type II certified infrastructure—trusted by teams who prioritize data security', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Zap, label: 'Ship in Minutes', description: 'Create your first agent in 5 minutes—no complex setup, no learning curve, just instant results', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Bot, label: 'Fully Hands-Off', description: 'Agents work 24/7 handling repetitive tasks, making decisions, and running workflows on autopilot', color: 'oklch(0.60_0.18_25)' },
+    { Icon: Shield, label: 'Enterprise Security', description: 'SOC 2 Type II certified infrastructure—trusted by teams who care about data security', color: 'oklch(0.58_0.15_145)' },
   ]
 
   const realWorldUseCases = [
