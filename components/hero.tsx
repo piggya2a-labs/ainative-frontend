@@ -88,6 +88,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const [isVisible, setIsVisible] = useState(false)
   const [hasScrolled, setHasScrolled] = useState(false)
   const [socialProofCount, setSocialProofCount] = useState(0)
+  const [automatedHours, setAutomatedHours] = useState(0)
   
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100)
@@ -125,19 +126,38 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    const targetHours = 127
+    const duration = 2500
+    const steps = 50
+    const increment = targetHours / steps
+    const stepDuration = duration / steps
+    
+    let currentStep = 0
+    const interval = setInterval(() => {
+      currentStep++
+      setAutomatedHours(Math.min(Math.floor(increment * currentStep), targetHours))
+      if (currentStep >= steps) {
+        clearInterval(interval)
+      }
+    }, stepDuration)
+    
+    return () => clearInterval(interval)
+  }, [])
+
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Automate Your Team's Work with AI Agents—No Code Required'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build AI agents that handle email automation, CRM updates, outbound sales, and customer support—all without writing a single line of code. Use our visual workflow builder and pre-built AI agents to automate repetitive tasks in minutes.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Repetitive Work'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and customer support with visual AI agents. No coding required—just drag, drop, and deploy automation that works 24/7 for your team.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Browse Pre-Built Agents'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Automation Platform'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Visual workflow builder' },
-    { icon: 'workflow', text: 'Pre-built AI agents ready' },
-    { icon: 'shield', text: 'Enterprise-grade security' },
+    { icon: 'zap', text: 'Visual workflow builder—no coding' },
+    { icon: 'workflow', text: '50+ pre-built AI agents ready' },
+    { icon: 'shield', text: 'SOC 2 Type II certified security' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -227,9 +247,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const platformCapabilities = [
-    { Icon: LayoutTemplate, label: 'Visual Workflow Builder', description: 'Build AI agents with drag-and-drop simplicity—no coding required, just connect the blocks and automate', color: 'oklch(0.65_0.15_270)' },
-    { Icon: Bot, label: 'Pre-Built AI Agents', description: 'Start with proven agent templates for common workflows—email, CRM, sales, support all ready to deploy', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Enterprise-Grade Security', description: 'SOC 2 Type II certified platform—trusted security infrastructure for teams that care about data protection', color: 'oklch(0.58_0.15_145)' },
-  ]
-
-  const realWorldUseCases =
+    { Icon: LayoutTemplate, label: 'Visual Workflow Builder', description: 'Build AI agents with drag
