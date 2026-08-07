@@ -148,8 +148,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Repetitive Work'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, CRM updates, sales outreach, and customer support with visual AI agents. No coding required—just drag, drop, and deploy automation that works 24/7 for your team.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Work in Minutes'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Email, CRM, Sales Outreach—All Automated. Visual workflow builder lets anyone create AI agents that handle repetitive tasks 24/7. No coding required.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Browse Pre-Built Agents'
   const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
@@ -246,5 +246,5 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { icon: MessageSquare, text: 'Customer Support' }
   ]
 
-  const platformCapabilities = [
-    { Icon: LayoutTemplate, label: 'Visual Workflow Builder', description: 'Build AI agents with drag
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background to-muted/
