@@ -148,11 +148,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Work in Minutes'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Email, CRM, Sales Outreach—All Automated. Visual workflow builder lets anyone create AI agents that handle repetitive tasks 24/7. No coding required.'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Team Automation'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, calls, CRM updates, and outbound sales without writing code. Visual workflow builder lets anyone create AI agents that handle repetitive tasks 24/7.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'Browse Pre-Built Agents'
   const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const secondaryBenefitLine = 'Join teams automating workflows in minutes'
 
   const defaultTrustIndicators = [
     { icon: 'zap', text: 'Visual workflow builder—no coding' },
@@ -247,4 +248,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background to-muted/
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg
