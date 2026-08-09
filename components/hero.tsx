@@ -148,17 +148,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Team Automation'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate emails, calls, CRM updates, and outbound sales without writing code. Visual workflow builder lets anyone create AI agents that handle repetitive tasks 24/7.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Pre-Built Agents'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
-  const secondaryBenefitLine = 'Join teams automating workflows in minutes'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together as a Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your business workflows without code. Create autonomous AI agents that collaborate to handle emails, CRM updates, customer support, and sales—24/7.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your AI Team'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch How Teams Collaborate'
+  const eyebrow = hero?.eyebrow || 'Autonomous Multi-Agent Platform'
+  const secondaryBenefitLine = 'Trusted by teams building the future'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Visual workflow builder—no coding' },
-    { icon: 'workflow', text: '50+ pre-built AI agents ready' },
-    { icon: 'shield', text: 'SOC 2 Type II certified security' },
+    { icon: 'network', text: 'Multi-agent collaboration built-in' },
+    { icon: 'workflow', text: 'No-code visual workflow builder' },
+    { icon: 'shield', text: 'Enterprise-grade security & compliance' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -172,20 +172,20 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: '0', label: 'Code Needed', Icon: Zap },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agents Automating Work Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Collaborating Right Now'
   const seedEvents = (demo?.seed_events ?? [
-    { agent: 'Email-Agent-23', action: 'Sent 8 personalized outbound sales emails', status: 'done' as const, ts: '2m ago' },
-    { agent: 'CRM-Agent-47', action: 'Updated 12 Salesforce contacts automatically', status: 'done' as const, ts: '5m ago' },
-    { agent: 'Support-Agent-91', action: 'Responding to 3 customer support tickets', status: 'running' as const, ts: 'now' },
-    { agent: 'Lead-Agent-64', action: 'Enriched 15 leads from LinkedIn', status: 'done' as const, ts: '8m ago' },
-    { agent: 'Outreach-Agent-12', action: 'Processing new inbound inquiries', status: 'running' as const, ts: 'now' },
+    { agent: 'Sales-Team-Alpha', action: 'Coordinating outbound campaign across 3 agents', status: 'running' as const, ts: 'now' },
+    { agent: 'Support-Team-Beta', action: 'Triaged 15 tickets, escalated 2 to human team', status: 'done' as const, ts: '3m ago' },
+    { agent: 'CRM-Sync-Team', action: 'Updated 47 contacts across Salesforce & HubSpot', status: 'done' as const, ts: '5m ago' },
+    { agent: 'Email-Team-Gamma', action: 'Sent 23 personalized follow-ups, scheduled 8 calls', status: 'done' as const, ts: '7m ago' },
+    { agent: 'Lead-Enrichment', action: 'Enriching 12 leads from LinkedIn and databases', status: 'running' as const, ts: 'now' },
   ]) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? [
-    { agent: 'Email-Agent-45', action: 'Automating email follow-up sequences', status: 'running' as const },
-    { agent: 'CRM-Agent-78', action: 'Syncing deal stages across CRM systems', status: 'done' as const },
-    { agent: 'Sales-Agent-33', action: 'Qualifying outbound sales leads', status: 'done' as const },
-    { agent: 'Support-Agent-56', action: 'Triaging customer support requests', status: 'running' as const },
-    { agent: 'Data-Agent-89', action: 'Enriching contact information automatically', status: 'done' as const },
+    { agent: 'Collaboration-Hub', action: 'Coordinating workflow between 4 agent teams', status: 'running' as const },
+    { agent: 'Email-Agent-Team', action: 'Automating multi-touch email sequences', status: 'done' as const },
+    { agent: 'Data-Sync-Team', action: 'Syncing data across CRM and communication tools', status: 'done' as const },
+    { agent: 'Sales-Automation', action: 'Qualifying leads and scheduling demos', status: 'running' as const },
+    { agent: 'Support-Orchestra', action: 'Handling customer inquiries across channels', status: 'done' as const },
   ]) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
@@ -198,28 +198,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Shield, label: 'Enterprise-Grade Security', description: 'SOC 2 Type II certified infrastructure' },
-    { Icon: Users, label: 'Team Collaboration', description: 'Multi-agent workspaces for teams' },
-    { Icon: Activity, label: 'Real-Time Automation', description: 'Live autonomous task execution' },
+    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Agents collaborate autonomously to complete complex workflows' },
+    { Icon: Users, label: 'Team Workspace', description: 'Build, share, and manage agent teams across your organization' },
+    { Icon: Activity, label: 'Real-Time Coordination', description: 'Watch agents work together in real-time with live monitoring' },
   ]
 
   const trustBadges = [
-    'SOC 2 Type II certified',
-    'Visual workflow builder',
-    'Pre-built AI agents included',
-    'No coding skills required'
+    'Trusted by teams building the future',
+    'Multi-agent collaboration platform',
+    'No coding skills required',
+    'Enterprise security certified'
   ]
 
   const coreValueProps = [
-    { Icon: Mail, label: 'Email Automation & Outreach', description: 'AI agents write personalized emails, automate follow-ups, and manage outbound sales campaigns—completely hands-off' },
-    { Icon: Database, label: 'Automated CRM Updates', description: 'Keep Salesforce, HubSpot, or Pipedrive synced automatically—contacts enriched, deals updated, data always current' },
-    { Icon: MessageSquare, label: 'Customer Support Automation', description: 'Agents handle ticket triage, respond to FAQs, and escalate complex issues—24/7 support without hiring more staff' },
+    { Icon: Network, label: 'Agents That Collaborate', description: 'Build teams of AI agents that work together autonomously—one handles emails, another updates CRM, a third enriches leads, all coordinated seamlessly' },
+    { Icon: Workflow, label: 'Automate Complete Workflows', description: 'Go beyond single tasks—create end-to-end business automation where agents hand off work to each other like a real team' },
+    { Icon: LayoutTemplate, label: 'No-Code Visual Builder', description: 'Design complex multi-agent workflows with drag-and-drop simplicity—anyone on your team can build sophisticated automation' },
   ]
 
   const technicalBenefits = [
-    { Icon: LayoutTemplate, label: 'Visual Workflow Builder', description: 'Drag-and-drop interface anyone can use—build complex automations without writing code or technical training' },
-    { Icon: Bot, label: 'Pre-Built AI Agents Ready', description: 'Start with battle-tested agent templates for common tasks—customize them in minutes or use them as-is' },
-    { Icon: Workflow, label: 'Works With Your Tools', description: 'Integrates with Gmail, Salesforce, Slack, Google Calendar, and 50+ tools your team already uses daily' },
+    { Icon: Bot, label: 'Autonomous Agent Teams', description: 'Unlike single-agent platforms, our agents work together as a coordinated team—handling complex workflows that require multiple specialized roles' },
+    { Icon: Sparkles, label: 'Smart Orchestration Engine', description: 'Agents automatically coordinate handoffs, share context, and adapt to changing conditions—true autonomous collaboration without manual intervention' },
+    { Icon: Database, label: 'Unified Integration Layer', description: 'Connect to 50+ tools once, let all your agents access them—no duplicate setup, seamless data flow across your entire agent team' },
   ]
 
   const totalTasksAutomated = 10247
@@ -235,17 +235,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: LayoutTemplate, label: 'True No-Code Platform', description: 'Visual workflow builder makes AI agent creation accessible to everyone—no developers, no coding, no complexity', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Bot, label: 'Pre-Built Agent Library', description: 'Start with ready-made AI agents for email, CRM, sales, and support—customize or deploy in minutes', color: 'oklch(0.60_0.18_25)' },
-    { Icon: Shield, label: 'Enterprise Security Built-In', description: 'SOC 2 Type II certified infrastructure ensures your data is protected with enterprise-grade security', color: 'oklch(0.65_0.15_270)' },
+    { Icon: Network, label: 'True Multi-Agent Platform', description: 'First platform built for agent collaboration—create teams that work together autonomously, not just isolated single agents', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Brain, label: 'Intelligent Orchestration', description: 'Agents coordinate seamlessly with smart handoffs, shared context, and adaptive workflows—like a real team, but autonomous', color: 'oklch(0.60_0.18_270)' },
+    { Icon: Workflow, label: 'End-to-End Automation', description: 'Automate complete business processes, not just tasks—agents handle everything from lead capture to deal close without human intervention', color: 'oklch(0.65_0.15_220)' },
   ]
 
   const automationUseCases = [
-    { icon: Mail, text: 'Email Automation' },
-    { icon: Database, text: 'CRM Updates' },
-    { icon: Rocket, text: 'Outbound Sales' },
-    { icon: MessageSquare, text: 'Customer Support' }
-  ]
-
-  return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg
+    { icon: Network, text: 'Agent Team Collaboration' },
+    { icon: Workflow, text: 'Business Process Automation' },
+    { icon: Brain, text: 'Intelligent Orchestration' },
+    { icon: Rocket, text: '
