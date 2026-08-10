@@ -148,17 +148,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together as a Team'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate your business workflows without code. Create autonomous AI agents that collaborate to handle emails, CRM updates, customer support, and sales—24/7.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Autonomously'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Ship faster, automate smarter—no technical complexity. Create autonomous AI agent teams that handle your workflows end-to-end, so you can focus on what matters: growing your business.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your AI Team'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch How Teams Collaborate'
-  const eyebrow = hero?.eyebrow || 'Autonomous Multi-Agent Platform'
-  const secondaryBenefitLine = 'Trusted by teams building the future'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How Teams Automate'
+  const eyebrow = hero?.eyebrow || 'For Founders Who Move Fast'
+  const secondaryBenefitLine = 'Reduce operational overhead, ship features faster'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Multi-agent collaboration built-in' },
-    { icon: 'workflow', text: 'No-code visual workflow builder' },
-    { icon: 'shield', text: 'Enterprise-grade security & compliance' },
+    { icon: 'zap', text: 'Deploy in minutes, not weeks' },
+    { icon: 'rocket', text: 'Zero technical complexity' },
+    { icon: 'network', text: 'Autonomous multi-agent teams' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -168,11 +168,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const trustStats = [
     { value: '5 min', label: 'Setup Time', Icon: Clock },
-    { value: 'SOC 2', label: 'Certified', Icon: Shield },
+    { value: '10x', label: 'Faster Shipping', Icon: Rocket },
     { value: '0', label: 'Code Needed', Icon: Zap },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Collaborating Right Now'
+  const feedHeader = demo?.feed_header || 'Live: Autonomous Agent Teams Working Right Now'
   const seedEvents = (demo?.seed_events ?? [
     { agent: 'Sales-Team-Alpha', action: 'Coordinating outbound campaign across 3 agents', status: 'running' as const, ts: 'now' },
     { agent: 'Support-Team-Beta', action: 'Triaged 15 tickets, escalated 2 to human team', status: 'done' as const, ts: '3m ago' },
@@ -198,28 +198,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Network, label: 'Multi-Agent Orchestration', description: 'Agents collaborate autonomously to complete complex workflows' },
-    { Icon: Users, label: 'Team Workspace', description: 'Build, share, and manage agent teams across your organization' },
-    { Icon: Activity, label: 'Real-Time Coordination', description: 'Watch agents work together in real-time with live monitoring' },
+    { Icon: Rocket, label: 'Ship Features 10x Faster', description: 'Automate operational tasks so your team focuses on product and growth' },
+    { Icon: Zap, label: 'Zero Technical Overhead', description: 'No engineering resources required—anyone can build and deploy agent teams' },
+    { Icon: Activity, label: 'Autonomous Execution', description: 'Agents work 24/7 without supervision, adapting to changes automatically' },
   ]
 
   const trustBadges = [
-    'Trusted by teams building the future',
-    'Multi-agent collaboration platform',
-    'No coding skills required',
-    'Enterprise security certified'
+    'Built for fast-moving founders',
+    'Deploy autonomous workflows in minutes',
+    'No coding or technical skills required',
+    'Reduce operational overhead instantly'
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Agents That Collaborate', description: 'Build teams of AI agents that work together autonomously—one handles emails, another updates CRM, a third enriches leads, all coordinated seamlessly' },
-    { Icon: Workflow, label: 'Automate Complete Workflows', description: 'Go beyond single tasks—create end-to-end business automation where agents hand off work to each other like a real team' },
-    { Icon: LayoutTemplate, label: 'No-Code Visual Builder', description: 'Design complex multi-agent workflows with drag-and-drop simplicity—anyone on your team can build sophisticated automation' },
+    { Icon: Rocket, label: 'Ship Faster, Automate Everything', description: 'Stop spending time on operational tasks—deploy autonomous agent teams that handle workflows end-to-end while you focus on building your product' },
+    { Icon: Network, label: 'Agents That Work Autonomously', description: 'True autonomous collaboration—agents coordinate with each other, adapt to changes, and execute complex workflows without human intervention' },
+    { Icon: Zap, label: 'Zero Technical Complexity', description: 'No engineers needed. Visual builder lets anyone create sophisticated multi-agent automation—deploy in minutes, not weeks' },
   ]
 
   const technicalBenefits = [
-    { Icon: Bot, label: 'Autonomous Agent Teams', description: 'Unlike single-agent platforms, our agents work together as a coordinated team—handling complex workflows that require multiple specialized roles' },
-    { Icon: Sparkles, label: 'Smart Orchestration Engine', description: 'Agents automatically coordinate handoffs, share context, and adapt to changing conditions—true autonomous collaboration without manual intervention' },
-    { Icon: Database, label: 'Unified Integration Layer', description: 'Connect to 50+ tools once, let all your agents access them—no duplicate setup, seamless data flow across your entire agent team' },
+    { Icon: Rocket, label: 'Instant Deployment', description: 'Go from idea to live automation in minutes—no development cycles, no technical bottlenecks, just pure speed' },
+    { Icon: Brain, label: 'Truly Autonomous Teams', description: 'Agents don\'t just execute tasks—they collaborate, make decisions, and handle exceptions independently, like a real team that never sleeps' },
+    { Icon: Database, label: 'Plug & Play Integration', description: 'Connect to 50+ tools instantly—no API setup, no custom code, no maintenance. Your agents get access to everything they need, immediately' },
   ]
 
   const totalTasksAutomated = 10247
@@ -235,13 +235,12 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Network, label: 'True Multi-Agent Platform', description: 'First platform built for agent collaboration—create teams that work together autonomously, not just isolated single agents', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Brain, label: 'Intelligent Orchestration', description: 'Agents coordinate seamlessly with smart handoffs, shared context, and adaptive workflows—like a real team, but autonomous', color: 'oklch(0.60_0.18_270)' },
-    { Icon: Workflow, label: 'End-to-End Automation', description: 'Automate complete business processes, not just tasks—agents handle everything from lead capture to deal close without human intervention', color: 'oklch(0.65_0.15_220)' },
+    { Icon: Rocket, label: 'Built for Speed', description: 'Deploy complete automation workflows in 5 minutes—no technical expertise, no dev cycles, no delays. Just pure execution velocity', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Brain, label: 'Truly Autonomous', description: 'Agents work independently, coordinate with each other, and handle exceptions—no babysitting, no manual intervention, just results', color: 'oklch(0.60_0.18_270)' },
+    { Icon: Zap, label: 'Zero Operational Overhead', description: 'Eliminate repetitive tasks completely—agents handle everything from lead capture to customer support to CRM updates, autonomously', color: 'oklch(0.65_0.15_220)' },
   ]
 
   const automationUseCases = [
-    { icon: Network, text: 'Agent Team Collaboration' },
-    { icon: Workflow, text: 'Business Process Automation' },
-    { icon: Brain, text: 'Intelligent Orchestration' },
-    { icon: Rocket, text: '
+    { icon: Network, text: 'Autonomous Agent Teams' },
+    { icon: Rocket, text: 'Rapid Deployment' },
+    { icon: Brain, text:
