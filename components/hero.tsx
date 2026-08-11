@@ -148,17 +148,17 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Autonomously'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Ship faster, automate smarter—no technical complexity. Create autonomous AI agent teams that handle your workflows end-to-end, so you can focus on what matters: growing your business.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Your AI Team'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How Teams Automate'
-  const eyebrow = hero?.eyebrow || 'For Founders Who Move Fast'
-  const secondaryBenefitLine = 'Reduce operational overhead, ship features faster'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support—all without technical skills. Create autonomous AI agent teams that work together to handle your workflows end-to-end.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch AI Teams in Action'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
+  const secondaryBenefitLine = 'Teams collaborate better when AI handles the busywork'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Deploy in minutes, not weeks' },
-    { icon: 'rocket', text: 'Zero technical complexity' },
-    { icon: 'network', text: 'Autonomous multi-agent teams' },
+    { icon: 'zap', text: 'Setup in 5 minutes—no coding required' },
+    { icon: 'network', text: 'Agents collaborate autonomously 24/7' },
+    { icon: 'rocket', text: 'Automate email, CRM, sales & support' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -167,25 +167,25 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 1000
 
   const trustStats = [
-    { value: '5 min', label: 'Setup Time', Icon: Clock },
-    { value: '10x', label: 'Faster Shipping', Icon: Rocket },
-    { value: '0', label: 'Code Needed', Icon: Zap },
+    { value: '5 min', label: 'To First Agent', Icon: Clock },
+    { value: '0', label: 'Code Required', Icon: Code },
+    { value: '24/7', label: 'Autonomous Work', Icon: Bot },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: Autonomous Agent Teams Working Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Automating Workflows Right Now'
   const seedEvents = (demo?.seed_events ?? [
-    { agent: 'Sales-Team-Alpha', action: 'Coordinating outbound campaign across 3 agents', status: 'running' as const, ts: 'now' },
-    { agent: 'Support-Team-Beta', action: 'Triaged 15 tickets, escalated 2 to human team', status: 'done' as const, ts: '3m ago' },
-    { agent: 'CRM-Sync-Team', action: 'Updated 47 contacts across Salesforce & HubSpot', status: 'done' as const, ts: '5m ago' },
-    { agent: 'Email-Team-Gamma', action: 'Sent 23 personalized follow-ups, scheduled 8 calls', status: 'done' as const, ts: '7m ago' },
-    { agent: 'Lead-Enrichment', action: 'Enriching 12 leads from LinkedIn and databases', status: 'running' as const, ts: 'now' },
+    { agent: 'Email-Outreach-Team', action: 'Sent 47 personalized emails, scheduled 12 follow-ups', status: 'done' as const, ts: '2m ago' },
+    { agent: 'CRM-Sync-Agent', action: 'Updating 34 contacts across Salesforce and HubSpot', status: 'running' as const, ts: 'now' },
+    { agent: 'Sales-Follow-Up', action: 'Qualified 8 leads, booked 3 discovery calls', status: 'done' as const, ts: '5m ago' },
+    { agent: 'Support-Automation', action: 'Triaged 23 tickets, escalated 2 to human team', status: 'done' as const, ts: '7m ago' },
+    { agent: 'Lead-Enrichment', action: 'Enriching 15 new leads from LinkedIn and databases', status: 'running' as const, ts: 'now' },
   ]) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? [
-    { agent: 'Collaboration-Hub', action: 'Coordinating workflow between 4 agent teams', status: 'running' as const },
-    { agent: 'Email-Agent-Team', action: 'Automating multi-touch email sequences', status: 'done' as const },
-    { agent: 'Data-Sync-Team', action: 'Syncing data across CRM and communication tools', status: 'done' as const },
-    { agent: 'Sales-Automation', action: 'Qualifying leads and scheduling demos', status: 'running' as const },
-    { agent: 'Support-Orchestra', action: 'Handling customer inquiries across channels', status: 'done' as const },
+    { agent: 'Email-Sequence-AI', action: 'Automating multi-touch campaigns for 3 workflows', status: 'running' as const },
+    { agent: 'CRM-Update-Team', action: 'Syncing customer data across sales and marketing tools', status: 'done' as const },
+    { agent: 'Sales-Outreach-AI', action: 'Personalizing outreach for 42 prospects', status: 'running' as const },
+    { agent: 'Support-Triage-AI', action: 'Handling customer inquiries across email and chat', status: 'done' as const },
+    { agent: 'Meeting-Scheduler', action: 'Coordinating calendars and booking demos', status: 'done' as const },
   ]) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
@@ -198,28 +198,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Rocket, label: 'Ship Features 10x Faster', description: 'Automate operational tasks so your team focuses on product and growth' },
-    { Icon: Zap, label: 'Zero Technical Overhead', description: 'No engineering resources required—anyone can build and deploy agent teams' },
-    { Icon: Activity, label: 'Autonomous Execution', description: 'Agents work 24/7 without supervision, adapting to changes automatically' },
+    { Icon: Mail, label: 'Email Automation', description: 'AI agents send personalized outreach, follow-ups, and nurture sequences automatically' },
+    { Icon: Database, label: 'CRM Management', description: 'Keep customer data synchronized across all your sales and marketing tools in real-time' },
+    { Icon: Users, label: 'Sales Outreach', description: 'Qualify leads, schedule meetings, and manage your entire sales pipeline autonomously' },
   ]
 
   const trustBadges = [
-    'Built for fast-moving founders',
-    'Deploy autonomous workflows in minutes',
-    'No coding or technical skills required',
-    'Reduce operational overhead instantly'
+    'No coding skills needed—anyone can build',
+    'Agents work together like a real team',
+    'Automate email, CRM, support & sales',
+    'Deploy complete workflows in 5 minutes'
   ]
 
   const coreValueProps = [
-    { Icon: Rocket, label: 'Ship Faster, Automate Everything', description: 'Stop spending time on operational tasks—deploy autonomous agent teams that handle workflows end-to-end while you focus on building your product' },
-    { Icon: Network, label: 'Agents That Work Autonomously', description: 'True autonomous collaboration—agents coordinate with each other, adapt to changes, and execute complex workflows without human intervention' },
-    { Icon: Zap, label: 'Zero Technical Complexity', description: 'No engineers needed. Visual builder lets anyone create sophisticated multi-agent automation—deploy in minutes, not weeks' },
+    { Icon: Code, label: 'No-Code AI Agent Builder', description: 'Visual interface lets anyone create sophisticated automation workflows—no developers, no technical skills, just drag, drop, and deploy in minutes' },
+    { Icon: Network, label: 'Multi-Agent Team Collaboration', description: 'Your AI agents don\'t work alone—they communicate, coordinate tasks, and collaborate like a real team to handle complex workflows autonomously' },
+    { Icon: Mail, label: 'Automate Critical Workflows', description: 'Email campaigns, CRM updates, sales follow-ups, customer support—handle the tasks that consume your team\'s time every single day' },
   ]
 
   const technicalBenefits = [
-    { Icon: Rocket, label: 'Instant Deployment', description: 'Go from idea to live automation in minutes—no development cycles, no technical bottlenecks, just pure speed' },
-    { Icon: Brain, label: 'Truly Autonomous Teams', description: 'Agents don\'t just execute tasks—they collaborate, make decisions, and handle exceptions independently, like a real team that never sleeps' },
-    { Icon: Database, label: 'Plug & Play Integration', description: 'Connect to 50+ tools instantly—no API setup, no custom code, no maintenance. Your agents get access to everything they need, immediately' },
+    { Icon: Rocket, label: '5-Minute Deployment', description: 'Go from zero to fully automated workflow in minutes—no development cycles, no API setup, no technical complexity. Just pure execution speed' },
+    { Icon: Brain, label: 'Truly Autonomous Execution', description: 'AI agents don\'t just execute tasks—they make decisions, handle exceptions, and adapt to changes independently, working 24/7 without supervision' },
+    { Icon: Database, label: 'Instant Integration', description: 'Connect to 50+ tools with one click—Gmail, Salesforce, Slack, HubSpot, and more. No coding, no API keys, no maintenance required' },
   ]
 
   const totalTasksAutomated = 10247
@@ -235,12 +235,6 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const keyDifferentiators = [
-    { Icon: Rocket, label: 'Built for Speed', description: 'Deploy complete automation workflows in 5 minutes—no technical expertise, no dev cycles, no delays. Just pure execution velocity', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Brain, label: 'Truly Autonomous', description: 'Agents work independently, coordinate with each other, and handle exceptions—no babysitting, no manual intervention, just results', color: 'oklch(0.60_0.18_270)' },
-    { Icon: Zap, label: 'Zero Operational Overhead', description: 'Eliminate repetitive tasks completely—agents handle everything from lead capture to customer support to CRM updates, autonomously', color: 'oklch(0.65_0.15_220)' },
-  ]
-
-  const automationUseCases = [
-    { icon: Network, text: 'Autonomous Agent Teams' },
-    { icon: Rocket, text: 'Rapid Deployment' },
-    { icon: Brain, text:
+    { Icon: Code, label: 'Zero Code Required', description: 'Anyone on your team can build AI automation—no engineers, no technical skills, no complex setup. Just visual workflows that work', color: 'oklch(0.58_0.15_145)' },
+    { Icon: Users, label: 'Team Collaboration Built-In', description: 'AI agents coordinate with each other and your human team seamlessly—share context, delegate tasks, and work together toward shared goals', color: 'oklch(0.60_0.18_270)' },
+    { Icon: Mail, label: 'Real-World Automation', description: 'Handle the tasks teams actually need—email outreach, CRM updates, sales follow-ups, customer support, lead enrichment, and more',
