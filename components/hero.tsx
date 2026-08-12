@@ -89,6 +89,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const [hasScrolled, setHasScrolled] = useState(false)
   const [socialProofCount, setSocialProofCount] = useState(0)
   const [automatedHours, setAutomatedHours] = useState(0)
+  const [tasksAutomated, setTasksAutomated] = useState(0)
   
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100)
@@ -145,20 +146,38 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    const targetTasks = 1247
+    const duration = 2200
+    const steps = 55
+    const increment = targetTasks / steps
+    const stepDuration = duration / steps
+    
+    let currentStep = 0
+    const interval = setInterval(() => {
+      currentStep++
+      setTasksAutomated(Math.min(Math.floor(increment * currentStep), targetTasks))
+      if (currentStep >= steps) {
+        clearInterval(interval)
+      }
+    }, stepDuration)
+    
+    return () => clearInterval(interval)
+  }, [])
+
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Automate email outreach, CRM updates, sales follow-ups, and customer support—all without technical skills. Create autonomous AI agent teams that work together to handle your workflows end-to-end.'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Work in Minutes'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Email automation, CRM updates, and sales outreach—all powered by AI agents that work together like a real team. No technical skills required, just point and click to automate the busywork draining your day.'
   const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Watch AI Teams in Action'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation Platform'
-  const secondaryBenefitLine = 'Teams collaborate better when AI handles the busywork'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See AI Teams in Action'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation for Modern Teams'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Setup in 5 minutes—no coding required' },
-    { icon: 'network', text: 'Agents collaborate autonomously 24/7' },
-    { icon: 'rocket', text: 'Automate email, CRM, sales & support' },
+    { icon: 'zap', text: 'Launch your first AI agent in under 5 minutes' },
+    { icon: 'network', text: 'AI agents that collaborate like your best team' },
+    { icon: 'rocket', text: 'Automate email, sales, support & CRM tasks' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -172,7 +191,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: '24/7', label: 'Autonomous Work', Icon: Bot },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Automating Workflows Right Now'
+  const feedHeader = demo?.feed_header || 'Watch: Teams Automating Real Work Right Now'
   const seedEvents = (demo?.seed_events ?? [
     { agent: 'Email-Outreach-Team', action: 'Sent 47 personalized emails, scheduled 12 follow-ups', status: 'done' as const, ts: '2m ago' },
     { agent: 'CRM-Sync-Agent', action: 'Updating 34 contacts across Salesforce and HubSpot', status: 'running' as const, ts: 'now' },
@@ -204,22 +223,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
-    'No coding skills needed—anyone can build',
-    'Agents work together like a real team',
-    'Automate email, CRM, support & sales',
-    'Deploy complete workflows in 5 minutes'
+    'Anyone can build—zero coding required',
+    'AI agents work together autonomously',
+    'Automate the tasks stealing your time',
+    'Deploy complete workflows in minutes'
   ]
 
   const coreValueProps = [
-    { Icon: Code, label: 'No-Code AI Agent Builder', description: 'Visual interface lets anyone create sophisticated automation workflows—no developers, no technical skills, just drag, drop, and deploy in minutes' },
-    { Icon: Network, label: 'Multi-Agent Team Collaboration', description: 'Your AI agents don\'t work alone—they communicate, coordinate tasks, and collaborate like a real team to handle complex workflows autonomously' },
-    { Icon: Mail, label: 'Automate Critical Workflows', description: 'Email campaigns, CRM updates, sales follow-ups, customer support—handle the tasks that consume your team\'s time every single day' },
+    { Icon: Code, label: 'Built for Non-Technical Teams', description: 'Founders, operators, and team leads can create powerful AI automation without touching a single line of code. Visual workflows anyone can understand and deploy immediately' },
+    { Icon: Network, label: 'AI Agents That Actually Collaborate', description: 'Your agents don\'t work in silos—they communicate, share context, and coordinate tasks just like your best human team members would, handling complex workflows end-to-end' },
+    { Icon: Mail, label: 'Automate What Really Matters', description: 'Stop wasting hours on email campaigns, CRM data entry, sales follow-ups, and customer support. Let AI agents handle the repetitive work so your team can focus on growth' },
   ]
 
   const technicalBenefits = [
-    { Icon: Rocket, label: '5-Minute Deployment', description: 'Go from zero to fully automated workflow in minutes—no development cycles, no API setup, no technical complexity. Just pure execution speed' },
-    { Icon: Brain, label: 'Truly Autonomous Execution', description: 'AI agents don\'t just execute tasks—they make decisions, handle exceptions, and adapt to changes independently, working 24/7 without supervision' },
-    { Icon: Database, label: 'Instant Integration', description: 'Connect to 50+ tools with one click—Gmail, Salesforce, Slack, HubSpot, and more. No coding, no API keys, no maintenance required' },
+    { Icon: Rocket, label: 'From Zero to Automated in 5 Minutes', description: 'No development cycles, no API wrangling, no technical complexity. Just pure speed—go from idea to fully automated workflow faster than your next coffee break' },
+    { Icon: Brain, label: 'Truly Autonomous AI Agents', description: 'These aren\'t simple scripts—they make decisions, handle exceptions, adapt to changes, and work around the clock without babysitting. Real intelligence, real autonomy' },
+    { Icon: Database, label: 'Instant Connection to Your Tools', description: 'One-click integrations with Gmail, Salesforce, Slack, HubSpot, and 50+ more tools. No API keys, no authentication headaches, no maintenance. Just works' },
   ]
 
   const totalTasksAutomated = 10247
@@ -231,10 +250,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Calendar, label: 'Google Calendar', color: 'oklch(0.58 0.15 145)' },
     { Icon: MessageSquare, label: 'Slack', color: 'oklch(0.52 0.22 285)' },
     { Icon: Code, label: 'GitHub', color: 'oklch(0.35 0.02 270)' },
-    { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.16 50)' },
-  ]
-
-  const keyDifferentiators = [
-    { Icon: Code, label: 'Zero Code Required', description: 'Anyone on your team can build AI automation—no engineers, no technical skills, no complex setup. Just visual workflows that work', color: 'oklch(0.58_0.15_145)' },
-    { Icon: Users, label: 'Team Collaboration Built-In', description: 'AI agents coordinate with each other and your human team seamlessly—share context, delegate tasks, and work together toward shared goals', color: 'oklch(0.60_0.18_270)' },
-    { Icon: Mail, label: 'Real-World Automation', description: 'Handle the tasks teams actually need—email outreach, CRM updates, sales follow-ups, customer support, lead enrichment, and more',
+    { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.16 50)
