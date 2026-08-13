@@ -168,16 +168,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code—Automate Your Team\'s Work in Minutes'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Email automation, CRM updates, and sales outreach—all powered by AI agents that work together like a real team. No technical skills required, just point and click to automate the busywork draining your day.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team—No Code Required'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wrestling with complex automation tools and APIs. Build intelligent AI agents that collaborate like real teammates in minutes, not months. Zero technical skills needed—just point, click, and watch your team\'s busywork disappear.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
   const secondaryCtaText = hero?.secondaryCtaText || 'See AI Teams in Action'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation for Modern Teams'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Team Automation Platform'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Launch your first AI agent in under 5 minutes' },
-    { icon: 'network', text: 'AI agents that collaborate like your best team' },
-    { icon: 'rocket', text: 'Automate email, sales, support & CRM tasks' },
+    { icon: 'zap', text: 'Build your first AI agent in under 5 minutes—seriously' },
+    { icon: 'network', text: 'AI agents that collaborate and communicate like your best team' },
+    { icon: 'rocket', text: 'Automate email, CRM, sales outreach & support tasks instantly' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -250,4 +250,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Calendar, label: 'Google Calendar', color: 'oklch(0.58 0.15 145)' },
     { Icon: MessageSquare, label: 'Slack', color: 'oklch(0.52 0.22 285)' },
     { Icon: Code, label: 'GitHub', color: 'oklch(0.35 0.02 270)' },
-    { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.16 50)
+    { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.
