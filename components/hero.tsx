@@ -168,16 +168,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team—No Code Required'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop wrestling with complex automation tools and APIs. Build intelligent AI agents that collaborate like real teammates in minutes, not months. Zero technical skills needed—just point, click, and watch your team\'s busywork disappear.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See AI Teams in Action'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Team Automation Platform'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Together'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop drowning in email chaos, CRM busywork, and manual sales outreach. Build intelligent AI agent teams that collaborate autonomously—handling your email campaigns, updating your CRM, qualifying leads, and managing customer conversations 24/7. No code, no complexity, just real automation that feels like hiring your best team members.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agent Teams'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
+  const eyebrow = hero?.eyebrow || 'AI Agent Teams That Collaborate Like Humans'
 
   const defaultTrustIndicators = [
-    { icon: 'zap', text: 'Build your first AI agent in under 5 minutes—seriously' },
-    { icon: 'network', text: 'AI agents that collaborate and communicate like your best team' },
-    { icon: 'rocket', text: 'Automate email, CRM, sales outreach & support tasks instantly' },
+    { icon: 'network', text: 'AI agents that communicate and collaborate like real teammates' },
+    { icon: 'zap', text: 'Automate email outreach, CRM sync, and sales follow-ups instantly' },
+    { icon: 'rocket', text: 'Deploy complete agent workflows in under 5 minutes—zero code' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -186,25 +186,25 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 1000
 
   const trustStats = [
-    { value: '5 min', label: 'To First Agent', Icon: Clock },
+    { value: '5 min', label: 'To First Agent Team', Icon: Clock },
     { value: '0', label: 'Code Required', Icon: Code },
-    { value: '24/7', label: 'Autonomous Work', Icon: Bot },
+    { value: '24/7', label: 'Team Collaboration', Icon: Network },
   ]
 
-  const feedHeader = demo?.feed_header || 'Watch: Teams Automating Real Work Right Now'
+  const feedHeader = demo?.feed_header || 'Live: Agent Teams Collaborating Right Now'
   const seedEvents = (demo?.seed_events ?? [
-    { agent: 'Email-Outreach-Team', action: 'Sent 47 personalized emails, scheduled 12 follow-ups', status: 'done' as const, ts: '2m ago' },
-    { agent: 'CRM-Sync-Agent', action: 'Updating 34 contacts across Salesforce and HubSpot', status: 'running' as const, ts: 'now' },
-    { agent: 'Sales-Follow-Up', action: 'Qualified 8 leads, booked 3 discovery calls', status: 'done' as const, ts: '5m ago' },
-    { agent: 'Support-Automation', action: 'Triaged 23 tickets, escalated 2 to human team', status: 'done' as const, ts: '7m ago' },
-    { agent: 'Lead-Enrichment', action: 'Enriching 15 new leads from LinkedIn and databases', status: 'running' as const, ts: 'now' },
+    { agent: 'Email-Outreach-Team', action: 'Agents collaborated: sent 47 emails, scheduled 12 follow-ups, updated CRM', status: 'done' as const, ts: '2m ago' },
+    { agent: 'Sales-Automation-Team', action: 'Lead-qualifier passed 8 prospects to Meeting-scheduler agent', status: 'running' as const, ts: 'now' },
+    { agent: 'CRM-Sync-Team', action: 'Data-enricher and CRM-updater synced 34 contacts across tools', status: 'done' as const, ts: '5m ago' },
+    { agent: 'Support-Team', action: 'Triage-agent escalated 2 tickets to Follow-up-agent for resolution', status: 'done' as const, ts: '7m ago' },
+    { agent: 'Outbound-Team', action: 'Prospector found leads, Writer personalized emails, Sender deployed campaign', status: 'running' as const, ts: 'now' },
   ]) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? [
-    { agent: 'Email-Sequence-AI', action: 'Automating multi-touch campaigns for 3 workflows', status: 'running' as const },
-    { agent: 'CRM-Update-Team', action: 'Syncing customer data across sales and marketing tools', status: 'done' as const },
-    { agent: 'Sales-Outreach-AI', action: 'Personalizing outreach for 42 prospects', status: 'running' as const },
-    { agent: 'Support-Triage-AI', action: 'Handling customer inquiries across email and chat', status: 'done' as const },
-    { agent: 'Meeting-Scheduler', action: 'Coordinating calendars and booking demos', status: 'done' as const },
+    { agent: 'Email-Campaign-Team', action: 'Writer-agent creating content, Scheduler-agent timing sends', status: 'running' as const },
+    { agent: 'Lead-Management-Team', action: 'Enricher passed data to Qualifier, who routed to Sales-agent', status: 'done' as const },
+    { agent: 'Customer-Success-Team', action: 'Monitor-agent detected churn risk, alerted Outreach-agent', status: 'running' as const },
+    { agent: 'Sales-Pipeline-Team', action: 'Multiple agents collaborating on deal progression and follow-up', status: 'done' as const },
+    { agent: 'Onboarding-Team', action: 'Welcome-agent triggered, Scheduler-agent booking calls, CRM-agent logging', status: 'done' as const },
   ]) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
@@ -217,28 +217,28 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Mail, label: 'Email Automation', description: 'AI agents send personalized outreach, follow-ups, and nurture sequences automatically' },
-    { Icon: Database, label: 'CRM Management', description: 'Keep customer data synchronized across all your sales and marketing tools in real-time' },
-    { Icon: Users, label: 'Sales Outreach', description: 'Qualify leads, schedule meetings, and manage your entire sales pipeline autonomously' },
+    { Icon: Network, label: 'Collaborative Agent Teams', description: 'Unlike single-task tools, ONIT agents share context and coordinate workflows—one agent enriches leads while another personalizes outreach and a third schedules meetings' },
+    { Icon: Mail, label: 'Full Email Automation', description: 'Agent teams handle your entire email operation: drafting personalized messages, managing sequences, processing replies, and updating your CRM automatically' },
+    { Icon: Database, label: 'Intelligent CRM Management', description: 'Multiple agents work together to keep customer data clean, enriched, and synchronized across all platforms—no more manual data entry or outdated records' },
   ]
 
   const trustBadges = [
-    'Anyone can build—zero coding required',
-    'AI agents work together autonomously',
-    'Automate the tasks stealing your time',
-    'Deploy complete workflows in minutes'
+    'Agent teams that truly collaborate',
+    'No-code workflow automation',
+    'Built for email, CRM, and sales teams',
+    'Deploy in minutes, not months'
   ]
 
   const coreValueProps = [
-    { Icon: Code, label: 'Built for Non-Technical Teams', description: 'Founders, operators, and team leads can create powerful AI automation without touching a single line of code. Visual workflows anyone can understand and deploy immediately' },
-    { Icon: Network, label: 'AI Agents That Actually Collaborate', description: 'Your agents don\'t work in silos—they communicate, share context, and coordinate tasks just like your best human team members would, handling complex workflows end-to-end' },
-    { Icon: Mail, label: 'Automate What Really Matters', description: 'Stop wasting hours on email campaigns, CRM data entry, sales follow-ups, and customer support. Let AI agents handle the repetitive work so your team can focus on growth' },
+    { Icon: Network, label: 'Agents That Actually Team Up', description: 'This isn\'t single-task automation. Your agents communicate, share data, and coordinate complex workflows just like your best employees—except they work 24/7 and never drop the ball' },
+    { Icon: Mail, label: 'Built for Your Biggest Pain Points', description: 'Specifically designed to eliminate the busywork killing your team: email campaigns, CRM data entry, sales follow-ups, lead qualification, and customer support triage' },
+    { Icon: Code, label: 'Zero Technical Skills Required', description: 'Founders and operators can build sophisticated agent teams without coding. Visual workflows, pre-built templates, and one-click integrations—just point, click, and deploy' },
   ]
 
   const technicalBenefits = [
-    { Icon: Rocket, label: 'From Zero to Automated in 5 Minutes', description: 'No development cycles, no API wrangling, no technical complexity. Just pure speed—go from idea to fully automated workflow faster than your next coffee break' },
-    { Icon: Brain, label: 'Truly Autonomous AI Agents', description: 'These aren\'t simple scripts—they make decisions, handle exceptions, adapt to changes, and work around the clock without babysitting. Real intelligence, real autonomy' },
-    { Icon: Database, label: 'Instant Connection to Your Tools', description: 'One-click integrations with Gmail, Salesforce, Slack, HubSpot, and 50+ more tools. No API keys, no authentication headaches, no maintenance. Just works' },
+    { Icon: Rocket, label: 'From Idea to Deployed Team in 5 Minutes', description: 'No development cycles, no API configuration, no complexity. Build multi-agent workflows faster than writing a project brief—then watch them execute flawlessly' },
+    { Icon: Brain, label: 'True Multi-Agent Collaboration', description: 'The difference is real: while other tools run isolated scripts, ONIT agents pass context between each other, make coordinated decisions, and handle exceptions as a team' },
+    { Icon: Database, label: 'Instant Tool Integration', description: 'One-click connections to Gmail, Salesforce, Slack, HubSpot, and 50+ platforms. Your agents start working with your existing tools immediately—no setup headaches' },
   ]
 
   const totalTasksAutomated = 10247
@@ -248,6 +248,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Database, label: 'Salesforce', color: 'oklch(0.55 0.20 220)' },
     { Icon: Mail, label: 'Gmail', color: 'oklch(0.60 0.18 25)' },
     { Icon: Calendar, label: 'Google Calendar', color: 'oklch(0.58 0.15 145)' },
-    { Icon: MessageSquare, label: 'Slack', color: 'oklch(0.52 0.22 285)' },
-    { Icon: Code, label: 'GitHub', color: 'oklch(0.35 0.02 270)' },
-    { Icon: Cloud, label: 'Drive', color: 'oklch(0.62 0.
+    { Icon: MessageSqu
