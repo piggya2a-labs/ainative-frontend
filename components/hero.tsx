@@ -109,7 +109,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   }, [hasScrolled])
 
   useEffect(() => {
-    const targetCount = 1000
+    const targetCount = 1200
     const duration = 2000
     const steps = 60
     const increment = targetCount / steps
@@ -168,22 +168,22 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work Together'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop drowning in email chaos, CRM busywork, and manual sales outreach. Build intelligent AI agent teams that collaborate autonomously—handling your email campaigns, updating your CRM, qualifying leads, and managing customer conversations 24/7. No code, no complexity, just real automation that feels like hiring your best team members.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Building Agent Teams'
+  const headline = hero?.hero_title || hero?.headline || 'AI Agent Platform for Team Automation'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'The no-code platform that lets you build collaborative AI agent teams in minutes. Automate email campaigns, CRM management, sales outreach, and customer support—without writing a single line of code. Your agents work together like real teammates, handling complex workflows 24/7 while you focus on growing your business.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Today'
   const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
-  const eyebrow = hero?.eyebrow || 'AI Agent Teams That Collaborate Like Humans'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Agent Teams That Work Like Your Best Employees'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'AI agents that communicate and collaborate like real teammates' },
-    { icon: 'zap', text: 'Automate email outreach, CRM sync, and sales follow-ups instantly' },
-    { icon: 'rocket', text: 'Deploy complete agent workflows in under 5 minutes—zero code' },
+    { icon: 'network', text: 'Build agent teams that collaborate autonomously—no coding required' },
+    { icon: 'zap', text: 'Deploy complete workflows in under 5 minutes with visual builder' },
+    { icon: 'rocket', text: 'Connect to 50+ tools: Gmail, Salesforce, Slack, HubSpot, and more' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
 
   const displayToolCount = toolCount > 0 ? toolCount : 50
-  const displayAgentCount = agentCount > 0 ? agentCount : 1000
+  const displayAgentCount = agentCount > 0 ? agentCount : 1200
 
   const trustStats = [
     { value: '5 min', label: 'To First Agent Team', Icon: Clock },
@@ -242,10 +242,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const totalTasksAutomated = 10247
-  const totalEarlyAdopters = 1000
+  const totalEarlyAdopters = 1200
 
   const keyIntegrations = [
     { Icon: Database, label: 'Salesforce', color: 'oklch(0.55 0.20 220)' },
     { Icon: Mail, label: 'Gmail', color: 'oklch(0.60 0.18 25)' },
-    { Icon: Calendar, label: 'Google Calendar', color: 'oklch(0.58 0.15 145)' },
-    { Icon: MessageSqu
+    { Icon: Calendar, label: 'Google Calendar', color: 'oklch(0.58 0.15 145)'
