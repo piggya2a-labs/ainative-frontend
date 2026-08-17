@@ -168,15 +168,15 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents Without Code — Automate Your Team\'s Workflow in Minutes'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'The no-code platform that lets you build AI agents to handle email campaigns, CRM updates, customer support, sales outreach, and data entry. Deploy intelligent automation in minutes—no developers, no complexity, no coding required. Let AI handle the busywork while your team focuses on high-impact work.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Browse Agent Templates'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation for Teams'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'The no-code platform that lets you delegate real work to AI agents. Automate email campaigns, CRM updates, customer support, lead qualification, and data entry—without hiring developers. Deploy intelligent teammates in minutes and move faster operationally while your team focuses on what matters.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Get Started Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
+  const eyebrow = hero?.eyebrow || 'No-Code AI Automation for Fast-Moving Teams'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Automate email, CRM, support, and sales workflows without code' },
-    { icon: 'zap', text: 'Deploy working AI agents in under 5 minutes with visual builder' },
+    { icon: 'network', text: 'Delegate email, CRM, support, and sales workflows to AI teammates' },
+    { icon: 'zap', text: 'Deploy working agents in under 5 minutes with visual workflow builder' },
     { icon: 'rocket', text: 'Connect to Gmail, Salesforce, Slack, HubSpot, and 50+ tools instantly' },
   ]
 
@@ -191,7 +191,7 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { value: '24/7', label: 'Automation', Icon: Network },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: Teams Automating Work Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agents Working for Teams Right Now'
   const seedEvents = (demo?.seed_events ?? [
     { agent: 'Email-Campaign-Agent', action: 'Drafted and sent 47 personalized emails, scheduled 12 follow-ups', status: 'done' as const, ts: '2m ago' },
     { agent: 'CRM-Sync-Agent', action: 'Updated 34 contacts in Salesforce, enriched with LinkedIn data', status: 'running' as const, ts: 'now' },
@@ -217,32 +217,26 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Network, label: 'Email Campaign Automation', description: 'Let AI agents handle your entire email workflow—from drafting personalized messages to managing sequences, processing replies, and updating your CRM automatically' },
-    { Icon: Mail, label: 'CRM Data Management', description: 'Stop manual data entry forever. AI agents keep customer records clean, enriched, and synchronized across all platforms—automatically updating fields, enriching leads, and maintaining data quality' },
-    { Icon: Database, label: 'Customer Support Automation', description: 'AI agents triage support tickets, auto-resolve common issues, route complex cases to the right team member, and keep your helpdesk running 24/7 without human intervention' },
+    { Icon: Network, label: 'AI Teammates for Email Campaigns', description: 'Delegate your entire email workflow to AI agents that draft personalized messages, manage sequences, process replies, and update your CRM automatically—like having a tireless marketing associate working 24/7' },
+    { Icon: Mail, label: 'Intelligent CRM Data Management', description: 'Stop manual data entry forever. AI agents keep customer records clean, enriched, and synchronized across all platforms—automatically updating fields, enriching leads, and maintaining data quality while you focus on closing deals' },
+    { Icon: Database, label: 'Always-On Customer Support', description: 'AI agents triage support tickets, auto-resolve common issues, route complex cases to the right team member, and keep your helpdesk running 24/7—giving your team superhuman support capacity without burning out' },
   ]
 
   const trustBadges = [
-    'No-code automation platform',
-    'Deploy agents in minutes',
-    'Built for email, CRM & support',
-    '10,000+ teams automating daily'
+    'No-code AI delegation platform',
+    'Deploy agents in minutes, not months',
+    'Built for email, CRM & support automation',
+    '10,000+ teams moving faster with AI'
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Zero Code, Maximum Automation', description: 'Build sophisticated AI agents with a visual workflow builder. No programming skills required—just point, click, and watch your busywork disappear. Perfect for founders, operators, and teams who want results without hiring developers' },
-    { Icon: Mail, label: 'Built for Your Daily Grind', description: 'Specifically designed to eliminate time-consuming tasks: email campaigns, CRM updates, lead qualification, customer support triage, meeting scheduling, and data entry. The boring work that\'s crushing your team\'s productivity' },
-    { Icon: Code, label: 'Ready-to-Use Agent Templates', description: 'Start with pre-built agents for common workflows: sales outreach, customer onboarding, support automation, lead nurturing. Customize them to your needs in minutes, or build custom agents from scratch with our visual builder' },
+    { Icon: Network, label: 'Zero Code, Real Work Delegation', description: 'Build AI agents that handle actual work with a visual workflow builder. No programming skills required—just point, click, and delegate tasks that used to consume your team\'s time. Perfect for founders and operators who need to move faster without hiring' },
+    { Icon: Mail, label: 'Built for Your Operational Bottlenecks', description: 'Specifically designed to eliminate time-consuming tasks that slow down fast-moving teams: email campaigns, CRM updates, lead qualification, customer support triage, meeting scheduling, and data entry. Delegate the grind, focus on growth' },
+    { Icon: Code, label: 'Pre-Built Agents, Custom Workflows', description: 'Start with ready-to-use agents for common workflows: sales outreach, customer onboarding, support automation, lead nurturing. Customize them to your needs in minutes, or build custom AI teammates from scratch with our visual builder—no technical skills needed' },
   ]
 
   const technicalBenefits = [
-    { Icon: Rocket, label: 'From Zero to Automated in 5 Minutes', description: 'No setup complexity, no API configuration, no learning curve. Choose a template or build from scratch, connect your tools with one click, and deploy working AI agents faster than writing a project brief' },
-    { Icon: Brain, label: 'AI That Actually Gets Work Done', description: 'Not just chatbots or simple scripts—these are intelligent agents that understand context, make decisions, handle exceptions, and execute multi-step workflows. They work like your best employee, but 24/7 without breaks' },
-    { Icon: Database, label: 'One-Click Tool Connections', description: 'Instant integration with Gmail, Salesforce, Slack, HubSpot, Google Calendar, and 50+ platforms. Your agents start working with your existing tools immediately—no technical setup, no IT team required' },
+    { Icon: Rocket, label: 'From Idea to Automated in 5 Minutes', description: 'No setup complexity, no API configuration, no learning curve. Choose a template or build from scratch, connect your tools with one click, and deploy working AI agents faster than scheduling a meeting. Start delegating work immediately' },
+    { Icon: Brain, label: 'AI Teammates That Execute Work', description: 'Not just chatbots or simple scripts—these are intelligent agents that understand context, make decisions, handle exceptions, and execute multi-step workflows. They work like your best team member, but 24/7 without breaks, vacation, or burnout' },
+    { Icon: Database, label: 'Instant Tool Connections', description: 'One-click integration with Gmail, Salesforce, Slack, HubSpot, Google Calendar, and 50+ platforms your team already uses. Your AI agents start working with your existing tools immediately—no technical setup, no IT team, no waiting' },
   ]
-
-  const totalTasksAutomated = 10247
-  const totalEarlyAdopters = 10000
-
-  const keyIntegrations = [
-    { Icon: Database, label: 'Salesforce', color: 'oklch(0.55 0.20 220)'
