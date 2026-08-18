@@ -168,16 +168,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Actually Work for Your Team'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'The no-code platform that lets you delegate real work to AI agents. Automate email campaigns, CRM updates, customer support, lead qualification, and data entry—without hiring developers. Deploy intelligent teammates in minutes and move faster operationally while your team focuses on what matters.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Get Started Free'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agents for Team Automation'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster without the technical barriers. Automate repetitive tasks like email campaigns, follow-up calls, and CRM updates with AI agents that work 24/7. No coding required—just point, click, and delegate work that slows your team down. Built for teams who need to scale operations without scaling headcount.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'No-Code AI Automation for Fast-Moving Teams'
+  const eyebrow = hero?.eyebrow || 'Trusted by Fast-Moving Teams'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Delegate email, CRM, support, and sales workflows to AI teammates' },
-    { icon: 'zap', text: 'Deploy working agents in under 5 minutes with visual workflow builder' },
-    { icon: 'rocket', text: 'Connect to Gmail, Salesforce, Slack, HubSpot, and 50+ tools instantly' },
+    { icon: 'network', text: 'Automate emails, calls, and CRM updates without writing code' },
+    { icon: 'zap', text: 'Deploy AI agents in minutes with visual workflow builder' },
+    { icon: 'rocket', text: 'Connect Gmail, Salesforce, Slack, and 50+ tools instantly' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -223,10 +223,10 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
-    'No-code AI delegation platform',
-    'Deploy agents in minutes, not months',
-    'Built for email, CRM & support automation',
-    '10,000+ teams moving faster with AI'
+    'Trusted by fast-moving teams',
+    'No-code automation in minutes',
+    'Built for email, CRM & support',
+    '10,000+ teams automating work'
   ]
 
   const coreValueProps = [
@@ -240,3 +240,5 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
     { Icon: Brain, label: 'AI Teammates That Execute Work', description: 'Not just chatbots or simple scripts—these are intelligent agents that understand context, make decisions, handle exceptions, and execute multi-step workflows. They work like your best team member, but 24/7 without breaks, vacation, or burnout' },
     { Icon: Database, label: 'Instant Tool Connections', description: 'One-click integration with Gmail, Salesforce, Slack, HubSpot, Google Calendar, and 50+ platforms your team already uses. Your AI agents start working with your existing tools immediately—no technical setup, no IT team, no waiting' },
   ]
+
+  return (
