@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity, Award, Star, TrendingUp, CreditCard } from 'lucide-react'
+import { ArrowRight, Play, Shield, Zap, Rocket, CheckCircle2, Loader2, Clock, Network, Bot, Workflow, Database, Mail, MessageSquare, Calendar, Code, Sparkles, LayoutTemplate, Brain, Cpu, GitBranch, Link2, Cloud, Smartphone, FileText, DollarSign, Lock, Users, Activity, Award, Star, TrendingUp, CreditCard, Store } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SiteConfig } from '@/lib/sanity-schema'
 
@@ -168,16 +168,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agents for Team Automation'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster without the technical barriers. Automate repetitive tasks like email campaigns, follow-up calls, and CRM updates with AI agents that work 24/7. No coding required—just point, click, and delegate work that slows your team down. Built for teams who need to scale operations without scaling headcount.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See How It Works'
-  const eyebrow = hero?.eyebrow || 'Trusted by Fast-Moving Teams'
+  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together — No Code Required'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster, ship more, scale operations without scaling headcount. Deploy AI agents in minutes to automate email campaigns, CRM updates, customer support, and repetitive workflows. Your team delegates work, agents execute 24/7. Built for founders who need rapid execution without technical overhead.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Deploy Your First Agent Free'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Agent Marketplace'
+  const eyebrow = hero?.eyebrow || 'Fast-Moving Teams Choose No-Code Automation'
 
   const defaultTrustIndicators = [
-    { icon: 'network', text: 'Automate emails, calls, and CRM updates without writing code' },
-    { icon: 'zap', text: 'Deploy AI agents in minutes with visual workflow builder' },
-    { icon: 'rocket', text: 'Connect Gmail, Salesforce, Slack, and 50+ tools instantly' },
+    { icon: 'rocket', text: 'Deploy working AI agents in 5 minutes — faster than hiring' },
+    { icon: 'network', text: 'Agents collaborate across email, CRM, Slack, and 50+ tools' },
+    { icon: 'zap', text: 'Zero code, zero setup complexity — just point, click, automate' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -186,25 +186,25 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
   const trustStats = [
-    { value: '5 min', label: 'To First Agent', Icon: Clock },
+    { value: '5 min', label: 'To First Agent', Icon: Rocket },
     { value: '0', label: 'Code Required', Icon: Code },
-    { value: '24/7', label: 'Automation', Icon: Network },
+    { value: '24/7', label: 'Team Execution', Icon: Users },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agents Working for Teams Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Executing Work Right Now'
   const seedEvents = (demo?.seed_events ?? [
-    { agent: 'Email-Campaign-Agent', action: 'Drafted and sent 47 personalized emails, scheduled 12 follow-ups', status: 'done' as const, ts: '2m ago' },
-    { agent: 'CRM-Sync-Agent', action: 'Updated 34 contacts in Salesforce, enriched with LinkedIn data', status: 'running' as const, ts: 'now' },
-    { agent: 'Lead-Qualifier-Agent', action: 'Scored 18 new leads, routed 8 hot prospects to sales team', status: 'done' as const, ts: '5m ago' },
-    { agent: 'Support-Triage-Agent', action: 'Processed 23 tickets, auto-resolved 15, escalated 8 to team', status: 'done' as const, ts: '7m ago' },
-    { agent: 'Meeting-Scheduler-Agent', action: 'Booked 6 demos, sent calendar invites, updated CRM records', status: 'running' as const, ts: 'now' },
+    { agent: 'Sales-Outreach-Team', action: 'Sent 89 personalized emails, scheduled 23 follow-ups, synced to CRM', status: 'done' as const, ts: '1m ago' },
+    { agent: 'Lead-Qualification-Agent', action: 'Scored 34 new leads, routed 12 hot prospects to sales team', status: 'running' as const, ts: 'now' },
+    { agent: 'Customer-Support-Team', action: 'Triaged 47 tickets, auto-resolved 31, escalated 16 to human team', status: 'done' as const, ts: '3m ago' },
+    { agent: 'CRM-Data-Sync-Agent', action: 'Updated 156 contacts across Salesforce and HubSpot, enriched with LinkedIn', status: 'done' as const, ts: '4m ago' },
+    { agent: 'Meeting-Coordinator-Agent', action: 'Booked 8 demos, sent calendar invites, prepared meeting briefs', status: 'running' as const, ts: 'now' },
   ]) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? [
-    { agent: 'Outreach-Agent', action: 'Personalizing email sequences for 42 prospects', status: 'running' as const },
-    { agent: 'Data-Entry-Agent', action: 'Synced 156 records across Salesforce and HubSpot', status: 'done' as const },
-    { agent: 'Follow-Up-Agent', action: 'Sent reminders to 28 prospects, logged responses', status: 'running' as const },
-    { agent: 'Onboarding-Agent', action: 'Welcomed 5 new customers, scheduled kickoff calls', status: 'done' as const },
-    { agent: 'Report-Generator-Agent', action: 'Compiled weekly metrics, sent dashboard to leadership', status: 'done' as const },
+    { agent: 'Email-Campaign-Agent', action: 'Drafting personalized sequences for 67 prospects', status: 'running' as const },
+    { agent: 'Onboarding-Automation-Team', action: 'Welcomed 9 new customers, scheduled kickoff calls, sent resources', status: 'done' as const },
+    { agent: 'Data-Entry-Agent', action: 'Synced 203 records across CRM, updated deal stages, logged activities', status: 'running' as const },
+    { agent: 'Follow-Up-Scheduler-Agent', action: 'Sent reminders to 41 prospects, logged responses in CRM', status: 'done' as const },
+    { agent: 'Report-Generation-Agent', action: 'Compiled weekly metrics dashboard, sent to leadership team', status: 'done' as const },
   ]) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
@@ -217,28 +217,24 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const enterpriseFeatures = [
-    { Icon: Network, label: 'AI Teammates for Email Campaigns', description: 'Delegate your entire email workflow to AI agents that draft personalized messages, manage sequences, process replies, and update your CRM automatically—like having a tireless marketing associate working 24/7' },
-    { Icon: Mail, label: 'Intelligent CRM Data Management', description: 'Stop manual data entry forever. AI agents keep customer records clean, enriched, and synchronized across all platforms—automatically updating fields, enriching leads, and maintaining data quality while you focus on closing deals' },
-    { Icon: Database, label: 'Always-On Customer Support', description: 'AI agents triage support tickets, auto-resolve common issues, route complex cases to the right team member, and keep your helpdesk running 24/7—giving your team superhuman support capacity without burning out' },
+    { Icon: Users, label: 'AI Agent Teams That Collaborate', description: 'Deploy multiple agents that work together like a real team—one handles email outreach, another qualifies leads, a third updates your CRM. They coordinate automatically, share context, and execute complex multi-step workflows without human intervention' },
+    { Icon: Rocket, label: 'From Zero to Automated in Minutes', description: 'No weeks of setup, no developer dependency, no IT tickets. Choose a pre-built agent template or build custom workflows with drag-and-drop simplicity. Connect your tools with one click, deploy instantly, and start automating work faster than you can schedule a meeting' },
+    { Icon: Brain, label: 'Intelligent Execution, Not Just Scripts', description: 'These aren\'t simple bots—they\'re AI teammates that understand context, make decisions, handle exceptions, and learn from your workflows. They execute work with the judgment of your best team member, but 24/7 without breaks, burnout, or vacation days' },
   ]
 
   const trustBadges = [
-    'Trusted by fast-moving teams',
-    'No-code automation in minutes',
-    'Built for email, CRM & support',
-    '10,000+ teams automating work'
+    'Trusted by 10,000+ fast-moving teams',
+    'Deploy automation in 5 minutes',
+    'No-code AI for real work delegation',
+    'Built for founders who ship fast'
   ]
 
   const coreValueProps = [
-    { Icon: Network, label: 'Zero Code, Real Work Delegation', description: 'Build AI agents that handle actual work with a visual workflow builder. No programming skills required—just point, click, and delegate tasks that used to consume your team\'s time. Perfect for founders and operators who need to move faster without hiring' },
-    { Icon: Mail, label: 'Built for Your Operational Bottlenecks', description: 'Specifically designed to eliminate time-consuming tasks that slow down fast-moving teams: email campaigns, CRM updates, lead qualification, customer support triage, meeting scheduling, and data entry. Delegate the grind, focus on growth' },
-    { Icon: Code, label: 'Pre-Built Agents, Custom Workflows', description: 'Start with ready-to-use agents for common workflows: sales outreach, customer onboarding, support automation, lead nurturing. Customize them to your needs in minutes, or build custom AI teammates from scratch with our visual builder—no technical skills needed' },
+    { Icon: Zap, label: 'Ship Faster Without Scaling Headcount', description: 'Stop waiting on hiring, onboarding, and training. Deploy AI agent teams that execute work immediately—handling email campaigns, lead qualification, customer support, CRM updates, and data entry. Scale your operations at the speed of clicking "deploy," not the speed of recruiting' },
+    { Icon: Network, label: 'Agents That Work Like Your Team', description: 'Not chatbots or simple automation—these are intelligent agents that collaborate, share context, and execute multi-step workflows across your entire tech stack. They handle the repetitive work that slows your team down, so humans focus on strategy, relationships, and high-value decisions' },
+    { Icon: Code, label: 'Zero Technical Overhead', description: 'No API configuration, no code, no developer time. Visual workflow builder lets anyone on your team create and deploy AI agents. Pre-built templates for common workflows get you started in seconds. Connect Gmail, Salesforce, Slack, and 50+ tools with one click—no IT team required' },
   ]
 
   const technicalBenefits = [
-    { Icon: Rocket, label: 'From Idea to Automated in 5 Minutes', description: 'No setup complexity, no API configuration, no learning curve. Choose a template or build from scratch, connect your tools with one click, and deploy working AI agents faster than scheduling a meeting. Start delegating work immediately' },
-    { Icon: Brain, label: 'AI Teammates That Execute Work', description: 'Not just chatbots or simple scripts—these are intelligent agents that understand context, make decisions, handle exceptions, and execute multi-step workflows. They work like your best team member, but 24/7 without breaks, vacation, or burnout' },
-    { Icon: Database, label: 'Instant Tool Connections', description: 'One-click integration with Gmail, Salesforce, Slack, HubSpot, Google Calendar, and 50+ platforms your team already uses. Your AI agents start working with your existing tools immediately—no technical setup, no IT team, no waiting' },
-  ]
-
-  return (
+    { Icon: Rocket, label: 'Rapid Deployment for Rapid Execution', description: 'Founders move fast—your automation should too. Deploy working AI agents in 5 minutes, not 5 weeks. Choose from ready-to-use templates or build custom workflows with drag-and-drop simplicity. Start delegating work immediately, iterate as you grow, scale without friction' },
+    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create,
