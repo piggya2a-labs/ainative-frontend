@@ -168,16 +168,16 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'Build AI Agents That Work Together — No Code Required'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster, ship more, scale operations without scaling headcount. Deploy AI agents in minutes to automate email campaigns, CRM updates, customer support, and repetitive workflows. Your team delegates work, agents execute 24/7. Built for founders who need rapid execution without technical overhead.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Deploy Your First Agent Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'Explore Agent Marketplace'
-  const eyebrow = hero?.eyebrow || 'Fast-Moving Teams Choose No-Code Automation'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Team Automation'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build and deploy AI agents that automate your busywork—no technical skills required. Connect your tools with simple clicks, create intelligent workflows in minutes, and let AI handle repetitive tasks across email, CRM, support, scheduling, and data entry. Your team focuses on what matters while agents work 24/7.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
+  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
+  const eyebrow = hero?.eyebrow || 'Trusted by 10,000+ Teams Worldwide'
 
   const defaultTrustIndicators = [
-    { icon: 'rocket', text: 'Deploy working AI agents in 5 minutes — faster than hiring' },
-    { icon: 'network', text: 'Agents collaborate across email, CRM, Slack, and 50+ tools' },
-    { icon: 'zap', text: 'Zero code, zero setup complexity — just point, click, automate' },
+    { icon: 'rocket', text: 'Deploy working AI agents in 5 minutes—no coding required' },
+    { icon: 'network', text: 'Connect 50+ tools with one-click integrations' },
+    { icon: 'zap', text: 'Build automation workflows with visual drag-and-drop' },
   ]
 
   const trustIndicators = demo?.trust_indicators && demo.trust_indicators.length > 0 ? demo.trust_indicators : defaultTrustIndicators
@@ -186,9 +186,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
   const trustStats = [
-    { value: '5 min', label: 'To First Agent', Icon: Rocket },
+    { value: '5 min', label: 'Setup Time', Icon: Rocket },
     { value: '0', label: 'Code Required', Icon: Code },
-    { value: '24/7', label: 'Team Execution', Icon: Users },
+    { value: '50+', label: 'Integrations', Icon: Network },
   ]
 
   const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Executing Work Right Now'
@@ -237,4 +237,4 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const technicalBenefits = [
     { Icon: Rocket, label: 'Rapid Deployment for Rapid Execution', description: 'Founders move fast—your automation should too. Deploy working AI agents in 5 minutes, not 5 weeks. Choose from ready-to-use templates or build custom workflows with drag-and-drop simplicity. Start delegating work immediately, iterate as you grow, scale without friction' },
-    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create,
+    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create, deploy, and manage agents without technical training
