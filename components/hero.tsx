@@ -168,9 +168,9 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Agent Platform for Team Automation'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Build and deploy AI agents that automate your busywork—no technical skills required. Connect your tools with simple clicks, create intelligent workflows in minutes, and let AI handle repetitive tasks across email, CRM, support, scheduling, and data entry. Your team focuses on what matters while agents work 24/7.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
+  const headline = hero?.hero_title || hero?.headline || 'AI-Powered Team Automation Platform'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster without technical bottlenecks—automate workflows, sync data, and scale operations with AI agents that work like your team. No code, no complexity, no waiting on developers.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
   const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
   const eyebrow = hero?.eyebrow || 'Trusted by 10,000+ Teams Worldwide'
 
@@ -237,4 +237,8 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
 
   const technicalBenefits = [
     { Icon: Rocket, label: 'Rapid Deployment for Rapid Execution', description: 'Founders move fast—your automation should too. Deploy working AI agents in 5 minutes, not 5 weeks. Choose from ready-to-use templates or build custom workflows with drag-and-drop simplicity. Start delegating work immediately, iterate as you grow, scale without friction' },
-    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create, deploy, and manage agents without technical training
+    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create, deploy, and manage agents without technical training. Share workflows, collaborate on automation, scale operations without adding headcount' },
+  ]
+
+  return (
+    <section className
