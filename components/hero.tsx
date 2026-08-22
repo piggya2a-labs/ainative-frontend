@@ -168,11 +168,11 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const hero = siteConfig?.hero
   const demo = siteConfig?.hero_demo
 
-  const headline = hero?.hero_title || hero?.headline || 'AI-Powered Team Automation Platform'
-  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Move faster without technical bottlenecks—automate workflows, sync data, and scale operations with AI agents that work like your team. No code, no complexity, no waiting on developers.'
-  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating Free'
-  const secondaryCtaText = hero?.secondaryCtaText || 'See Live Demo'
-  const eyebrow = hero?.eyebrow || 'Trusted by 10,000+ Teams Worldwide'
+  const headline = hero?.hero_title || hero?.headline || 'No-Code AI Automation That Executes Real Work for Your Team'
+  const subheadline = hero?.hero_subtitle || hero?.subheadline || 'Stop drowning in repetitive tasks. Deploy AI agents that handle email outreach, CRM updates, lead qualification, and customer support—so your team moves faster without waiting on developers, hiring, or technical bottlenecks.'
+  const ctaText = hero?.ctaText || hero?.hero_cta || 'Start Automating in Minutes'
+  const secondaryCtaText = hero?.secondaryCtaText || 'Watch Live Demo'
+  const eyebrow = hero?.eyebrow || 'Zero Code Required • 5-Minute Setup • No Technical Skills Needed'
 
   const defaultTrustIndicators = [
     { icon: 'rocket', text: 'Deploy working AI agents in 5 minutes—no coding required' },
@@ -185,26 +185,33 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   const displayToolCount = toolCount > 0 ? toolCount : 50
   const displayAgentCount = agentCount > 0 ? agentCount : 10000
 
+  const automationUseCases = [
+    { Icon: Mail, label: 'Email Outreach', description: 'Send personalized emails, follow-ups, and drip campaigns automatically', color: 'from-blue-500/10 to-cyan-500/10 border-blue-500/20' },
+    { Icon: Database, label: 'CRM Updates', description: 'Sync contacts, update deal stages, and log activities across all systems', color: 'from-purple-500/10 to-pink-500/10 border-purple-500/20' },
+    { Icon: Users, label: 'Lead Qualification', description: 'Score leads, route hot prospects, and prioritize sales opportunities', color: 'from-green-500/10 to-emerald-500/10 border-green-500/20' },
+    { Icon: MessageSquare, label: 'Customer Support', description: 'Triage tickets, auto-resolve common issues, and escalate complex cases', color: 'from-orange-500/10 to-amber-500/10 border-orange-500/20' },
+  ]
+
   const trustStats = [
     { value: '5 min', label: 'Setup Time', Icon: Rocket },
     { value: '0', label: 'Code Required', Icon: Code },
     { value: '50+', label: 'Integrations', Icon: Network },
   ]
 
-  const feedHeader = demo?.feed_header || 'Live: AI Agent Teams Executing Work Right Now'
+  const feedHeader = demo?.feed_header || 'Live: AI Agents Automating Work Right Now'
   const seedEvents = (demo?.seed_events ?? [
-    { agent: 'Sales-Outreach-Team', action: 'Sent 89 personalized emails, scheduled 23 follow-ups, synced to CRM', status: 'done' as const, ts: '1m ago' },
-    { agent: 'Lead-Qualification-Agent', action: 'Scored 34 new leads, routed 12 hot prospects to sales team', status: 'running' as const, ts: 'now' },
-    { agent: 'Customer-Support-Team', action: 'Triaged 47 tickets, auto-resolved 31, escalated 16 to human team', status: 'done' as const, ts: '3m ago' },
-    { agent: 'CRM-Data-Sync-Agent', action: 'Updated 156 contacts across Salesforce and HubSpot, enriched with LinkedIn', status: 'done' as const, ts: '4m ago' },
-    { agent: 'Meeting-Coordinator-Agent', action: 'Booked 8 demos, sent calendar invites, prepared meeting briefs', status: 'running' as const, ts: 'now' },
+    { agent: 'Sales-Outreach-Agent', action: 'Sent 89 personalized emails, scheduled 23 follow-ups, updated CRM', status: 'done' as const, ts: '1m ago' },
+    { agent: 'Lead-Qualification-Agent', action: 'Scored 34 leads, routed 12 hot prospects to sales team', status: 'running' as const, ts: 'now' },
+    { agent: 'Support-Triage-Agent', action: 'Processed 47 tickets, auto-resolved 31, escalated 16 to team', status: 'done' as const, ts: '3m ago' },
+    { agent: 'CRM-Sync-Agent', action: 'Updated 156 contacts across Salesforce and HubSpot', status: 'done' as const, ts: '4m ago' },
+    { agent: 'Meeting-Scheduler-Agent', action: 'Booked 8 demos, sent invites, prepared meeting briefs', status: 'running' as const, ts: 'now' },
   ]) as Omit<AgentEvent, 'id'>[]
   const rollingEvents = (demo?.rolling_events ?? [
     { agent: 'Email-Campaign-Agent', action: 'Drafting personalized sequences for 67 prospects', status: 'running' as const },
-    { agent: 'Onboarding-Automation-Team', action: 'Welcomed 9 new customers, scheduled kickoff calls, sent resources', status: 'done' as const },
-    { agent: 'Data-Entry-Agent', action: 'Synced 203 records across CRM, updated deal stages, logged activities', status: 'running' as const },
-    { agent: 'Follow-Up-Scheduler-Agent', action: 'Sent reminders to 41 prospects, logged responses in CRM', status: 'done' as const },
-    { agent: 'Report-Generation-Agent', action: 'Compiled weekly metrics dashboard, sent to leadership team', status: 'done' as const },
+    { agent: 'Onboarding-Agent', action: 'Welcomed 9 customers, scheduled kickoffs, sent resources', status: 'done' as const },
+    { agent: 'Data-Entry-Agent', action: 'Synced 203 records, updated deal stages, logged activities', status: 'running' as const },
+    { agent: 'Follow-Up-Agent', action: 'Sent reminders to 41 prospects, logged responses', status: 'done' as const },
+    { agent: 'Report-Agent', action: 'Generated weekly metrics, sent to leadership', status: 'done' as const },
   ]) as Omit<AgentEvent, 'id' | 'ts'>[]
 
   const integrationCategories = [
@@ -223,22 +230,13 @@ export function Hero({ siteConfig, agentCount = 0, toolCount = 0, onCtaClick, on
   ]
 
   const trustBadges = [
-    'Trusted by 10,000+ fast-moving teams',
-    'Deploy automation in 5 minutes',
-    'No-code AI for real work delegation',
-    'Built for founders who ship fast'
+    'No-code automation for real teams',
+    '5-minute setup, zero technical skills',
+    'Automate email, CRM, support instantly',
+    'Move faster without adding headcount'
   ]
 
   const coreValueProps = [
     { Icon: Zap, label: 'Ship Faster Without Scaling Headcount', description: 'Stop waiting on hiring, onboarding, and training. Deploy AI agent teams that execute work immediately—handling email campaigns, lead qualification, customer support, CRM updates, and data entry. Scale your operations at the speed of clicking "deploy," not the speed of recruiting' },
     { Icon: Network, label: 'Agents That Work Like Your Team', description: 'Not chatbots or simple automation—these are intelligent agents that collaborate, share context, and execute multi-step workflows across your entire tech stack. They handle the repetitive work that slows your team down, so humans focus on strategy, relationships, and high-value decisions' },
-    { Icon: Code, label: 'Zero Technical Overhead', description: 'No API configuration, no code, no developer time. Visual workflow builder lets anyone on your team create and deploy AI agents. Pre-built templates for common workflows get you started in seconds. Connect Gmail, Salesforce, Slack, and 50+ tools with one click—no IT team required' },
-  ]
-
-  const technicalBenefits = [
-    { Icon: Rocket, label: 'Rapid Deployment for Rapid Execution', description: 'Founders move fast—your automation should too. Deploy working AI agents in 5 minutes, not 5 weeks. Choose from ready-to-use templates or build custom workflows with drag-and-drop simplicity. Start delegating work immediately, iterate as you grow, scale without friction' },
-    { Icon: Users, label: 'Built for Team Collaboration', description: 'Multiple agents work together across departments—sales agents coordinate with support agents, onboarding agents sync with CRM agents. Everyone on your team can create, deploy, and manage agents without technical training. Share workflows, collaborate on automation, scale operations without adding headcount' },
-  ]
-
-  return (
-    <section className
+    { Icon: Code, label: 'Zero Technical Overhead', description:
